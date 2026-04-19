@@ -1,6 +1,6 @@
 import { apiGet } from "./client"
+import { API_BASE_URL } from "./config"
 
-const API_BASE_URL = "http://localhost:8080/api"
 const TOKEN_KEY = "camelyon_token"
 
 export type CompanyCostRubricResponse = {
