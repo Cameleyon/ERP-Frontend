@@ -282,7 +282,9 @@ export default function PlatformConsolePage() {
         manageCompanySubscription: "Gérer l'abonnement d'une entreprise",
         findSubscription: "Trouver un abonnement",
         searchByCompanyName: "Rechercher par nom d'entreprise",
-        searchSubscriptions: "Rechercher / lister",
+        searchSubscriptions: "Rechercher",
+        listAllSubscriptions: "Lister tout",
+        companyNamePlaceholder: "Nom de la compagnie",
         noSubscriptionsFound: "Aucun abonnement trouvé.",
         loadThisSubscription: "Charger",
         companyId: "ID entreprise",
@@ -404,7 +406,9 @@ export default function PlatformConsolePage() {
         manageCompanySubscription: "Manage a company subscription",
         findSubscription: "Find a subscription",
         searchByCompanyName: "Search by company name",
-        searchSubscriptions: "Search / list",
+        searchSubscriptions: "Search",
+        listAllSubscriptions: "List all",
+        companyNamePlaceholder: "Company name",
         noSubscriptionsFound: "No subscriptions found.",
         loadThisSubscription: "Load",
         companyId: "Company ID",
@@ -530,11 +534,19 @@ export default function PlatformConsolePage() {
 
   async function handleSearchSubscriptions(event?: React.FormEvent) {
     event?.preventDefault()
+    await loadSubscriptionResults(subscriptionSearch)
+  }
 
+  async function handleListAllSubscriptions() {
+    setSubscriptionSearch("")
+    await loadSubscriptionResults("")
+  }
+
+  async function loadSubscriptionResults(search: string) {
     try {
       setSubscriptionSearchLoading(true)
       setSubscriptionSearchError("")
-      const response = await searchCompanySubscriptions(subscriptionSearch)
+      const response = await searchCompanySubscriptions(search)
       setSubscriptionResults(response)
     } catch (err) {
       console.error(err)
@@ -960,10 +972,13 @@ export default function PlatformConsolePage() {
           <form className="platform-subscription-search" onSubmit={handleSearchSubscriptions}>
             <label className="platform-inline-field">
               {text.searchByCompanyName}
-              <input value={subscriptionSearch} onChange={(event) => setSubscriptionSearch(event.target.value)} placeholder="Cameleyon" />
+              <input value={subscriptionSearch} onChange={(event) => setSubscriptionSearch(event.target.value)} placeholder={text.companyNamePlaceholder} />
             </label>
             <button type="submit" disabled={subscriptionSearchLoading}>
-              {subscriptionSearchLoading ? text.loading : text.searchSubscriptions}
+              {text.searchSubscriptions}
+            </button>
+            <button type="button" className="secondary-button" onClick={handleListAllSubscriptions} disabled={subscriptionSearchLoading}>
+              {subscriptionSearchLoading ? text.loading : text.listAllSubscriptions}
             </button>
           </form>
 

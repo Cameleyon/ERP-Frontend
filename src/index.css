@@ -1044,7 +1044,7 @@ td {
 
 .platform-subscription-search {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 14px;
