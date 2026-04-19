@@ -10,6 +10,7 @@ import {
   getCompanySubscription,
   getCompanyUsers,
   getSubscriptionPlans,
+  searchCompanySubscriptions,
   suspendCompanySubscription,
   unsuspendCompanySubscription,
   type CompanySubscriptionResponse,
@@ -164,6 +165,10 @@ export default function PlatformConsolePage() {
   const [companySubmitting, setCompanySubmitting] = useState(false)
   const [actionLoading, setActionLoading] = useState("")
   const [companyLookupId, setCompanyLookupId] = useState("")
+  const [subscriptionSearch, setSubscriptionSearch] = useState("")
+  const [subscriptionResults, setSubscriptionResults] = useState<CompanySubscriptionResponse[]>([])
+  const [subscriptionSearchLoading, setSubscriptionSearchLoading] = useState(false)
+  const [subscriptionSearchError, setSubscriptionSearchError] = useState("")
   const [extensionDays, setExtensionDays] = useState("30")
   const [actionReason, setActionReason] = useState("")
   const [subscription, setSubscription] = useState<CompanySubscriptionResponse | null>(null)
@@ -190,6 +195,7 @@ export default function PlatformConsolePage() {
         userStatusSuccess: "Statut utilisateur mis à jour.",
         userStatusError: "Impossible de modifier le statut utilisateur",
         userCompanyRequired: "Chargez une entreprise avant d'ajouter un utilisateur.",
+        searchSubscriptionsError: "Impossible de charger la liste des abonnements",
         companyIdRequired: "Saisissez un ID entreprise pour charger un abonnement.",
         loadSubscriptionError: "Impossible de charger l'abonnement",
         extendMissing: "Chargez un abonnement avant de prolonger l'accès.",
@@ -203,7 +209,7 @@ export default function PlatformConsolePage() {
         unsuspendError: "Impossible de réactiver l'abonnement",
         platformConsole: "Console plateforme",
         platformManagement: "Gestion de la plateforme",
-        createCompany: "Créer une entreprise",
+        createManagedCompanyButton: "Créer l'entreprise",
         logout: "Déconnexion",
         companyUsers: "Utilisateurs de l'entreprise",
         addCompanyUser: "Ajouter un utilisateur",
@@ -217,6 +223,7 @@ export default function PlatformConsolePage() {
         noUsersYet: "Aucun utilisateur trouvé pour cette entreprise.",
         activate: "Activer",
         deactivate: "Désactiver",
+        status: "Statut",
         action: "Action",
         plans: "Plans",
         subscriptionCatalog: "Catalogue d'abonnement",
@@ -241,7 +248,7 @@ export default function PlatformConsolePage() {
         creating: "Création...",
         createPlan: "Créer le plan",
         onboarding: "Onboarding",
-        createManagedCompany: "Créer une entreprise gérée",
+        createManagedCompany: "Créer une entreprise",
         companyName: "Nom de l'entreprise",
         businessType: "Type d'activité",
         phone: "Téléphone",
@@ -273,6 +280,11 @@ export default function PlatformConsolePage() {
         notes: "Notes",
         control: "Contrôle",
         manageCompanySubscription: "Gérer l'abonnement d'une entreprise",
+        findSubscription: "Trouver un abonnement",
+        searchByCompanyName: "Rechercher par nom d'entreprise",
+        searchSubscriptions: "Rechercher / lister",
+        noSubscriptionsFound: "Aucun abonnement trouvé.",
+        loadThisSubscription: "Charger",
         companyId: "ID entreprise",
         loading: "Chargement...",
         loadSubscription: "Charger l'abonnement",
@@ -305,6 +317,7 @@ export default function PlatformConsolePage() {
         userStatusSuccess: "User status updated.",
         userStatusError: "Failed to update user status",
         userCompanyRequired: "Load a company before adding a user.",
+        searchSubscriptionsError: "Failed to load subscriptions",
         companyIdRequired: "Enter a company ID to load a subscription.",
         loadSubscriptionError: "Failed to load subscription",
         extendMissing: "Load a company subscription before extending access.",
@@ -318,7 +331,7 @@ export default function PlatformConsolePage() {
         unsuspendError: "Failed to reactivate subscription",
         platformConsole: "Platform Console",
         platformManagement: "Platform management",
-        createCompany: "Create a company",
+        createManagedCompanyButton: "Create company",
         logout: "Logout",
         companyUsers: "Company users",
         addCompanyUser: "Add a user",
@@ -332,6 +345,7 @@ export default function PlatformConsolePage() {
         noUsersYet: "No users found for this company.",
         activate: "Activate",
         deactivate: "Deactivate",
+        status: "Status",
         action: "Action",
         plans: "Plans",
         subscriptionCatalog: "Subscription catalog",
@@ -356,7 +370,7 @@ export default function PlatformConsolePage() {
         creating: "Creating...",
         createPlan: "Create plan",
         onboarding: "Onboarding",
-        createManagedCompany: "Create a managed company",
+        createManagedCompany: "Create a company",
         companyName: "Company name",
         businessType: "Business type",
         phone: "Phone",
@@ -388,6 +402,11 @@ export default function PlatformConsolePage() {
         notes: "Notes",
         control: "Control",
         manageCompanySubscription: "Manage a company subscription",
+        findSubscription: "Find a subscription",
+        searchByCompanyName: "Search by company name",
+        searchSubscriptions: "Search / list",
+        noSubscriptionsFound: "No subscriptions found.",
+        loadThisSubscription: "Load",
         companyId: "Company ID",
         loading: "Loading...",
         loadSubscription: "Load subscription",
@@ -509,6 +528,23 @@ export default function PlatformConsolePage() {
     }
   }
 
+  async function handleSearchSubscriptions(event?: React.FormEvent) {
+    event?.preventDefault()
+
+    try {
+      setSubscriptionSearchLoading(true)
+      setSubscriptionSearchError("")
+      const response = await searchCompanySubscriptions(subscriptionSearch)
+      setSubscriptionResults(response)
+    } catch (err) {
+      console.error(err)
+      setSubscriptionResults([])
+      setSubscriptionSearchError(err instanceof Error ? err.message : text.searchSubscriptionsError)
+    } finally {
+      setSubscriptionSearchLoading(false)
+    }
+  }
+
   async function loadCompanyUsers(companyId: number) {
     try {
       setUsersLoading(true)
@@ -531,6 +567,8 @@ export default function PlatformConsolePage() {
       setSubscriptionError(text.companyIdRequired)
       return
     }
+
+    setCompanyLookupId(String(companyId))
 
     try {
       setActionLoading("load")
@@ -902,7 +940,7 @@ export default function PlatformConsolePage() {
 
             <div className="form-actions full-width">
               <button type="submit" disabled={companySubmitting}>
-                {companySubmitting ? text.creating : text.createCompany}
+                {companySubmitting ? text.creating : text.createManagedCompanyButton}
               </button>
             </div>
           </form>
@@ -918,6 +956,50 @@ export default function PlatformConsolePage() {
 
           {subscriptionError && <div className="card error">{subscriptionError}</div>}
           {actionSuccess && <div className="card success">{actionSuccess}</div>}
+
+          <form className="platform-subscription-search" onSubmit={handleSearchSubscriptions}>
+            <label className="platform-inline-field">
+              {text.searchByCompanyName}
+              <input value={subscriptionSearch} onChange={(event) => setSubscriptionSearch(event.target.value)} placeholder="Cameleyon" />
+            </label>
+            <button type="submit" disabled={subscriptionSearchLoading}>
+              {subscriptionSearchLoading ? text.loading : text.searchSubscriptions}
+            </button>
+          </form>
+
+          {subscriptionSearchError && <div className="card error">{subscriptionSearchError}</div>}
+          {subscriptionResults.length > 0 ? (
+            <div className="platform-subscription-results">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{text.companyId}</th>
+                    <th>{text.companyName}</th>
+                    <th>{text.plan}</th>
+                    <th>{text.status}</th>
+                    <th>{text.action}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriptionResults.map((result) => (
+                    <tr key={result.companyId}>
+                      <td>{result.companyId}</td>
+                      <td>{result.companyName}</td>
+                      <td>{result.planCode} - {result.planName}</td>
+                      <td>{result.status}</td>
+                      <td>
+                        <button type="button" onClick={() => handleLoadSubscription(result.companyId)}>
+                          {text.loadThisSubscription}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : subscriptionSearchLoading ? null : (
+            subscriptionSearch && <div className="platform-empty-state">{text.noSubscriptionsFound}</div>
+          )}
 
           <div className="platform-inline-actions">
             <label className="platform-inline-field">
@@ -996,102 +1078,105 @@ export default function PlatformConsolePage() {
                 </div>
               )}
 
-              <div className="platform-user-panel">
-                <div className="section-heading">
-                  <div>
-                    <p className="eyebrow">{text.control}</p>
-                    <h2>{text.companyUsers}</h2>
-                  </div>
-                  <button type="button" className="secondary-button" onClick={() => loadCompanyUsers(subscription.companyId)} disabled={usersLoading}>
-                    {usersLoading ? text.refreshing : text.refresh}
-                  </button>
-                </div>
-
-                {usersError && <div className="card error">{usersError}</div>}
-                {userSuccess && <div className="card success">{userSuccess}</div>}
-
-                <form className="platform-form-grid" onSubmit={handleCreateCompanyUser}>
-                  <label>
-                    {text.userFirstName}
-                    <input value={companyUserForm.firstName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, firstName: event.target.value }))} />
-                  </label>
-                  <label>
-                    {text.userLastName}
-                    <input value={companyUserForm.lastName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, lastName: event.target.value }))} />
-                  </label>
-                  <label>
-                    {text.userEmail}
-                    <input type="email" value={companyUserForm.email} onChange={(event) => setCompanyUserForm((current) => ({ ...current, email: event.target.value }))} />
-                  </label>
-                  <label>
-                    {text.userPassword}
-                    <input type="password" value={companyUserForm.password} onChange={(event) => setCompanyUserForm((current) => ({ ...current, password: event.target.value }))} />
-                  </label>
-                  <label>
-                    {text.userRole}
-                    <select value={companyUserForm.role} onChange={(event) => setCompanyUserForm((current) => ({ ...current, role: event.target.value as CompanyUserFormState["role"] }))}>
-                      <option value="ADMIN">Admin</option>
-                      <option value="CASHIER">Cashier</option>
-                    </select>
-                  </label>
-                  <div className="form-actions full-width">
-                    <button type="submit" disabled={userSubmitting}>
-                      {userSubmitting ? text.adding : text.addUser}
-                    </button>
-                  </div>
-                </form>
-
-                <div className="platform-users-table">
-                  {usersLoading ? (
-                    <div className="platform-empty-state">{text.loading}</div>
-                  ) : companyUsers.length === 0 ? (
-                    <div className="platform-empty-state">{text.noUsersYet}</div>
-                  ) : (
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>{text.userFirstName}</th>
-                          <th>{text.userLastName}</th>
-                          <th>{text.userEmail}</th>
-                          <th>{text.userRole}</th>
-                          <th>{text.active}</th>
-                          <th>{text.action}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {companyUsers.map((companyUser) => {
-                          const loadingKey = `${companyUser.active ? "deactivate" : "activate"}-${companyUser.id}`
-
-                          return (
-                            <tr key={companyUser.id}>
-                              <td>{companyUser.firstName}</td>
-                              <td>{companyUser.lastName}</td>
-                              <td>{companyUser.email}</td>
-                              <td>{companyUser.role}</td>
-                              <td>{companyUser.active ? text.yes : text.no}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className={companyUser.active ? "secondary-button" : undefined}
-                                  onClick={() => handleCompanyUserStatus(companyUser.id, !companyUser.active)}
-                                  disabled={userActionLoading === loadingKey}
-                                >
-                                  {companyUser.active ? text.deactivate : text.activate}
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
             </div>
           ) : (
             <div className="platform-empty-state">
               {text.emptySubscription}
             </div>
+          )}
+
+          {subscription && (
+          <div className="platform-user-panel">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{text.control}</p>
+                <h2>{text.companyUsers}</h2>
+              </div>
+              <button type="button" className="secondary-button" onClick={() => loadCompanyUsers(subscription.companyId)} disabled={usersLoading}>
+                {usersLoading ? text.refreshing : text.refresh}
+              </button>
+            </div>
+
+            {usersError && <div className="card error">{usersError}</div>}
+            {userSuccess && <div className="card success">{userSuccess}</div>}
+
+            <form className="platform-form-grid" onSubmit={handleCreateCompanyUser}>
+              <label>
+                {text.userFirstName}
+                <input value={companyUserForm.firstName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, firstName: event.target.value }))} />
+              </label>
+              <label>
+                {text.userLastName}
+                <input value={companyUserForm.lastName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, lastName: event.target.value }))} />
+              </label>
+              <label>
+                {text.userEmail}
+                <input type="email" value={companyUserForm.email} onChange={(event) => setCompanyUserForm((current) => ({ ...current, email: event.target.value }))} />
+              </label>
+              <label>
+                {text.userPassword}
+                <input type="password" value={companyUserForm.password} onChange={(event) => setCompanyUserForm((current) => ({ ...current, password: event.target.value }))} />
+              </label>
+              <label>
+                {text.userRole}
+                <select value={companyUserForm.role} onChange={(event) => setCompanyUserForm((current) => ({ ...current, role: event.target.value as CompanyUserFormState["role"] }))}>
+                  <option value="ADMIN">Admin</option>
+                  <option value="CASHIER">Cashier</option>
+                </select>
+              </label>
+              <div className="form-actions full-width">
+                <button type="submit" disabled={userSubmitting}>
+                  {userSubmitting ? text.adding : text.addUser}
+                </button>
+              </div>
+            </form>
+
+            <div className="platform-users-table">
+              {usersLoading ? (
+                <div className="platform-empty-state">{text.loading}</div>
+              ) : companyUsers.length === 0 ? (
+                <div className="platform-empty-state">{text.noUsersYet}</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{text.userFirstName}</th>
+                      <th>{text.userLastName}</th>
+                      <th>{text.userEmail}</th>
+                      <th>{text.userRole}</th>
+                      <th>{text.active}</th>
+                      <th>{text.action}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {companyUsers.map((companyUser) => {
+                      const loadingKey = `${companyUser.active ? "deactivate" : "activate"}-${companyUser.id}`
+
+                      return (
+                        <tr key={companyUser.id}>
+                          <td>{companyUser.firstName}</td>
+                          <td>{companyUser.lastName}</td>
+                          <td>{companyUser.email}</td>
+                          <td>{companyUser.role}</td>
+                          <td>{companyUser.active ? text.yes : text.no}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className={companyUser.active ? "secondary-button" : undefined}
+                              onClick={() => handleCompanyUserStatus(companyUser.id, !companyUser.active)}
+                              disabled={userActionLoading === loadingKey}
+                            >
+                              {companyUser.active ? text.deactivate : text.activate}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
           )}
         </article>
       </section>

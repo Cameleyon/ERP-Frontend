@@ -128,6 +128,11 @@ export function getCompanySubscription(companyId: number) {
   return apiGet<CompanySubscriptionResponse>(`/admin/companies/${companyId}/subscription`)
 }
 
+export function searchCompanySubscriptions(search?: string) {
+  const query = search?.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""
+  return apiGet<CompanySubscriptionResponse[]>(`/admin/companies/subscriptions${query}`)
+}
+
 export function extendCompanyAccess(companyId: number, payload: ExtendAccessRequest) {
   return apiPost<CompanySubscriptionResponse, ExtendAccessRequest>(
     `/admin/companies/${companyId}/extend-access`,

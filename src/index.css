@@ -1042,6 +1042,19 @@ td {
   width: 100%;
 }
 
+.platform-subscription-search {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.platform-subscription-results {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
 .platform-subscription-panel {
   margin-top: 18px;
   display: grid;
@@ -1284,6 +1297,7 @@ body.invoice-printing .sidebar-overlay {
   .platform-hero,
   .platform-section-grid,
   .platform-metrics,
+  .platform-subscription-search,
   .public-hero-highlights,
   .platform-form-grid {
     grid-template-columns: 1fr !important;
