@@ -144,14 +144,12 @@ export default function Sidebar({
               {copy.common.logout}
             </button>
 
-            {isAdmin && (
-              <button
-                className={`sidebar-button sidebar-footer-button ${page === "profile" ? "active" : ""}`}
-                onClick={() => onNavigate("profile")}
-              >
-                {copy.common.profile}
-              </button>
-            )}
+            <button
+              className={`sidebar-button sidebar-footer-button ${page === "profile" ? "active" : ""}`}
+              onClick={() => onNavigate("profile")}
+            >
+              {copy.common.profile}
+            </button>
           </div>
 
           <div className="sidebar-product-name">

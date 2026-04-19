@@ -22,6 +22,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import StripePaymentMethodForm from "../components/billing/StripePaymentMethodForm"
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
+import { changePassword } from "../api/userAccountApi"
 
 type FormState = {
   name: string
@@ -32,6 +33,12 @@ type FormState = {
   currencyCode: string
 }
 
+type PasswordFormState = {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 const emptyForm: FormState = {
   name: "",
   businessType: "",
@@ -39,6 +46,12 @@ const emptyForm: FormState = {
   email: "",
   address: "",
   currencyCode: "CAD",
+}
+
+const emptyPasswordForm: PasswordFormState = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
 }
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -61,13 +74,15 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
 }
 
 export default function ProfilePage() {
-  const { refreshUser } = useAuth()
+  const { refreshUser, user } = useAuth()
   const { language } = useI18n()
+  const isAdmin = user?.role === "ADMIN"
   const [profile, setProfile] = useState<CompanyProfileResponse | null>(null)
   const [subscription, setSubscription] = useState<CompanySubscriptionResponse | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodSummaryResponse | null>(null)
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
@@ -90,6 +105,22 @@ export default function ProfilePage() {
         refreshPaymentSuccess: "La méthode de paiement a été mise à jour avec succès",
         title: "Profil",
         loading: "Chargement du profil...",
+        companyLabel: "Entreprise",
+        userProfile: "Profil utilisateur",
+        firstName: "Prenom",
+        lastName: "Nom",
+        role: "Role",
+        password: "Mot de passe",
+        hiddenPassword: "********",
+        changePassword: "Changer le mot de passe",
+        currentPassword: "Mot de passe actuel",
+        newPassword: "Nouveau mot de passe",
+        confirmPassword: "Confirmer le mot de passe",
+        passwordRequired: "Tous les champs de mot de passe sont requis",
+        passwordMismatch: "Les nouveaux mots de passe ne correspondent pas",
+        passwordTooShort: "Le nouveau mot de passe doit contenir au moins 8 caracteres",
+        passwordSuccess: "Mot de passe mis a jour avec succes",
+        passwordError: "Echec du changement de mot de passe",
         companyInfo: "Informations de l'entreprise",
         editProfile: "Modifier le profil",
         companyId: "ID entreprise",
@@ -150,6 +181,22 @@ export default function ProfilePage() {
         refreshPaymentSuccess: "Payment method updated successfully",
         title: "Profile",
         loading: "Loading profile...",
+        companyLabel: "Company",
+        userProfile: "User profile",
+        firstName: "First name",
+        lastName: "Last name",
+        role: "Role",
+        password: "Password",
+        hiddenPassword: "********",
+        changePassword: "Change password",
+        currentPassword: "Current password",
+        newPassword: "New password",
+        confirmPassword: "Confirm password",
+        passwordRequired: "All password fields are required",
+        passwordMismatch: "The new passwords do not match",
+        passwordTooShort: "The new password must be at least 8 characters",
+        passwordSuccess: "Password updated successfully",
+        passwordError: "Failed to change password",
         companyInfo: "Company information",
         editProfile: "Edit profile",
         companyId: "Company ID",
@@ -222,6 +269,15 @@ export default function ProfilePage() {
       setLoading(true)
       setError("")
 
+      if (!isAdmin) {
+        setProfile(null)
+        setSubscription(null)
+        setPaymentMethod(null)
+        setForm(emptyForm)
+        setIsEditing(false)
+        return
+      }
+
       const [profileData, subscriptionData] = await Promise.all([
         getCompanyProfile(),
         getCompanySubscription(),
@@ -252,6 +308,10 @@ export default function ProfilePage() {
 
   function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function updatePasswordForm<K extends keyof PasswordFormState>(key: K, value: PasswordFormState[K]) {
+    setPasswordForm((prev) => ({ ...prev, [key]: value }))
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -300,6 +360,48 @@ export default function ProfilePage() {
     setError("")
     setSuccess("")
     setIsEditing(false)
+  }
+
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (
+      !passwordForm.currentPassword.trim() ||
+      !passwordForm.newPassword.trim() ||
+      !passwordForm.confirmPassword.trim()
+    ) {
+      setError(text.passwordRequired)
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setError(text.passwordMismatch)
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      setError(text.passwordTooShort)
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError("")
+      setSuccess("")
+
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      })
+
+      setPasswordForm(emptyPasswordForm)
+      setSuccess(text.passwordSuccess)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.passwordError)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handlePrepareCardSetup() {
@@ -396,6 +498,62 @@ export default function ProfilePage() {
         </div>
       ) : (
         <>
+          <div className="card">
+            <h3>{text.companyLabel}</h3>
+            <div className="detail-grid">
+              <p><strong>{text.companyName}:</strong> {user?.companyName || "-"}</p>
+              <p><strong>{text.companyId}:</strong> {user?.companyId || "-"}</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>{text.userProfile}</h3>
+            <div className="detail-grid">
+              <p><strong>{text.firstName}:</strong> {user?.firstName || "-"}</p>
+              <p><strong>{text.lastName}:</strong> {user?.lastName || "-"}</p>
+              <p><strong>{text.email}:</strong> {user?.email || "-"}</p>
+              <p><strong>{text.role}:</strong> {user?.role || "-"}</p>
+              <p><strong>{text.password}:</strong> {text.hiddenPassword}</p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="product-form-grid" style={{ marginTop: 16 }}>
+              <label>
+                {text.currentPassword}
+                <input
+                  type="password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => updatePasswordForm("currentPassword", e.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.newPassword}
+                <input
+                  type="password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => updatePasswordForm("newPassword", e.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.confirmPassword}
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => updatePasswordForm("confirmPassword", e.target.value)}
+                />
+              </label>
+
+              <div className="form-actions full-width">
+                <button type="submit" disabled={saving}>
+                  {saving ? text.saving : text.changePassword}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {isAdmin && (
+            <>
           <div className="card">
             <div className="table-actions" style={{ marginBottom: 16, justifyContent: "space-between" }}>
               <h3 style={{ margin: 0 }}>{text.companyInfo}</h3>
@@ -610,6 +768,8 @@ export default function ProfilePage() {
               </>
             )}
           </div>
+            </>
+          )}
         </>
       )}
     </div>

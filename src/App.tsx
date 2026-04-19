@@ -93,7 +93,7 @@ function AppContent() {
         {safePage === "sales-history" && <SalesHistoryPage />}
         {safePage === "inventory" && isAdmin && <InventoryPage />}
         {safePage === "inventory-receipt" && isAdmin && <InventoryReceiptPage />}
-        {safePage === "profile" && isAdmin && <ProfilePage />}
+        {safePage === "profile" && <ProfilePage />}
       </AppLayout>
   )
 }
