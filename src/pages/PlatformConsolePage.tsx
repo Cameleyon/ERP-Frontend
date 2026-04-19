@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "../auth/AuthContext"
 import {
+  activateCompanyUser,
   createManagedCompany,
+  createCompanyUser,
   createSubscriptionPlan,
+  deactivateCompanyUser,
   extendCompanyAccess,
   getCompanySubscription,
+  getCompanyUsers,
   getSubscriptionPlans,
   suspendCompanySubscription,
   unsuspendCompanySubscription,
   type CompanySubscriptionResponse,
+  type CompanyUserResponse,
+  type CreateCompanyUserRequest,
   type CreateManagedCompanyRequest,
   type CreateSubscriptionPlanRequest,
   type SubscriptionPlanResponse,
@@ -48,6 +54,14 @@ type CompanyFormState = {
   autoRenew: boolean
   requiresPaymentMethod: boolean
   notes: string
+}
+
+type CompanyUserFormState = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  role: "ADMIN" | "CASHIER"
 }
 
 function createDefaultPlanForm(): PlanFormState {
@@ -98,6 +112,16 @@ function createDefaultCompanyForm(): CompanyFormState {
   }
 }
 
+function createDefaultCompanyUserForm(): CompanyUserFormState {
+  return {
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    role: "CASHIER",
+  }
+}
+
 function toOptionalString(value: string) {
   const trimmed = value.trim()
   return trimmed ? trimmed : undefined
@@ -143,8 +167,15 @@ export default function PlatformConsolePage() {
   const [extensionDays, setExtensionDays] = useState("30")
   const [actionReason, setActionReason] = useState("")
   const [subscription, setSubscription] = useState<CompanySubscriptionResponse | null>(null)
+  const [companyUsers, setCompanyUsers] = useState<CompanyUserResponse[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState("")
+  const [userSuccess, setUserSuccess] = useState("")
+  const [userSubmitting, setUserSubmitting] = useState(false)
+  const [userActionLoading, setUserActionLoading] = useState("")
   const [planForm, setPlanForm] = useState<PlanFormState>(createDefaultPlanForm)
   const [companyForm, setCompanyForm] = useState<CompanyFormState>(createDefaultCompanyForm)
+  const [companyUserForm, setCompanyUserForm] = useState<CompanyUserFormState>(createDefaultCompanyUserForm)
 
   const text = language === "fr"
     ? {
@@ -153,6 +184,12 @@ export default function PlatformConsolePage() {
         createPlanError: "Impossible de créer le plan",
         createCompanySuccess: (id: number) => `Entreprise créée avec succès avec l'ID ${id}.`,
         createCompanyError: "Impossible de créer l'entreprise",
+        loadUsersError: "Impossible de charger les utilisateurs de l'entreprise",
+        createUserSuccess: "Utilisateur créé avec succès.",
+        createUserError: "Impossible de créer l'utilisateur",
+        userStatusSuccess: "Statut utilisateur mis à jour.",
+        userStatusError: "Impossible de modifier le statut utilisateur",
+        userCompanyRequired: "Chargez une entreprise avant d'ajouter un utilisateur.",
         companyIdRequired: "Saisissez un ID entreprise pour charger un abonnement.",
         loadSubscriptionError: "Impossible de charger l'abonnement",
         extendMissing: "Chargez un abonnement avant de prolonger l'accès.",
@@ -168,6 +205,19 @@ export default function PlatformConsolePage() {
         platformManagement: "Gestion de la plateforme",
         createCompany: "Créer une entreprise",
         logout: "Déconnexion",
+        companyUsers: "Utilisateurs de l'entreprise",
+        addCompanyUser: "Ajouter un utilisateur",
+        userFirstName: "Prénom",
+        userLastName: "Nom",
+        userEmail: "Email",
+        userPassword: "Mot de passe",
+        userRole: "Rôle",
+        adding: "Ajout...",
+        addUser: "Ajouter l'utilisateur",
+        noUsersYet: "Aucun utilisateur trouvé pour cette entreprise.",
+        activate: "Activer",
+        deactivate: "Désactiver",
+        action: "Action",
         plans: "Plans",
         subscriptionCatalog: "Catalogue d'abonnement",
         refreshing: "Actualisation...",
@@ -249,6 +299,12 @@ export default function PlatformConsolePage() {
         createPlanError: "Failed to create plan",
         createCompanySuccess: (id: number) => `Company created successfully with company ID ${id}.`,
         createCompanyError: "Failed to create company",
+        loadUsersError: "Failed to load company users",
+        createUserSuccess: "User created successfully.",
+        createUserError: "Failed to create user",
+        userStatusSuccess: "User status updated.",
+        userStatusError: "Failed to update user status",
+        userCompanyRequired: "Load a company before adding a user.",
         companyIdRequired: "Enter a company ID to load a subscription.",
         loadSubscriptionError: "Failed to load subscription",
         extendMissing: "Load a company subscription before extending access.",
@@ -264,6 +320,19 @@ export default function PlatformConsolePage() {
         platformManagement: "Platform management",
         createCompany: "Create a company",
         logout: "Logout",
+        companyUsers: "Company users",
+        addCompanyUser: "Add a user",
+        userFirstName: "First name",
+        userLastName: "Last name",
+        userEmail: "Email",
+        userPassword: "Password",
+        userRole: "Role",
+        adding: "Adding...",
+        addUser: "Add user",
+        noUsersYet: "No users found for this company.",
+        activate: "Activate",
+        deactivate: "Deactivate",
+        action: "Action",
         plans: "Plans",
         subscriptionCatalog: "Subscription catalog",
         refreshing: "Refreshing...",
@@ -440,6 +509,21 @@ export default function PlatformConsolePage() {
     }
   }
 
+  async function loadCompanyUsers(companyId: number) {
+    try {
+      setUsersLoading(true)
+      setUsersError("")
+      const response = await getCompanyUsers(companyId)
+      setCompanyUsers(response)
+    } catch (err) {
+      console.error(err)
+      setCompanyUsers([])
+      setUsersError(err instanceof Error ? err.message : text.loadUsersError)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
   async function handleLoadSubscription(companyIdOverride?: number) {
     const companyId = companyIdOverride ?? Number(companyLookupId)
 
@@ -454,12 +538,68 @@ export default function PlatformConsolePage() {
       setSubscriptionError("")
       const response = await getCompanySubscription(companyId)
       setSubscription(response)
+      await loadCompanyUsers(companyId)
     } catch (err) {
       console.error(err)
       setSubscription(null)
+      setCompanyUsers([])
       setSubscriptionError(err instanceof Error ? err.message : text.loadSubscriptionError)
     } finally {
       setActionLoading("")
+    }
+  }
+
+  async function handleCreateCompanyUser(event: React.FormEvent) {
+    event.preventDefault()
+
+    const companyId = subscription?.companyId ?? Number(companyLookupId)
+    if (!companyId) {
+      setUsersError(text.userCompanyRequired)
+      return
+    }
+
+    try {
+      setUserSubmitting(true)
+      setUsersError("")
+      setUserSuccess("")
+
+      const payload: CreateCompanyUserRequest = {
+        firstName: companyUserForm.firstName.trim(),
+        lastName: companyUserForm.lastName.trim(),
+        email: companyUserForm.email.trim(),
+        password: companyUserForm.password,
+        role: companyUserForm.role,
+      }
+
+      await createCompanyUser(companyId, payload)
+      setCompanyUserForm(createDefaultCompanyUserForm())
+      setUserSuccess(text.createUserSuccess)
+      await loadCompanyUsers(companyId)
+    } catch (err) {
+      console.error(err)
+      setUsersError(err instanceof Error ? err.message : text.createUserError)
+    } finally {
+      setUserSubmitting(false)
+    }
+  }
+
+  async function handleCompanyUserStatus(userId: number, active: boolean) {
+    try {
+      setUserActionLoading(`${active ? "activate" : "deactivate"}-${userId}`)
+      setUsersError("")
+      setUserSuccess("")
+
+      const response = active
+        ? await activateCompanyUser(userId)
+        : await deactivateCompanyUser(userId)
+
+      setCompanyUsers((current) => current.map((user) => (user.id === userId ? response : user)))
+      setUserSuccess(text.userStatusSuccess)
+    } catch (err) {
+      console.error(err)
+      setUsersError(err instanceof Error ? err.message : text.userStatusError)
+    } finally {
+      setUserActionLoading("")
     }
   }
 
@@ -545,9 +685,6 @@ export default function PlatformConsolePage() {
         </div>
 
         <div className="platform-toolbar-actions">
-          <button type="button" onClick={() => window.scrollTo({ top: 520, behavior: "smooth" })}>
-            {text.createCompany}
-          </button>
           <button type="button" className="secondary-button" onClick={logoutUser}>
             {text.logout}
           </button>
@@ -858,6 +995,98 @@ export default function PlatformConsolePage() {
                   <pre>{subscription.notes}</pre>
                 </div>
               )}
+
+              <div className="platform-user-panel">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">{text.control}</p>
+                    <h2>{text.companyUsers}</h2>
+                  </div>
+                  <button type="button" className="secondary-button" onClick={() => loadCompanyUsers(subscription.companyId)} disabled={usersLoading}>
+                    {usersLoading ? text.refreshing : text.refresh}
+                  </button>
+                </div>
+
+                {usersError && <div className="card error">{usersError}</div>}
+                {userSuccess && <div className="card success">{userSuccess}</div>}
+
+                <form className="platform-form-grid" onSubmit={handleCreateCompanyUser}>
+                  <label>
+                    {text.userFirstName}
+                    <input value={companyUserForm.firstName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, firstName: event.target.value }))} />
+                  </label>
+                  <label>
+                    {text.userLastName}
+                    <input value={companyUserForm.lastName} onChange={(event) => setCompanyUserForm((current) => ({ ...current, lastName: event.target.value }))} />
+                  </label>
+                  <label>
+                    {text.userEmail}
+                    <input type="email" value={companyUserForm.email} onChange={(event) => setCompanyUserForm((current) => ({ ...current, email: event.target.value }))} />
+                  </label>
+                  <label>
+                    {text.userPassword}
+                    <input type="password" value={companyUserForm.password} onChange={(event) => setCompanyUserForm((current) => ({ ...current, password: event.target.value }))} />
+                  </label>
+                  <label>
+                    {text.userRole}
+                    <select value={companyUserForm.role} onChange={(event) => setCompanyUserForm((current) => ({ ...current, role: event.target.value as CompanyUserFormState["role"] }))}>
+                      <option value="ADMIN">Admin</option>
+                      <option value="CASHIER">Cashier</option>
+                    </select>
+                  </label>
+                  <div className="form-actions full-width">
+                    <button type="submit" disabled={userSubmitting}>
+                      {userSubmitting ? text.adding : text.addUser}
+                    </button>
+                  </div>
+                </form>
+
+                <div className="platform-users-table">
+                  {usersLoading ? (
+                    <div className="platform-empty-state">{text.loading}</div>
+                  ) : companyUsers.length === 0 ? (
+                    <div className="platform-empty-state">{text.noUsersYet}</div>
+                  ) : (
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>{text.userFirstName}</th>
+                          <th>{text.userLastName}</th>
+                          <th>{text.userEmail}</th>
+                          <th>{text.userRole}</th>
+                          <th>{text.active}</th>
+                          <th>{text.action}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {companyUsers.map((companyUser) => {
+                          const loadingKey = `${companyUser.active ? "deactivate" : "activate"}-${companyUser.id}`
+
+                          return (
+                            <tr key={companyUser.id}>
+                              <td>{companyUser.firstName}</td>
+                              <td>{companyUser.lastName}</td>
+                              <td>{companyUser.email}</td>
+                              <td>{companyUser.role}</td>
+                              <td>{companyUser.active ? text.yes : text.no}</td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className={companyUser.active ? "secondary-button" : undefined}
+                                  onClick={() => handleCompanyUserStatus(companyUser.id, !companyUser.active)}
+                                  disabled={userActionLoading === loadingKey}
+                                >
+                                  {companyUser.active ? text.deactivate : text.activate}
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="platform-empty-state">

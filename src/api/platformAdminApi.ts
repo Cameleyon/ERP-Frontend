@@ -91,6 +91,24 @@ export type SubscriptionActionRequest = {
   reason?: string
 }
 
+export type CompanyUserResponse = {
+  id: number
+  companyId: number
+  firstName: string
+  lastName: string
+  email: string
+  role: "ADMIN" | "CASHIER" | string
+  active: boolean
+}
+
+export type CreateCompanyUserRequest = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  role: "ADMIN" | "CASHIER"
+}
+
 export function getSubscriptionPlans() {
   return apiGet<SubscriptionPlanResponse[]>("/admin/subscription-plans")
 }
@@ -135,4 +153,23 @@ export function unsuspendCompanySubscription(
     `/admin/companies/${companyId}/unsuspend`,
     payload
   )
+}
+
+export function getCompanyUsers(companyId: number) {
+  return apiGet<CompanyUserResponse[]>(`/admin/companies/${companyId}/users`)
+}
+
+export function createCompanyUser(companyId: number, payload: CreateCompanyUserRequest) {
+  return apiPost<CompanyUserResponse, CreateCompanyUserRequest>(
+    `/admin/companies/${companyId}/users`,
+    payload
+  )
+}
+
+export function activateCompanyUser(userId: number) {
+  return apiPost<CompanyUserResponse, undefined>(`/admin/users/${userId}/activate`)
+}
+
+export function deactivateCompanyUser(userId: number) {
+  return apiPost<CompanyUserResponse, undefined>(`/admin/users/${userId}/deactivate`)
 }

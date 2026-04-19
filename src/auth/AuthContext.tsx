@@ -15,6 +15,8 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const TOKEN_KEY = "camelyon_token"
+const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000
+const ACTIVITY_EVENTS = ["click", "keydown", "mousedown", "mousemove", "scroll", "touchstart"] as const
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUserResponse | null>(null)
@@ -31,6 +33,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     restoreSession()
+  }, [token])
+
+  useEffect(() => {
+    if (!token) {
+      return
+    }
+
+    let timeoutId = window.setTimeout(logoutUser, SESSION_IDLE_TIMEOUT_MS)
+
+    function resetIdleTimer() {
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(logoutUser, SESSION_IDLE_TIMEOUT_MS)
+    }
+
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, resetIdleTimer, { passive: true })
+    })
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, resetIdleTimer)
+      })
+    }
   }, [token])
 
   async function loginUser(payload: LoginRequest) {

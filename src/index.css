@@ -945,7 +945,7 @@ td {
 
 .platform-toolbar h1 {
   margin: 8px 0 0;
-  font-size: 20px;
+  font-size: 24px;
 }
 
 .login-card h1,
@@ -1002,6 +1002,10 @@ td {
 .platform-section-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 20px;
+}
+
+.platform-page .section-heading h2 {
+  font-size: 19px;
 }
 
 .platform-plan-grid {
@@ -1066,6 +1070,18 @@ td {
   border-radius: 18px;
   padding: 18px;
   background: rgba(4, 73, 117, 0.06);
+}
+
+.platform-user-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(4, 73, 117, 0.12);
+}
+
+.platform-users-table {
+  overflow-x: auto;
 }
 
 .printable-invoice {
