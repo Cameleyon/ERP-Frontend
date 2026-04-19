@@ -9,6 +9,7 @@ type AuthContextType = {
   loginUser: (payload: LoginRequest) => Promise<void>
   logoutUser: () => void
   refreshUser: () => Promise<void>
+  applySession: (session: { token: string; user: AuthenticatedUserResponse }) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -45,6 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }
 
+  function applySession(session: { token: string; user: AuthenticatedUserResponse }) {
+    localStorage.setItem(TOKEN_KEY, session.token)
+    setToken(session.token)
+    setUser(session.user)
+  }
+
   async function refreshUser() {
     if (!token) {
       setUser(null)
@@ -72,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loginUser,
       logoutUser,
       refreshUser,
+      applySession,
     }),
     [user, token, isLoading]
   )

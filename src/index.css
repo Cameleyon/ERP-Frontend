@@ -292,6 +292,49 @@ td {
   margin-bottom: 16px;
 }
 
+.profile-edit-list {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-edit-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.profile-edit-row:last-child {
+  border-bottom: 0;
+}
+
+.profile-edit-content {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+
+.profile-edit-content strong {
+  color: #111111;
+}
+
+.profile-edit-content span {
+  color: #111111;
+}
+
+.profile-edit-content input {
+  max-width: 360px;
+}
+
+.profile-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .inventory-form-grid,
 .product-form-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

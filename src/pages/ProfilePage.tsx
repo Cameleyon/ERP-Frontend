@@ -22,7 +22,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import StripePaymentMethodForm from "../components/billing/StripePaymentMethodForm"
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
-import { changePassword } from "../api/userAccountApi"
+import { changePassword, updateUserProfile } from "../api/userAccountApi"
 
 type FormState = {
   name: string
@@ -39,6 +39,15 @@ type PasswordFormState = {
   confirmPassword: string
 }
 
+type UserProfileFormState = {
+  firstName: string
+  lastName: string
+  email: string
+  currentPassword: string
+}
+
+type EditableUserField = "firstName" | "lastName" | "email" | "password" | null
+
 const emptyForm: FormState = {
   name: "",
   businessType: "",
@@ -52,6 +61,13 @@ const emptyPasswordForm: PasswordFormState = {
   currentPassword: "",
   newPassword: "",
   confirmPassword: "",
+}
+
+const emptyUserProfileForm: UserProfileFormState = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  currentPassword: "",
 }
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -74,7 +90,7 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
 }
 
 export default function ProfilePage() {
-  const { refreshUser, user } = useAuth()
+  const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
   const [profile, setProfile] = useState<CompanyProfileResponse | null>(null)
@@ -83,6 +99,8 @@ export default function ProfilePage() {
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm)
+  const [userForm, setUserForm] = useState<UserProfileFormState>(emptyUserProfileForm)
+  const [editingUserField, setEditingUserField] = useState<EditableUserField>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
@@ -112,6 +130,7 @@ export default function ProfilePage() {
         role: "Role",
         password: "Mot de passe",
         hiddenPassword: "********",
+        edit: "Modifier",
         changePassword: "Changer le mot de passe",
         currentPassword: "Mot de passe actuel",
         newPassword: "Nouveau mot de passe",
@@ -121,6 +140,9 @@ export default function ProfilePage() {
         passwordTooShort: "Le nouveau mot de passe doit contenir au moins 8 caracteres",
         passwordSuccess: "Mot de passe mis a jour avec succes",
         passwordError: "Echec du changement de mot de passe",
+        userProfileSuccess: "Profil utilisateur mis a jour avec succes",
+        userProfileError: "Echec de la mise a jour du profil utilisateur",
+        emailPasswordRequired: "Le mot de passe actuel est requis pour changer l'email",
         companyInfo: "Informations de l'entreprise",
         editProfile: "Modifier le profil",
         companyId: "ID entreprise",
@@ -188,6 +210,7 @@ export default function ProfilePage() {
         role: "Role",
         password: "Password",
         hiddenPassword: "********",
+        edit: "Edit",
         changePassword: "Change password",
         currentPassword: "Current password",
         newPassword: "New password",
@@ -197,6 +220,9 @@ export default function ProfilePage() {
         passwordTooShort: "The new password must be at least 8 characters",
         passwordSuccess: "Password updated successfully",
         passwordError: "Failed to change password",
+        userProfileSuccess: "User profile updated successfully",
+        userProfileError: "Failed to update user profile",
+        emailPasswordRequired: "Current password is required to change email",
         companyInfo: "Company information",
         editProfile: "Edit profile",
         companyId: "Company ID",
@@ -247,6 +273,15 @@ export default function ProfilePage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    setUserForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      currentPassword: "",
+    })
+  }, [user])
 
   const stripeEnabled = useMemo(() => {
     return subscription?.paymentProvider === "STRIPE" && stripePromise
@@ -314,6 +349,69 @@ export default function ProfilePage() {
     setPasswordForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function updateUserForm<K extends keyof UserProfileFormState>(key: K, value: UserProfileFormState[K]) {
+    setUserForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function handleStartUserEdit(field: EditableUserField) {
+    setError("")
+    setSuccess("")
+    setEditingUserField(field)
+    setUserForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      currentPassword: "",
+    })
+    setPasswordForm(emptyPasswordForm)
+  }
+
+  function handleCancelUserEdit() {
+    setEditingUserField(null)
+    setPasswordForm(emptyPasswordForm)
+    setUserForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      currentPassword: "",
+    })
+  }
+
+  async function handleSaveUserProfile() {
+    if (!userForm.firstName.trim() || !userForm.lastName.trim() || !userForm.email.trim()) {
+      setError(text.userProfileError)
+      return
+    }
+
+    const emailChanged = user?.email?.toLowerCase() !== userForm.email.trim().toLowerCase()
+    if (emailChanged && !userForm.currentPassword.trim()) {
+      setError(text.emailPasswordRequired)
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError("")
+      setSuccess("")
+
+      const session = await updateUserProfile({
+        firstName: userForm.firstName.trim(),
+        lastName: userForm.lastName.trim(),
+        email: userForm.email.trim(),
+        currentPassword: emailChanged ? userForm.currentPassword : undefined,
+      })
+
+      applySession(session)
+      setEditingUserField(null)
+      setSuccess(text.userProfileSuccess)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.userProfileError)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
 
@@ -362,8 +460,8 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
-  async function handleChangePassword(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleChangePassword(e?: React.FormEvent) {
+    e?.preventDefault()
 
     if (
       !passwordForm.currentPassword.trim() ||
@@ -395,6 +493,7 @@ export default function ProfilePage() {
       })
 
       setPasswordForm(emptyPasswordForm)
+      setEditingUserField(null)
       setSuccess(text.passwordSuccess)
     } catch (err) {
       console.error(err)
@@ -485,6 +584,112 @@ export default function ProfilePage() {
     }
   }
 
+  function renderEditableUserRow(
+    field: Exclude<EditableUserField, "password" | null>,
+    label: string,
+    value: string,
+    type = "text"
+  ) {
+    const isEditingField = editingUserField === field
+
+    return (
+      <div className="profile-edit-row">
+        <div className="profile-edit-content">
+          <strong>{label}:</strong>
+          {isEditingField ? (
+            <>
+              <input
+                type={type}
+                value={userForm[field]}
+                onChange={(e) => updateUserForm(field, e.target.value)}
+              />
+              {field === "email" && (
+                <input
+                  type="password"
+                  placeholder={text.currentPassword}
+                  value={userForm.currentPassword}
+                  onChange={(e) => updateUserForm("currentPassword", e.target.value)}
+                />
+              )}
+            </>
+          ) : (
+            <span>{value || "-"}</span>
+          )}
+        </div>
+
+        <div className="profile-edit-actions">
+          {isEditingField ? (
+            <>
+              <button type="button" onClick={handleSaveUserProfile} disabled={saving}>
+                {saving ? text.saving : text.saveProfile}
+              </button>
+              <button type="button" className="secondary-button" onClick={handleCancelUserEdit} disabled={saving}>
+                {text.cancel}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="secondary-button" onClick={() => handleStartUserEdit(field)}>
+              {text.edit}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  function renderPasswordRow() {
+    const isEditingPassword = editingUserField === "password"
+
+    return (
+      <div className="profile-edit-row">
+        <div className="profile-edit-content">
+          <strong>{text.password}:</strong>
+          {isEditingPassword ? (
+            <>
+              <input
+                type="password"
+                placeholder={text.currentPassword}
+                value={passwordForm.currentPassword}
+                onChange={(e) => updatePasswordForm("currentPassword", e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder={text.newPassword}
+                value={passwordForm.newPassword}
+                onChange={(e) => updatePasswordForm("newPassword", e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder={text.confirmPassword}
+                value={passwordForm.confirmPassword}
+                onChange={(e) => updatePasswordForm("confirmPassword", e.target.value)}
+              />
+            </>
+          ) : (
+            <span>{text.hiddenPassword}</span>
+          )}
+        </div>
+
+        <div className="profile-edit-actions">
+          {isEditingPassword ? (
+            <>
+              <button type="button" onClick={handleChangePassword} disabled={saving}>
+                {saving ? text.saving : text.changePassword}
+              </button>
+              <button type="button" className="secondary-button" onClick={handleCancelUserEdit} disabled={saving}>
+                {text.cancel}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="secondary-button" onClick={() => handleStartUserEdit("password")}>
+              {text.edit}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <h1>{text.title}</h1>
@@ -508,48 +713,18 @@ export default function ProfilePage() {
 
           <div className="card">
             <h3>{text.userProfile}</h3>
-            <div className="detail-grid">
-              <p><strong>{text.firstName}:</strong> {user?.firstName || "-"}</p>
-              <p><strong>{text.lastName}:</strong> {user?.lastName || "-"}</p>
-              <p><strong>{text.email}:</strong> {user?.email || "-"}</p>
-              <p><strong>{text.role}:</strong> {user?.role || "-"}</p>
-              <p><strong>{text.password}:</strong> {text.hiddenPassword}</p>
-            </div>
-
-            <form onSubmit={handleChangePassword} className="product-form-grid" style={{ marginTop: 16 }}>
-              <label>
-                {text.currentPassword}
-                <input
-                  type="password"
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => updatePasswordForm("currentPassword", e.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.newPassword}
-                <input
-                  type="password"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => updatePasswordForm("newPassword", e.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.confirmPassword}
-                <input
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => updatePasswordForm("confirmPassword", e.target.value)}
-                />
-              </label>
-
-              <div className="form-actions full-width">
-                <button type="submit" disabled={saving}>
-                  {saving ? text.saving : text.changePassword}
-                </button>
+            <div className="profile-edit-list">
+              {renderEditableUserRow("firstName", text.firstName, user?.firstName || "")}
+              {renderEditableUserRow("lastName", text.lastName, user?.lastName || "")}
+              {renderEditableUserRow("email", text.email, user?.email || "", "email")}
+              <div className="profile-edit-row">
+                <div className="profile-edit-content">
+                  <strong>{text.role}:</strong>
+                  <span>{user?.role || "-"}</span>
+                </div>
               </div>
-            </form>
+              {renderPasswordRow()}
+            </div>
           </div>
 
           {isAdmin && (
