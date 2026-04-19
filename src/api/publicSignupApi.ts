@@ -3,6 +3,18 @@ import { API_BASE_URL } from "./config"
 async function handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
         const text = await response.text()
+        if (text) {
+            try {
+                const parsed = JSON.parse(text) as { message?: string }
+                if (parsed.message) {
+                    throw new Error(parsed.message)
+                }
+            } catch (error) {
+                if (error instanceof Error && error.message !== text) {
+                    throw error
+                }
+            }
+        }
         throw new Error(text || `Request failed with status ${response.status}`)
     }
 
