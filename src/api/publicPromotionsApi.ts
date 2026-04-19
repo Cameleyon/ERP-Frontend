@@ -13,6 +13,10 @@ export type PublicPromotionResponse = {
     id: number
     name: string
     description: string | null
+    nameFr: string | null
+    nameEn: string | null
+    descriptionFr: string | null
+    descriptionEn: string | null
     targetType: string
     promoDurationDays: number | null
     promoPriceMonthly: number | null

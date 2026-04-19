@@ -98,6 +98,44 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         continuePlan: "Continue with this plan",
       }
 
+  function formatTrialDuration(days: number) {
+    if (days === 60) {
+      return language === "fr" ? "2 mois" : "2 months"
+    }
+
+    return language === "fr" ? `${days} jours` : `${days} days`
+  }
+
+  function resolvePromotionName(promotion: PublicPromotionResponse) {
+    const localizedName = language === "fr" ? promotion.nameFr : promotion.nameEn
+    if (localizedName) {
+      return localizedName
+    }
+
+    if (promotion.freeTrialDays) {
+      return language === "fr"
+        ? `${formatTrialDuration(promotion.freeTrialDays)} gratuits`
+        : `${formatTrialDuration(promotion.freeTrialDays)} free`
+    }
+
+    return promotion.name
+  }
+
+  function resolvePromotionDescription(promotion: PublicPromotionResponse) {
+    const localizedDescription = language === "fr" ? promotion.descriptionFr : promotion.descriptionEn
+    if (localizedDescription) {
+      return localizedDescription
+    }
+
+    if (promotion.freeTrialDays) {
+      return language === "fr"
+        ? `${formatTrialDuration(promotion.freeTrialDays)} gratuits pour les nouvelles compagnies.`
+        : `${formatTrialDuration(promotion.freeTrialDays)} free for new companies.`
+    }
+
+    return promotion.description || text.promoText
+  }
+
   useEffect(() => {
     loadPublicData()
   }, [])
@@ -186,8 +224,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             {promotions.map((promotion) => (
               <div key={promotion.id} className="public-promo-card">
                 <div className="public-card-label">{text.specialOffer}</div>
-                <h3>{promotion.name}</h3>
-                <p>{promotion.description || text.promoText}</p>
+                <h3>{resolvePromotionName(promotion)}</h3>
+                <p>{resolvePromotionDescription(promotion)}</p>
                 {promotion.freeTrialDays && (
                   <p><strong>{text.freeTrial}</strong> {promotion.freeTrialDays} {text.days}</p>
                 )}
