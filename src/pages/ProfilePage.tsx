@@ -145,7 +145,6 @@ export default function ProfilePage() {
         emailPasswordRequired: "Le mot de passe actuel est requis pour changer l'email",
         companyInfo: "Informations de l'entreprise",
         editProfile: "Modifier le profil",
-        companyId: "ID entreprise",
         status: "Statut",
         active: "Actif",
         inactive: "Inactif",
@@ -225,7 +224,6 @@ export default function ProfilePage() {
         emailPasswordRequired: "Current password is required to change email",
         companyInfo: "Company information",
         editProfile: "Edit profile",
-        companyId: "Company ID",
         status: "Status",
         active: "Active",
         inactive: "Inactive",
@@ -707,7 +705,6 @@ export default function ProfilePage() {
             <h3>{text.companyLabel}</h3>
             <div className="detail-grid">
               <p><strong>{text.companyName}:</strong> {user?.companyName || "-"}</p>
-              <p><strong>{text.companyId}:</strong> {user?.companyId || "-"}</p>
             </div>
           </div>
 
@@ -741,7 +738,6 @@ export default function ProfilePage() {
 
             {profile && (
               <div className="detail-grid">
-                <p><strong>{text.companyId}:</strong> {profile.companyId}</p>
                 <p><strong>{text.status}:</strong> {profile.active ? text.active : text.inactive}</p>
               </div>
             )}
