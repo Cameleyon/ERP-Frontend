@@ -89,6 +89,19 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
   }
 }
 
+function cleanSubscriptionNotes(notes: string | null | undefined) {
+  if (!notes) {
+    return "-"
+  }
+
+  const visibleNotes = notes
+    .split("|")
+    .map((note) => note.trim())
+    .filter((note) => note && !note.toLowerCase().includes("stripe checkout"))
+
+  return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
+}
+
 export default function ProfilePage() {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
@@ -846,7 +859,7 @@ export default function ProfilePage() {
                   <strong>{text.requiresPaymentMethod}:</strong>{" "}
                   {subscription.requiresPaymentMethod ? text.yes : text.no}
                 </p>
-                <p className="full-width"><strong>{text.notes}:</strong> {subscription.notes || "-"}</p>
+                <p className="full-width"><strong>{text.notes}:</strong> {cleanSubscriptionNotes(subscription.notes)}</p>
               </div>
             )}
           </div>
