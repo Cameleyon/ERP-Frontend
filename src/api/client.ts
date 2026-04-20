@@ -73,6 +73,16 @@ export async function apiPut<T, TBody = unknown>(path: string, body?: TBody): Pr
   return parseResponseBody<T>(response)
 }
 
+export async function apiPatch<T, TBody = unknown>(path: string, body?: TBody): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(true),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+
+  return parseResponseBody<T>(response)
+}
+
 export async function apiDelete<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",

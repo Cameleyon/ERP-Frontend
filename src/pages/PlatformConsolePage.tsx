@@ -6,9 +6,11 @@ import {
   createCompanyUser,
   createSubscriptionPlan,
   deactivateCompanyUser,
+  deactivatePromotion,
   extendCompanyAccess,
   getCompanySubscription,
   getCompanyUsers,
+  getPromotions,
   getSubscriptionPlans,
   searchCompanySubscriptions,
   suspendCompanySubscription,
@@ -18,6 +20,7 @@ import {
   type CreateCompanyUserRequest,
   type CreateManagedCompanyRequest,
   type CreateSubscriptionPlanRequest,
+  type PromotionResponse,
   type SubscriptionPlanResponse,
 } from "../api/platformAdminApi"
 import { useI18n } from "../i18n/I18nContext"
@@ -151,6 +154,25 @@ function formatDateTime(value: string | null) {
   }).format(date)
 }
 
+function formatPromotionBenefit(promotion: PromotionResponse) {
+  const benefits = []
+
+  if (promotion.freeTrialDays) {
+    benefits.push(`${promotion.freeTrialDays} days`)
+  }
+  if (promotion.promoDurationDays) {
+    benefits.push(`${promotion.promoDurationDays} promo days`)
+  }
+  if (promotion.promoPriceMonthly !== null) {
+    benefits.push(`Monthly ${formatCurrency(promotion.promoPriceMonthly)}`)
+  }
+  if (promotion.promoPriceYearly !== null) {
+    benefits.push(`Yearly ${formatCurrency(promotion.promoPriceYearly)}`)
+  }
+
+  return benefits.length > 0 ? benefits.join(" | ") : "-"
+}
+
 export default function PlatformConsolePage() {
   const { logoutUser } = useAuth()
   const { language } = useI18n()
@@ -158,6 +180,11 @@ export default function PlatformConsolePage() {
   const [plansLoading, setPlansLoading] = useState(true)
   const [plansError, setPlansError] = useState("")
   const [planSuccess, setPlanSuccess] = useState("")
+  const [promotions, setPromotions] = useState<PromotionResponse[]>([])
+  const [promotionsLoading, setPromotionsLoading] = useState(true)
+  const [promotionsError, setPromotionsError] = useState("")
+  const [promotionSuccess, setPromotionSuccess] = useState("")
+  const [promotionActionLoading, setPromotionActionLoading] = useState("")
   const [companySuccess, setCompanySuccess] = useState("")
   const [subscriptionError, setSubscriptionError] = useState("")
   const [actionSuccess, setActionSuccess] = useState("")
@@ -187,6 +214,9 @@ export default function PlatformConsolePage() {
         loadPlansError: "Impossible de charger les plans",
         createPlanSuccess: "Le plan d'abonnement a été créé avec succès.",
         createPlanError: "Impossible de créer le plan",
+        loadPromotionsError: "Impossible de charger les promotions",
+        deactivatePromotionSuccess: "Promotion rendue inactive.",
+        deactivatePromotionError: "Impossible de rendre la promotion inactive",
         createCompanySuccess: (id: number) => `Entreprise créée avec succès avec l'ID ${id}.`,
         createCompanyError: "Impossible de créer l'entreprise",
         loadUsersError: "Impossible de charger les utilisateurs de l'entreprise",
@@ -225,6 +255,13 @@ export default function PlatformConsolePage() {
         deactivate: "Désactiver",
         status: "Statut",
         action: "Action",
+        promotions: "Promotions",
+        activePromotions: "Promotions actives",
+        noPromotionsYet: "Aucune promotion active pour le moment.",
+        publicOffer: "Offre publique",
+        target: "Cible",
+        benefit: "Avantage",
+        deactivatePromotion: "Rendre inactive",
         plans: "Plans",
         subscriptionCatalog: "Catalogue d'abonnement",
         refreshing: "Actualisation...",
@@ -311,6 +348,9 @@ export default function PlatformConsolePage() {
         loadPlansError: "Failed to load plans",
         createPlanSuccess: "Subscription plan created successfully.",
         createPlanError: "Failed to create plan",
+        loadPromotionsError: "Failed to load promotions",
+        deactivatePromotionSuccess: "Promotion deactivated.",
+        deactivatePromotionError: "Failed to deactivate promotion",
         createCompanySuccess: (id: number) => `Company created successfully with company ID ${id}.`,
         createCompanyError: "Failed to create company",
         loadUsersError: "Failed to load company users",
@@ -349,6 +389,13 @@ export default function PlatformConsolePage() {
         deactivate: "Deactivate",
         status: "Status",
         action: "Action",
+        promotions: "Promotions",
+        activePromotions: "Active promotions",
+        noPromotionsYet: "No active promotions at the moment.",
+        publicOffer: "Public offer",
+        target: "Target",
+        benefit: "Benefit",
+        deactivatePromotion: "Deactivate",
         plans: "Plans",
         subscriptionCatalog: "Subscription catalog",
         refreshing: "Refreshing...",
@@ -434,6 +481,7 @@ export default function PlatformConsolePage() {
 
   useEffect(() => {
     loadPlans()
+    loadPromotions()
   }, [])
 
   async function loadPlans() {
@@ -447,6 +495,36 @@ export default function PlatformConsolePage() {
       setPlansError(err instanceof Error ? err.message : text.loadPlansError)
     } finally {
       setPlansLoading(false)
+    }
+  }
+
+  async function loadPromotions() {
+    try {
+      setPromotionsLoading(true)
+      setPromotionsError("")
+      const response = await getPromotions()
+      setPromotions(response)
+    } catch (err) {
+      console.error(err)
+      setPromotionsError(err instanceof Error ? err.message : text.loadPromotionsError)
+    } finally {
+      setPromotionsLoading(false)
+    }
+  }
+
+  async function handleDeactivatePromotion(promotionId: number) {
+    try {
+      setPromotionActionLoading(String(promotionId))
+      setPromotionsError("")
+      setPromotionSuccess("")
+      await deactivatePromotion(promotionId)
+      setPromotions((current) => current.filter((promotion) => promotion.id !== promotionId))
+      setPromotionSuccess(text.deactivatePromotionSuccess)
+    } catch (err) {
+      console.error(err)
+      setPromotionsError(err instanceof Error ? err.message : text.deactivatePromotionError)
+    } finally {
+      setPromotionActionLoading("")
     }
   }
 
@@ -832,6 +910,65 @@ export default function PlatformConsolePage() {
               </button>
             </div>
           </form>
+        </article>
+      </section>
+
+      <section className="platform-section-grid">
+        <article className="card full-width">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">{text.promotions}</p>
+              <h2>{text.activePromotions}</h2>
+            </div>
+            <button type="button" className="secondary-button" onClick={loadPromotions} disabled={promotionsLoading}>
+              {promotionsLoading ? text.refreshing : text.refresh}
+            </button>
+          </div>
+
+          {promotionSuccess && <div className="card success">{promotionSuccess}</div>}
+          {promotionsError && <div className="card error">{promotionsError}</div>}
+
+          <div className="platform-users-table">
+            {promotionsLoading ? (
+              <div className="platform-empty-state">{text.loading}</div>
+            ) : promotions.length === 0 ? (
+              <div className="platform-empty-state">{text.noPromotionsYet}</div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>{text.planName}</th>
+                    <th>{text.target}</th>
+                    <th>{text.plan}</th>
+                    <th>{text.publicOffer}</th>
+                    <th>{text.benefit}</th>
+                    <th>{text.action}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotions.map((promotion) => (
+                    <tr key={promotion.id}>
+                      <td>{language === "fr" ? promotion.nameFr || promotion.name : promotion.nameEn || promotion.name}</td>
+                      <td>{promotion.targetType}</td>
+                      <td>{promotion.planCode || "-"}</td>
+                      <td>{promotion.publicVisible ? text.yes : text.no}</td>
+                      <td>{formatPromotionBenefit(promotion)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => handleDeactivatePromotion(promotion.id)}
+                          disabled={promotionActionLoading === String(promotion.id)}
+                        >
+                          {promotionActionLoading === String(promotion.id) ? text.loading : text.deactivatePromotion}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </article>
       </section>
 
