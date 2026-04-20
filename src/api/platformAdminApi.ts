@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "./client"
+import { apiGet, apiPost } from "./client"
 
 export type SubscriptionPlanResponse = {
   id: number
@@ -109,30 +109,6 @@ export type CreateCompanyUserRequest = {
   role: "ADMIN" | "CASHIER"
 }
 
-export type PromotionResponse = {
-  id: number
-  name: string
-  description: string | null
-  nameFr: string | null
-  nameEn: string | null
-  descriptionFr: string | null
-  descriptionEn: string | null
-  active: boolean
-  publicVisible: boolean
-  targetType: string
-  planId: number | null
-  planCode: string | null
-  billingCycle: string | null
-  promoDurationDays: number | null
-  promoPriceMonthly: number | null
-  promoPriceYearly: number | null
-  freeTrialDays: number | null
-  startsAt: string | null
-  endsAt: string | null
-  stackable: boolean
-  targetCompanyIds: number[]
-}
-
 export function getSubscriptionPlans() {
   return apiGet<SubscriptionPlanResponse[]>("/admin/subscription-plans")
 }
@@ -201,12 +177,4 @@ export function activateCompanyUser(userId: number) {
 
 export function deactivateCompanyUser(userId: number) {
   return apiPost<CompanyUserResponse, undefined>(`/admin/users/${userId}/deactivate`)
-}
-
-export function getPromotions() {
-  return apiGet<PromotionResponse[]>("/admin/promotions")
-}
-
-export function deactivatePromotion(promotionId: number) {
-  return apiPatch<PromotionResponse, undefined>(`/admin/promotions/${promotionId}/deactivate`)
 }
