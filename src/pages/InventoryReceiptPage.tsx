@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { getProductByBarcode, type ProductLookupResponse } from "../api/productApi"
+import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import {
   getCostRubrics,
   type CompanyCostRubricResponse,
@@ -15,7 +15,7 @@ type CostAmountMap = Record<number, string>
 
 export default function InventoryReceiptPage() {
   const { language } = useI18n()
-  const [barcode, setBarcode] = useState("")
+  const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [rubricsLoading, setRubricsLoading] = useState(true)
@@ -34,7 +34,7 @@ export default function InventoryReceiptPage() {
   const text = language === "fr"
     ? {
         loadRubricsError: "Échec du chargement des rubriques de coût",
-        barcodeRequired: "Le code-barres est requis",
+        barcodeRequired: "Le code-barres ou SKU est requis",
         lookupError: "Échec de la recherche",
         noProduct: "Aucun produit sélectionné",
         quantityPositive: "La quantité reçue doit être supérieure à zéro",
@@ -43,7 +43,7 @@ export default function InventoryReceiptPage() {
         createError: "Échec de la création de la réception d'inventaire",
         title: "Réception d'inventaire",
         lookupTitle: "Rechercher un produit",
-        barcodePlaceholder: "Saisir le code-barres",
+        barcodePlaceholder: "Saisir le code-barres ou le SKU",
         lookupLoading: "Recherche...",
         lookup: "Rechercher le produit",
         selectedProduct: "Produit sélectionné",
@@ -68,7 +68,7 @@ export default function InventoryReceiptPage() {
       }
     : {
         loadRubricsError: "Failed to load cost rubrics",
-        barcodeRequired: "Barcode is required",
+        barcodeRequired: "Barcode or SKU is required",
         lookupError: "Lookup failed",
         noProduct: "No product selected",
         quantityPositive: "Received quantity must be greater than zero",
@@ -77,7 +77,7 @@ export default function InventoryReceiptPage() {
         createError: "Failed to create inventory receipt",
         title: "Inventory receipt",
         lookupTitle: "Find a product",
-        barcodePlaceholder: "Enter the barcode",
+        barcodePlaceholder: "Enter the barcode or SKU",
         lookupLoading: "Looking up...",
         lookup: "Find product",
         selectedProduct: "Selected product",
@@ -137,7 +137,7 @@ export default function InventoryReceiptPage() {
   }, [totalCost, receivedQuantity])
 
   async function handleLookup() {
-    if (!barcode.trim()) {
+    if (!productCode.trim()) {
       setError(text.barcodeRequired)
       return
     }
@@ -146,7 +146,7 @@ export default function InventoryReceiptPage() {
       setLookupLoading(true)
       setError("")
       setSuccess("")
-      const product = await getProductByBarcode(barcode.trim())
+      const product = await getProductByCode(productCode.trim())
       setSelectedProduct(product)
       setLastReceipt(null)
     } catch (err) {
@@ -202,7 +202,7 @@ export default function InventoryReceiptPage() {
           : prev,
       )
 
-      setBarcode("")
+      setProductCode("")
       setReceivedQuantity(1)
       setNotes("")
 
@@ -241,8 +241,8 @@ export default function InventoryReceiptPage() {
           <input
             type="text"
             placeholder={text.barcodePlaceholder}
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
+            value={productCode}
+            onChange={(e) => setProductCode(e.target.value)}
           />
           <button onClick={handleLookup} disabled={lookupLoading}>
             {lookupLoading ? text.lookupLoading : text.lookup}

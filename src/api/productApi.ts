@@ -3,7 +3,7 @@ import { apiGet } from "./client"
 export type ProductLookupResponse = {
   id: number
   sku: string
-  barcode: string
+  barcode: string | null
   name: string
   description: string
   category: string
@@ -17,6 +17,6 @@ export type ProductLookupResponse = {
   unitName: string | null
 }
 
-export function getProductByBarcode(barcode: string) {
-  return apiGet<ProductLookupResponse>(`/products/barcode/${barcode}`)
+export function getProductByCode(code: string) {
+  return apiGet<ProductLookupResponse>(`/products/barcode/${encodeURIComponent(code)}`)
 }

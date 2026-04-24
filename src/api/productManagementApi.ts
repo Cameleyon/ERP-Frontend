@@ -23,7 +23,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export type ProductResponse = {
   id: number
   sku: string
-  barcode: string
+  barcode: string | null
   name: string
   description: string | null
   category: string | null

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
-import { getProductByBarcode, type ProductLookupResponse } from "../api/productApi"
+import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import { createSale, getSaleDetail, type SaleDetailResponse } from "../api/salesApi"
 import BarcodeLookup from "../components/sales/BarcodeLookup"
 import CartTable from "../components/sales/CartTable"
@@ -28,7 +28,7 @@ export default function NewSalePage() {
     ? {
         title: "Nouvelle vente",
         loadCustomersError: "Impossible de charger les clients",
-        barcodeRequired: "Le code-barres est requis",
+        barcodeRequired: "Le code-barres ou SKU est requis",
         lookupFailed: "La recherche a échoué",
         noProduct: "Aucun produit sélectionné",
         quantityPositive: "La quantité doit être supérieure à zéro",
@@ -55,7 +55,7 @@ export default function NewSalePage() {
     : {
         title: "New sale",
         loadCustomersError: "Unable to load customers",
-        barcodeRequired: "Barcode is required",
+        barcodeRequired: "Barcode or SKU is required",
         lookupFailed: "Lookup failed",
         noProduct: "No product selected",
         quantityPositive: "Quantity must be greater than zero",
@@ -80,7 +80,7 @@ export default function NewSalePage() {
         sku: "SKU",
       }
 
-  const [barcode, setBarcode] = useState("")
+  const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
   const [saleLoading, setSaleLoading] = useState(false)
   const [customersLoading, setCustomersLoading] = useState(true)
@@ -122,7 +122,7 @@ export default function NewSalePage() {
   }
 
   async function handleLookup() {
-    if (!barcode.trim()) {
+    if (!productCode.trim()) {
       setError(text.barcodeRequired)
       return
     }
@@ -132,7 +132,7 @@ export default function NewSalePage() {
       setError("")
       setSuccess("")
 
-      const product = await getProductByBarcode(barcode.trim())
+      const product = await getProductByCode(productCode.trim())
       setSelectedProduct(product)
       setQuantity(1)
     } catch (err) {
@@ -197,7 +197,7 @@ export default function NewSalePage() {
     }
 
     setSelectedProduct(null)
-    setBarcode("")
+    setProductCode("")
     setQuantity(1)
     setError("")
   }
@@ -238,7 +238,7 @@ export default function NewSalePage() {
       setSuccess(text.saleSuccess(response.saleNumber))
       setCartItems([])
       setSelectedProduct(null)
-      setBarcode("")
+      setProductCode("")
       setQuantity(1)
       setSelectedCustomerId("WALK_IN")
       setLastSaleInvoice(saleDetail)
@@ -261,7 +261,7 @@ export default function NewSalePage() {
   }
 
   function handleDetectedBarcode(value: string) {
-    setBarcode(value)
+    setProductCode(value)
     setError("")
     setSuccess("")
   }
@@ -276,8 +276,8 @@ export default function NewSalePage() {
       <BarcodeScanner onDetected={handleDetectedBarcode} />
 
       <BarcodeLookup
-        barcode={barcode}
-        onBarcodeChange={setBarcode}
+        productCode={productCode}
+        onProductCodeChange={setProductCode}
         onLookup={handleLookup}
         loading={lookupLoading}
       />

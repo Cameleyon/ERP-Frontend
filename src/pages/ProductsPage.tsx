@@ -52,7 +52,6 @@ export default function ProductsPage() {
     ? {
         loadProductsError: "Échec du chargement des produits",
         loadUnitsError: "Échec du chargement des unités",
-        barcodeRequired: "Le code-barres est requis",
         nameRequired: "Le nom est requis",
         unitPriceRequired: "Le prix unitaire est requis",
         unitRequired: "L'unité est requise",
@@ -66,7 +65,7 @@ export default function ProductsPage() {
         closeScanner: "Fermer le scanner",
         openScanner: "Ouvrir le scanner",
         barcode: "Code-barres",
-        barcodePlaceholder: "Scanner ou saisir le code-barres",
+        barcodePlaceholder: "Scanner ou saisir le code-barres (optionnel)",
         name: "Nom",
         description: "Description",
         category: "Catégorie",
@@ -98,7 +97,6 @@ export default function ProductsPage() {
     : {
         loadProductsError: "Failed to load products",
         loadUnitsError: "Failed to load units",
-        barcodeRequired: "Barcode is required",
         nameRequired: "Name is required",
         unitPriceRequired: "Unit price is required",
         unitRequired: "Unit is required",
@@ -112,7 +110,7 @@ export default function ProductsPage() {
         closeScanner: "Close scanner",
         openScanner: "Open scanner",
         barcode: "Barcode",
-        barcodePlaceholder: "Scan or enter the barcode",
+        barcodePlaceholder: "Scan or enter the barcode (optional)",
         name: "Name",
         description: "Description",
         category: "Category",
@@ -195,7 +193,7 @@ export default function ProductsPage() {
         normalizedSearch === "" ||
         product.name.toLowerCase().includes(normalizedSearch) ||
         product.sku.toLowerCase().includes(normalizedSearch) ||
-        product.barcode.toLowerCase().includes(normalizedSearch) ||
+        (product.barcode ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.description ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.category ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.unitCode ?? "").toLowerCase().includes(normalizedSearch) ||
@@ -217,7 +215,7 @@ export default function ProductsPage() {
     setError("")
     setSuccess("")
     setForm({
-      barcode: product.barcode,
+      barcode: product.barcode ?? "",
       name: product.name,
       description: product.description ?? "",
       category: product.category ?? "",
@@ -252,10 +250,6 @@ export default function ProductsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!form.barcode.trim()) {
-      setError(text.barcodeRequired)
-      return
-    }
     if (!form.name.trim()) {
       setError(text.nameRequired)
       return
@@ -508,7 +502,7 @@ export default function ProductsPage() {
                   <tr key={product.id}>
                     <td>{product.name}</td>
                     <td>{product.sku}</td>
-                    <td>{product.barcode}</td>
+                    <td>{product.barcode || "-"}</td>
                     <td>{product.category || "-"}</td>
                     <td>{product.unitCode || "-"}</td>
                     <td>{formatCurrency(product.unitPrice)}</td>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { getProductByBarcode, type ProductLookupResponse } from "../api/productApi"
+import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import {
   createInventoryAdjustment,
   type InventoryAdjustmentResponse,
@@ -13,7 +13,7 @@ export default function InventoryPage() {
   useAuth()
   const { language } = useI18n()
 
-  const [barcode, setBarcode] = useState("")
+  const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
   const [adjustmentLoading, setAdjustmentLoading] = useState(false)
 
@@ -29,14 +29,14 @@ export default function InventoryPage() {
   const text = language === "fr"
     ? {
         title: "Inventaire",
-        barcodeRequired: "Le code-barres est requis",
+        barcodeRequired: "Le code-barres ou SKU est requis",
         lookupError: "Échec de la recherche",
         noProduct: "Aucun produit sélectionné",
         quantityPositive: "La quantité doit être supérieure à zéro",
         adjustSuccess: (name: string) => `L'inventaire a été ajusté avec succès pour ${name}`,
         adjustError: "Échec de l'ajustement d'inventaire",
         lookupTitle: "Rechercher un produit",
-        barcodePlaceholder: "Saisir le code-barres",
+        barcodePlaceholder: "Saisir le code-barres ou le SKU",
         lookupLoading: "Recherche...",
         lookup: "Rechercher le produit",
         selectedProduct: "Produit sélectionné",
@@ -61,14 +61,14 @@ export default function InventoryPage() {
       }
     : {
         title: "Inventory",
-        barcodeRequired: "Barcode is required",
+        barcodeRequired: "Barcode or SKU is required",
         lookupError: "Lookup failed",
         noProduct: "No product selected",
         quantityPositive: "Quantity must be greater than zero",
         adjustSuccess: (name: string) => `Inventory adjusted successfully for ${name}`,
         adjustError: "Failed to adjust inventory",
         lookupTitle: "Find a product",
-        barcodePlaceholder: "Enter the barcode",
+        barcodePlaceholder: "Enter the barcode or SKU",
         lookupLoading: "Looking up...",
         lookup: "Find product",
         selectedProduct: "Selected product",
@@ -93,7 +93,7 @@ export default function InventoryPage() {
       }
 
   async function handleLookup() {
-    if (!barcode.trim()) {
+    if (!productCode.trim()) {
       setError(text.barcodeRequired)
       return
     }
@@ -102,7 +102,7 @@ export default function InventoryPage() {
       setLookupLoading(true)
       setError("")
       setSuccess("")
-      const product = await getProductByBarcode(barcode.trim())
+      const product = await getProductByCode(productCode.trim())
       setSelectedProduct(product)
       setLastAdjustment(null)
     } catch (err) {
@@ -171,8 +171,8 @@ export default function InventoryPage() {
           <input
             type="text"
             placeholder={text.barcodePlaceholder}
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
+            value={productCode}
+            onChange={(e) => setProductCode(e.target.value)}
           />
           <button onClick={handleLookup} disabled={lookupLoading}>
             {lookupLoading ? text.lookupLoading : text.lookup}
@@ -185,7 +185,7 @@ export default function InventoryPage() {
           <h3>{text.selectedProduct}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>SKU:</strong> {selectedProduct.sku}</p>
-          <p><strong>Code-barres:</strong> {selectedProduct.barcode}</p>
+          <p><strong>Code-barres:</strong> {selectedProduct.barcode || "-"}</p>
           <p>
             <strong>{text.unit}:</strong> {selectedProduct.unitName || selectedProduct.unitCode || "-"}
           </p>

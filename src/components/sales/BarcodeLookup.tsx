@@ -1,15 +1,15 @@
 import { useI18n } from "../../i18n/I18nContext"
 
 type Props = {
-  barcode: string
-  onBarcodeChange: (value: string) => void
+  productCode: string
+  onProductCodeChange: (value: string) => void
   onLookup: () => void
   loading?: boolean
 }
 
 export default function BarcodeLookup({
-  barcode,
-  onBarcodeChange,
+  productCode,
+  onProductCodeChange,
   onLookup,
   loading = false,
 }: Props) {
@@ -17,14 +17,14 @@ export default function BarcodeLookup({
 
   const text = language === "fr"
     ? {
-        title: "Recherche par code-barres",
-        placeholder: "Entrer le code-barres",
+        title: "Recherche par code-barres ou SKU",
+        placeholder: "Entrer le code-barres ou le SKU",
         loading: "Recherche...",
         action: "Trouver le produit",
       }
     : {
-        title: "Barcode lookup",
-        placeholder: "Enter the barcode",
+        title: "Barcode or SKU lookup",
+        placeholder: "Enter the barcode or SKU",
         loading: "Looking up...",
         action: "Find product",
       }
@@ -41,8 +41,8 @@ export default function BarcodeLookup({
         <input
           type="text"
           placeholder={text.placeholder}
-          value={barcode}
-          onChange={(e) => onBarcodeChange(e.target.value)}
+          value={productCode}
+          onChange={(e) => onProductCodeChange(e.target.value)}
         />
         <button type="submit" disabled={loading}>
           {loading ? text.loading : text.action}
