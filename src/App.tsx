@@ -15,10 +15,13 @@ import LoginPage from "./pages/LoginPage"
 import type { Page } from "./types/navigation"
 import PublicLandingPage from "./pages/PublicLandingPage"
 import PublicSignupPage from "./pages/PublicSignupPage"
-import PlatformConsolePage from "./pages/PlatformConsolePage"
 import ProfilePage from "./pages/ProfilePage"
+import PlatformRedirectPage from "./pages/PlatformRedirectPage"
 
 type PublicPage = "landing" | "signup" | "login" | "profile"
+const PLATFORM_APP_URL =
+  (import.meta.env.VITE_PLATFORM_APP_URL as string | undefined)?.trim() ||
+  "https://erp.platform.cameleyondynamics.com"
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth()
@@ -66,8 +69,8 @@ function AppContent() {
     )
   }
 
-  if (user?.role === "SUPER_ADMIN") {
-    return <PlatformConsolePage />
+  if (user?.role === "SUPER_ADMIN" || user?.role === "PROMOTER") {
+    return <PlatformRedirectPage platformAppUrl={PLATFORM_APP_URL} />
   }
 
   const isAdmin = user?.role === "ADMIN"

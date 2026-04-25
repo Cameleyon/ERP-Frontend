@@ -17,6 +17,7 @@ type FormState = {
   companyName: string
   businessType: string
   businessTypeOther: string
+  partnerCode: string
   phone: string
   companyEmail: string
   address: string
@@ -40,6 +41,7 @@ const emptyForm: FormState = {
   companyName: "",
   businessType: "",
   businessTypeOther: "",
+  partnerCode: "",
   phone: "",
   companyEmail: "",
   address: "",
@@ -149,6 +151,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         selectBusinessType: "Choisir un type d'activite",
         otherBusinessType: "Autre type d'activite",
         companyEmail: "Email de l'entreprise",
+        partnerCode: "Code promoteur ou apporteur d'affaire",
+        partnerCodePlaceholder: "Optionnel",
         phone: "Telephone",
         currency: "Devise",
         address: "Adresse",
@@ -196,6 +200,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           selectBusinessType: "Elegir un tipo de negocio",
           otherBusinessType: "Otro tipo de negocio",
           companyEmail: "Correo de la empresa",
+          partnerCode: "Codigo de promotor o aportador de negocio",
+          partnerCodePlaceholder: "Opcional",
           phone: "Telefono",
           currency: "Moneda",
           address: "Direccion",
@@ -242,6 +248,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           selectBusinessType: "Choose a business type",
           otherBusinessType: "Other business type",
           companyEmail: "Company email",
+          partnerCode: "Promoter or business introducer code",
+          partnerCodePlaceholder: "Optional",
           phone: "Phone",
           currency: "Currency",
           address: "Address",
@@ -395,6 +403,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         businessType: resolvedBusinessType,
         phone: form.phone.trim(),
         companyEmail: form.companyEmail.trim(),
+        partnerCode: form.partnerCode.trim() || undefined,
         address: form.address.trim(),
         currencyCode: form.currencyCode.trim(),
         adminFirstName: form.adminFirstName.trim(),
@@ -549,6 +558,17 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="email"
               value={form.companyEmail}
               onChange={(e) => updateForm("companyEmail", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+          </label>
+
+          <label>
+            {text.partnerCode}
+            <input
+              type="text"
+              value={form.partnerCode}
+              onChange={(e) => updateForm("partnerCode", e.target.value)}
+              placeholder={text.partnerCodePlaceholder}
               disabled={Boolean(pendingVerification)}
             />
           </label>
