@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react"
-import type { SaleDetailResponse } from "../../api/salesApi"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { sendSaleInvoiceEmail, type SaleDetailResponse } from "../../api/salesApi"
 import { useI18n } from "../../i18n/I18nContext"
 import { formatCurrency, formatDateTime, formatNumber } from "../../utils/format"
 
@@ -20,11 +20,16 @@ const BARCODE_HEIGHT = 72
 export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const { language } = useI18n()
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailSuccess, setEmailSuccess] = useState("")
+  const [emailError, setEmailError] = useState("")
 
   const text = language === "fr"
     ? {
         title: "Facture",
         sendEmail: "Envoyer par e-mail",
+        sendingEmail: "Envoi...",
+        emailSent: "La facture a été envoyée par e-mail avec succès.",
         sendPhone: "Envoyer par téléphone",
         print: "Imprimer la facture",
         saleInvoice: "Facture de vente",
@@ -49,6 +54,8 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
     : {
         title: "Invoice",
         sendEmail: "Send by email",
+        sendingEmail: "Sending...",
+        emailSent: "Invoice email sent successfully.",
         sendPhone: "Send by phone",
         print: "Print invoice",
         saleInvoice: "Sales invoice",
@@ -86,6 +93,11 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
     }
   }, [])
 
+  useEffect(() => {
+    setEmailSuccess("")
+    setEmailError("")
+  }, [sale.id])
+
   const barcodeBars = useMemo(() => buildPseudoBarcode(`*${sale.saleNumber.toUpperCase()}*`), [sale.saleNumber])
 
   function handlePrintInvoice() {
@@ -101,18 +113,23 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
     window.print()
   }
 
-  function handleEmailInvoice() {
+  async function handleEmailInvoice() {
     if (!sale.customerEmail) {
       return
     }
 
-    const subject = encodeURIComponent(
-      language === "fr"
-        ? `Facture ${sale.saleNumber} de ${companyName || "CAMELEYON ERP"}`
-        : `Invoice ${sale.saleNumber} from ${companyName || "CAMELEYON ERP"}`,
-    )
-    const body = encodeURIComponent(buildInvoiceMessage(sale, companyName, language))
-    window.location.href = `mailto:${encodeURIComponent(sale.customerEmail)}?subject=${subject}&body=${body}`
+    try {
+      setSendingEmail(true)
+      setEmailSuccess("")
+      setEmailError("")
+      await sendSaleInvoiceEmail(sale.id)
+      setEmailSuccess(text.emailSent)
+    } catch (error) {
+      console.error(error)
+      setEmailError(error instanceof Error ? error.message : "Failed to send invoice email")
+    } finally {
+      setSendingEmail(false)
+    }
   }
 
   function handlePhoneInvoice() {
@@ -126,12 +143,15 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
 
   return (
     <div className="card">
+      {emailError && <div className="card error">{emailError}</div>}
+      {emailSuccess && <div className="card success">{emailSuccess}</div>}
+
       <div className="table-actions" style={{ justifyContent: "space-between", marginBottom: 16 }}>
         <h3 style={{ margin: 0 }}>{text.title}</h3>
         <div className="table-actions">
           {sale.customerEmail && (
-            <button type="button" className="secondary-button" onClick={handleEmailInvoice}>
-              {text.sendEmail}
+            <button type="button" className="secondary-button" onClick={handleEmailInvoice} disabled={sendingEmail}>
+              {sendingEmail ? text.sendingEmail : text.sendEmail}
             </button>
           )}
 

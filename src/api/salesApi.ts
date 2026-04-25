@@ -84,6 +84,13 @@ export type SaleDetailResponse = {
   items: SaleItemResponse[]
 }
 
+export type SendSaleInvoiceEmailResponse = {
+  saleId: number
+  saleNumber: string
+  recipientEmail: string
+  message: string
+}
+
 export type SalesFilters = {
   startDate?: string
   endDate?: string
@@ -156,4 +163,17 @@ export async function cancelSale(saleId: number): Promise<SaleResponse> {
   })
 
   return handleResponse<SaleResponse>(response)
+}
+
+export async function sendSaleInvoiceEmail(saleId: number): Promise<SendSaleInvoiceEmailResponse> {
+  const response = await fetch(`${API_BASE_URL}/sales/${saleId}/send-invoice-email`, {
+    method: "POST",
+    headers: {
+      ...(localStorage.getItem(TOKEN_KEY)
+        ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        : {}),
+    },
+  })
+
+  return handleResponse<SendSaleInvoiceEmailResponse>(response)
 }
