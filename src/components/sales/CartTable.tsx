@@ -17,32 +17,9 @@ type Props = {
 }
 
 export default function CartTable({ items, onRemove }: Props) {
-  const { language } = useI18n()
+  const { copy } = useI18n()
+  const text = copy.cartTable
   const grandTotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
-
-  const text = language === "fr"
-    ? {
-        title: "Panier",
-        product: "Produit",
-        sku: "SKU",
-        quantity: "Quantité",
-        unitPrice: "Prix unitaire",
-        lineTotal: "Total ligne",
-        empty: "Le panier est vide.",
-        remove: "Retirer",
-        subtotal: "Sous-total",
-      }
-    : {
-        title: "Cart",
-        product: "Product",
-        sku: "SKU",
-        quantity: "Quantity",
-        unitPrice: "Unit price",
-        lineTotal: "Line total",
-        empty: "The cart is empty.",
-        remove: "Remove",
-        subtotal: "Subtotal",
-      }
 
   return (
     <div className="card">

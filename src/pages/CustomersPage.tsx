@@ -23,7 +23,8 @@ const emptyForm: FormState = {
 }
 
 export default function CustomersPage() {
-  const { language } = useI18n()
+  const { copy } = useI18n()
+  const text = copy.customersPage
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,84 +34,10 @@ export default function CustomersPage() {
   const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
 
-  const text = language === "fr"
-    ? {
-        title: "Clients",
-        editCustomer: "Modifier le client",
-        newCustomer: "Nouveau client",
-        directory: "Répertoire clients",
-        name: "Nom",
-        namePlaceholder: "Nom du client",
-        phone: "Numéro de téléphone",
-        phonePlaceholder: "+509...",
-        email: "Email",
-        emailPlaceholder: "client@exemple.com",
-        promoOptIn: "Accepte les emails promotionnels",
-        creating: "Création...",
-        updating: "Mise à jour...",
-        createCustomer: "Créer le client",
-        updateCustomer: "Mettre à jour le client",
-        cancel: "Annuler",
-        search: "Rechercher",
-        searchPlaceholder: "Rechercher par nom, téléphone ou email...",
-        promoEmails: "Emails promo",
-        loading: "Chargement des clients...",
-        empty: "Aucun client trouvé.",
-        emptyFiltered: "Aucun client ne correspond à la recherche.",
-        allowed: "Autorisé",
-        denied: "Non autorisé",
-        edit: "Modifier",
-        delete: "Supprimer",
-        loadError: "Impossible de charger les clients",
-        saveError: "Impossible d'enregistrer le client",
-        deleteError: "Impossible de supprimer le client",
-        nameRequired: "Le nom du client est requis",
-        updateSuccess: "Client mis à jour avec succès",
-        createSuccess: "Client créé avec succès",
-        deleteSuccess: "Client supprimé avec succès",
-        deleteConfirm: (name: string) => `Supprimer le client ${name} ?`,
-      }
-    : {
-        title: "Customers",
-        editCustomer: "Edit customer",
-        newCustomer: "New customer",
-        directory: "Customer directory",
-        name: "Name",
-        namePlaceholder: "Customer name",
-        phone: "Phone number",
-        phonePlaceholder: "+509...",
-        email: "Email",
-        emailPlaceholder: "customer@example.com",
-        promoOptIn: "Accept promotional emails",
-        creating: "Creating...",
-        updating: "Updating...",
-        createCustomer: "Create customer",
-        updateCustomer: "Update customer",
-        cancel: "Cancel",
-        search: "Search",
-        searchPlaceholder: "Search by name, phone or email...",
-        promoEmails: "Promo emails",
-        loading: "Loading customers...",
-        empty: "No customers found.",
-        emptyFiltered: "No customers match the search.",
-        allowed: "Allowed",
-        denied: "Not allowed",
-        edit: "Edit",
-        delete: "Delete",
-        loadError: "Unable to load customers",
-        saveError: "Unable to save customer",
-        deleteError: "Unable to delete customer",
-        nameRequired: "Customer name is required",
-        updateSuccess: "Customer updated successfully",
-        createSuccess: "Customer created successfully",
-        deleteSuccess: "Customer deleted successfully",
-        deleteConfirm: (name: string) => `Delete customer ${name}?`,
-      }
-
   const isEditMode = editingCustomerId !== null
 
   useEffect(() => {
-    loadCustomers()
+    void loadCustomers()
   }, [])
 
   async function loadCustomers() {

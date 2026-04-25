@@ -22,63 +22,8 @@ type CartItem = {
 
 export default function NewSalePage() {
   const { user } = useAuth()
-  const { language } = useI18n()
-
-  const text = language === "fr"
-    ? {
-        title: "Nouvelle vente",
-        loadCustomersError: "Impossible de charger les clients",
-        barcodeRequired: "Le code-barres ou SKU est requis",
-        lookupFailed: "La recherche a échoué",
-        noProduct: "Aucun produit sélectionné",
-        quantityPositive: "La quantité doit être supérieure à zéro",
-        quantityExceedsStock: "La quantité dépasse le stock actuel",
-        cartExceedsStock: "La quantité totale dans le panier dépasse le stock actuel",
-        cartEmpty: "Le panier est vide",
-        walkInCustomer: "Client passage",
-        notes: "Créée depuis le frontend",
-        saleSuccess: (saleNumber: string) => `La vente ${saleNumber} a été créée avec succès. La facture est prête.`,
-        saleError: "La création de la vente a échoué",
-        selectedProduct: "Produit sélectionné",
-        name: "Nom",
-        price: "Prix",
-        currentStock: "Stock actuel",
-        minimumStock: "Stock minimum",
-        quantity: "Quantité",
-        addToCart: "Ajouter au panier",
-        customer: "Client",
-        chooseCustomer: "Choisir un client",
-        creating: "Création de la vente...",
-        submit: "Créer la vente",
-        sku: "SKU",
-      }
-    : {
-        title: "New sale",
-        loadCustomersError: "Unable to load customers",
-        barcodeRequired: "Barcode or SKU is required",
-        lookupFailed: "Lookup failed",
-        noProduct: "No product selected",
-        quantityPositive: "Quantity must be greater than zero",
-        quantityExceedsStock: "Quantity exceeds current stock",
-        cartExceedsStock: "Total cart quantity exceeds current stock",
-        cartEmpty: "The cart is empty",
-        walkInCustomer: "Walk-in customer",
-        notes: "Created from frontend",
-        saleSuccess: (saleNumber: string) => `Sale ${saleNumber} was created successfully. The invoice is ready.`,
-        saleError: "Sale creation failed",
-        selectedProduct: "Selected product",
-        name: "Name",
-        price: "Price",
-        currentStock: "Current stock",
-        minimumStock: "Minimum stock",
-        quantity: "Quantity",
-        addToCart: "Add to cart",
-        customer: "Customer",
-        chooseCustomer: "Choose a customer",
-        creating: "Creating sale...",
-        submit: "Create sale",
-        sku: "SKU",
-      }
+  const { copy } = useI18n()
+  const text = copy.newSalePage
 
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -97,7 +42,7 @@ export default function NewSalePage() {
   const successTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
-    loadCustomers()
+    void loadCustomers()
   }, [])
 
   useEffect(() => {

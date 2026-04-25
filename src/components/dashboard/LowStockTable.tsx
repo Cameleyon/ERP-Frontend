@@ -7,26 +7,8 @@ type Props = {
 }
 
 export default function LowStockTable({ rows }: Props) {
-  const { language } = useI18n()
-  const text = language === "fr"
-    ? {
-        title: "Produits en stock faible",
-        product: "Produit",
-        sku: "SKU",
-        currentStock: "Stock actuel",
-        minimumStock: "Stock minimum",
-        shortage: "Écart",
-        empty: "Aucun produit en stock faible.",
-      }
-    : {
-        title: "Low stock products",
-        product: "Product",
-        sku: "SKU",
-        currentStock: "Current stock",
-        minimumStock: "Minimum stock",
-        shortage: "Shortage",
-        empty: "No low stock products.",
-      }
+  const { copy } = useI18n()
+  const text = copy.lowStockTable
 
   return (
     <div className="card">

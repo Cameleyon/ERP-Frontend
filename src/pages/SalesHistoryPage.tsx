@@ -39,7 +39,8 @@ function createDefaultRange() {
 
 export default function SalesHistoryPage() {
   const { user } = useAuth()
-  const { language } = useI18n()
+  const { copy } = useI18n()
+  const text = copy.salesHistoryPage
   const [sales, setSales] = useState<SaleResponse[]>([])
   const [selectedSale, setSelectedSale] = useState<SaleDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -48,84 +49,6 @@ export default function SalesHistoryPage() {
   const [success, setSuccess] = useState("")
   const [dateRange, setDateRange] = useState(createDefaultRange)
   const isAdmin = user?.role === "ADMIN"
-
-  const text = language === "fr"
-    ? {
-        title: "Historique des ventes",
-        sales: "Ventes",
-        loadSalesError: "Impossible de charger les ventes",
-        loadDetailError: "Impossible de charger le détail de la vente",
-        cancelConfirm: "Voulez-vous vraiment annuler cette vente ?",
-        cancelSuccess: "Vente annulée avec succès",
-        cancelError: "Impossible d'annuler la vente",
-        loadingSales: "Chargement des ventes...",
-        saleNumber: "No vente",
-        date: "Date",
-        customer: "Client",
-        payment: "Paiement",
-        total: "Total",
-        status: "Statut",
-        viewDetails: "Voir le détail",
-        cancel: "Annuler",
-        emptySales: "Aucune vente trouvée.",
-        detailTitle: "Détail de la vente",
-        loadingDetail: "Chargement du détail...",
-        selectSale: "Sélectionnez une vente pour voir le détail.",
-        subtotal: "Sous-total",
-        tax: "Taxe",
-        totalCost: "Coût total",
-        totalProfit: "Profit total",
-        product: "Produit",
-        quantity: "Quantité",
-        unitPrice: "Prix unitaire",
-        lineTotal: "Total ligne",
-        emptyItems: "Aucun article.",
-        startDate: "Date début",
-        endDate: "Date fin",
-        applyFilter: "Filtrer",
-        resetFilter: "Réinitialiser",
-        rangeError: "La période ne peut pas dépasser un mois.",
-        rangeMissing: "Veuillez choisir une date de début et une date de fin.",
-        rangeOrderError: "La date de fin ne peut pas être avant la date de début.",
-      }
-    : {
-        title: "Sales history",
-        sales: "Sales",
-        loadSalesError: "Unable to load sales",
-        loadDetailError: "Unable to load sale details",
-        cancelConfirm: "Do you really want to cancel this sale?",
-        cancelSuccess: "Sale cancelled successfully",
-        cancelError: "Unable to cancel the sale",
-        loadingSales: "Loading sales...",
-        saleNumber: "Sale no",
-        date: "Date",
-        customer: "Customer",
-        payment: "Payment",
-        total: "Total",
-        status: "Status",
-        viewDetails: "View details",
-        cancel: "Cancel",
-        emptySales: "No sales found.",
-        detailTitle: "Sale details",
-        loadingDetail: "Loading details...",
-        selectSale: "Select a sale to view details.",
-        subtotal: "Subtotal",
-        tax: "Tax",
-        totalCost: "Total cost",
-        totalProfit: "Total profit",
-        product: "Product",
-        quantity: "Quantity",
-        unitPrice: "Unit price",
-        lineTotal: "Line total",
-        emptyItems: "No items.",
-        startDate: "Start date",
-        endDate: "End date",
-        applyFilter: "Filter",
-        resetFilter: "Reset",
-        rangeError: "The date range cannot exceed one month.",
-        rangeMissing: "Please choose both a start date and an end date.",
-        rangeOrderError: "End date cannot be before start date.",
-      }
 
   const rangeValidationError = useMemo(() => {
     if (!dateRange.startDate || !dateRange.endDate) {

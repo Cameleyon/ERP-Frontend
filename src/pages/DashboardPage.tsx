@@ -54,7 +54,8 @@ function getDateRangeFromPreset(preset: Preset) {
 }
 
 export default function DashboardPage() {
-  const { language } = useI18n()
+  const { copy } = useI18n()
+  const text = copy.dashboardPage
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
@@ -65,36 +66,6 @@ export default function DashboardPage() {
   const [preset, setPreset] = useState<Preset>("this-month")
   const [startDate, setStartDate] = useState(getDateRangeFromPreset("this-month").startDate)
   const [endDate, setEndDate] = useState(getDateRangeFromPreset("this-month").endDate)
-
-  const text = language === "fr"
-    ? {
-        title: "Tableau de bord",
-        unknownError: "Erreur inconnue",
-        startDateRequired: "La date de début et la date de fin sont requises",
-        invalidRange: "La date de fin ne peut pas être antérieure à la date de début",
-        loading: "Chargement du tableau de bord...",
-        totalSales: "Ventes totales",
-        totalTax: "Taxes totales",
-        totalCost: "Coût total",
-        totalProfit: "Profit total",
-        transactions: "Transactions",
-        lowStock: "Stock faible",
-        outOfStock: "Ruptures de stock",
-      }
-    : {
-        title: "Dashboard",
-        unknownError: "Unknown error",
-        startDateRequired: "Start date and end date are required",
-        invalidRange: "End date cannot be before start date",
-        loading: "Loading dashboard...",
-        totalSales: "Total sales",
-        totalTax: "Total tax",
-        totalCost: "Total cost",
-        totalProfit: "Total profit",
-        transactions: "Transactions",
-        lowStock: "Low stock",
-        outOfStock: "Out of stock",
-      }
 
   async function loadDashboard(rangeStart: string, rangeEnd: string) {
     try {
@@ -123,7 +94,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const range = getDateRangeFromPreset("this-month")
-    loadDashboard(range.startDate, range.endDate)
+    void loadDashboard(range.startDate, range.endDate)
   }, [])
 
   function handlePresetChange(nextPreset: Preset) {
@@ -147,7 +118,7 @@ export default function DashboardPage() {
       return
     }
 
-    loadDashboard(startDate, endDate)
+    void loadDashboard(startDate, endDate)
   }
 
   if (loading) return <div>{text.loading}</div>

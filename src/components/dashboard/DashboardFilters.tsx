@@ -21,28 +21,8 @@ export default function DashboardFilters({
   onEndDateChange,
   onApply,
 }: Props) {
-  const { language } = useI18n()
-  const text = language === "fr"
-    ? {
-        title: "Filtres",
-        today: "Aujourd'hui",
-        thisWeek: "Cette semaine",
-        thisMonth: "Ce mois-ci",
-        custom: "Personnalisé",
-        startDate: "Date de début",
-        endDate: "Date de fin",
-        apply: "Appliquer",
-      }
-    : {
-        title: "Filters",
-        today: "Today",
-        thisWeek: "This week",
-        thisMonth: "This month",
-        custom: "Custom",
-        startDate: "Start date",
-        endDate: "End date",
-        apply: "Apply",
-      }
+  const { copy } = useI18n()
+  const text = copy.dashboardFilters
 
   return (
     <div className="card dashboard-filters">

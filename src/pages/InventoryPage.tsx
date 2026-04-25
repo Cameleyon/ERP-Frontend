@@ -12,7 +12,8 @@ import { formatDateTime, formatNumber } from "../utils/format"
 
 export default function InventoryPage() {
   useAuth()
-  const { language } = useI18n()
+  const { copy } = useI18n()
+  const text = copy.inventoryPage
 
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -27,78 +28,6 @@ export default function InventoryPage() {
 
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-
-  const text = language === "fr"
-    ? {
-        title: "Inventaire",
-        barcodeRequired: "Le code-barres ou SKU est requis",
-        lookupError: "Échec de la recherche",
-        noProduct: "Aucun produit sélectionné",
-        quantityPositive: "La quantité doit être supérieure à zéro",
-        adjustSuccess: (name: string) => `L'inventaire a été ajusté avec succès pour ${name}`,
-        adjustError: "Échec de l'ajustement d'inventaire",
-        lookupTitle: "Rechercher un produit",
-        scannerTitle: "Scanner le code-barres",
-        closeScanner: "Fermer le scanner",
-        openScanner: "Ouvrir le scanner",
-        barcodePlaceholder: "Saisir le code-barres ou le SKU",
-        lookupLoading: "Recherche...",
-        lookup: "Rechercher le produit",
-        selectedProduct: "Produit sélectionné",
-        name: "Nom",
-        unit: "Unité",
-        currentStock: "Stock actuel",
-        minimumStock: "Stock minimum",
-        adjustmentType: "Type d'ajustement",
-        quantity: "Quantité",
-        reason: "Raison",
-        reasonPlaceholder: "Raison de l'ajustement",
-        submitting: "Envoi...",
-        submit: "Valider l'ajustement",
-        lastAdjustment: "Dernier ajustement",
-        product: "Produit",
-        type: "Type",
-        stockAfter: "Stock après",
-        createdAt: "Créé le",
-        add: "AJOUT",
-        remove: "RETRAIT",
-        correction: "CORRECTION",
-      }
-    : {
-        title: "Inventory",
-        barcodeRequired: "Barcode or SKU is required",
-        lookupError: "Lookup failed",
-        noProduct: "No product selected",
-        quantityPositive: "Quantity must be greater than zero",
-        adjustSuccess: (name: string) => `Inventory adjusted successfully for ${name}`,
-        adjustError: "Failed to adjust inventory",
-        lookupTitle: "Find a product",
-        scannerTitle: "Scan barcode",
-        closeScanner: "Close scanner",
-        openScanner: "Open scanner",
-        barcodePlaceholder: "Enter the barcode or SKU",
-        lookupLoading: "Looking up...",
-        lookup: "Find product",
-        selectedProduct: "Selected product",
-        name: "Name",
-        unit: "Unit",
-        currentStock: "Current stock",
-        minimumStock: "Minimum stock",
-        adjustmentType: "Adjustment type",
-        quantity: "Quantity",
-        reason: "Reason",
-        reasonPlaceholder: "Reason for the adjustment",
-        submitting: "Submitting...",
-        submit: "Apply adjustment",
-        lastAdjustment: "Last adjustment",
-        product: "Product",
-        type: "Type",
-        stockAfter: "Stock after",
-        createdAt: "Created at",
-        add: "ADD",
-        remove: "REMOVE",
-        correction: "CORRECTION",
-      }
 
   async function handleLookup() {
     if (!productCode.trim()) {
@@ -218,7 +147,7 @@ export default function InventoryPage() {
           <h3>{text.selectedProduct}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>SKU:</strong> {selectedProduct.sku}</p>
-          <p><strong>Code-barres:</strong> {selectedProduct.barcode || "-"}</p>
+          <p><strong>{copy.common.barcode}:</strong> {selectedProduct.barcode || "-"}</p>
           <p>
             <strong>{text.unit}:</strong> {selectedProduct.unitName || selectedProduct.unitCode || "-"}
           </p>

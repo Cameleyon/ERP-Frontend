@@ -9,6 +9,7 @@ import { getUnits, type UnitResponse } from "../api/unitApi"
 import { useI18n } from "../i18n/I18nContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
+import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
 
 type ProductFormState = {
   barcode: string
@@ -32,35 +33,9 @@ const emptyForm: ProductFormState = {
   unitId: "",
 }
 
-const presetCategoryOptions = [
-  { key: "GROCERIES", fr: "Épicerie", en: "Groceries" },
-  { key: "BEAUTY", fr: "Beauté et soins", en: "Beauty and personal care" },
-  { key: "HOUSEHOLD", fr: "Maison et entretien", en: "Household supplies" },
-  { key: "ELECTRONICS", fr: "Électronique", en: "Electronics" },
-  { key: "CLOTHING", fr: "Vêtements et accessoires", en: "Clothing and accessories" },
-  { key: "OFFICE", fr: "Papeterie et bureau", en: "Office and stationery" },
-  { key: "PHARMACY", fr: "Pharmacie", en: "Pharmacy" },
-  { key: "HARDWARE", fr: "Quincaillerie", en: "Hardware" },
-  { key: "RESTAURANT", fr: "Restaurant et cuisine", en: "Restaurant and kitchen" },
-  { key: "SERVICES", fr: "Services", en: "Services" },
-] as const
-
-function findPresetCategoryKey(category: string) {
-  const normalizedCategory = category.trim().toLowerCase()
-
-  if (!normalizedCategory) {
-    return ""
-  }
-
-  const matchedOption = presetCategoryOptions.find((option) =>
-    option.fr.toLowerCase() === normalizedCategory || option.en.toLowerCase() === normalizedCategory
-  )
-
-  return matchedOption?.key ?? ""
-}
-
 export default function ProductsPage() {
-  const { language } = useI18n()
+  const { language, copy } = useI18n()
+  const text = copy.productsPage
   const [products, setProducts] = useState<ProductResponse[]>([])
   const [units, setUnits] = useState<UnitResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,120 +51,16 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("ALL")
   const [categorySelection, setCategorySelection] = useState("")
 
-  const text = language === "fr"
-    ? {
-        loadProductsError: "Echec du chargement des produits",
-        loadUnitsError: "Echec du chargement des unites",
-        nameRequired: "Le nom est requis",
-        unitPriceRequired: "Le prix unitaire est requis",
-        unitRequired: "L'unite est requise",
-        updateSuccess: "Le produit a ete mis a jour avec succes",
-        createSuccess: "Le produit a ete cree avec succes",
-        saveError: "Echec de l'enregistrement du produit",
-        title: "Produits",
-        editTitle: "Modifier le produit",
-        newTitle: "Nouveau produit",
-        scannerTitle: "Scanner le code-barres",
-        closeScanner: "Fermer le scanner",
-        openScanner: "Ouvrir le scanner",
-        barcode: "Code-barres",
-        barcodePlaceholder: "Scanner ou saisir le code-barres (optionnel)",
-        name: "Nom",
-        description: "Description",
-        category: "Categorie",
-        chooseCategory: "Choisir une categorie",
-        otherCategory: "Autre",
-        customCategory: "Categorie personnalisee",
-        customCategoryPlaceholder: "Saisir une categorie",
-        unit: "Unite",
-        selectUnit: "Selectionner une unite",
-        unitPrice: "Prix unitaire",
-        minimumStock: "Stock minimum",
-        active: "Actif",
-        updating: "Mise a jour...",
-        creating: "Creation...",
-        update: "Mettre a jour le produit",
-        create: "Creer le produit",
-        cancel: "Annuler",
-        listTitle: "Liste des produits",
-        search: "Rechercher",
-        searchPlaceholder: "Rechercher par nom, SKU, code-barres, categorie...",
-        clearFilters: "Effacer les filtres",
-        allCategories: "Toutes les categories",
-        loading: "Chargement des produits...",
-        sku: "SKU",
-        referenceCost: "Cout ref.",
-        stock: "Stock",
-        status: "Statut",
-        empty: "Aucun produit trouve.",
-        emptyFiltered: "Aucun produit ne correspond aux filtres actuels.",
-        edit: "Modifier",
-        inactive: "Inactif",
-      }
-    : {
-        loadProductsError: "Failed to load products",
-        loadUnitsError: "Failed to load units",
-        nameRequired: "Name is required",
-        unitPriceRequired: "Unit price is required",
-        unitRequired: "Unit is required",
-        updateSuccess: "Product updated successfully",
-        createSuccess: "Product created successfully",
-        saveError: "Failed to save the product",
-        title: "Products",
-        editTitle: "Edit product",
-        newTitle: "New product",
-        scannerTitle: "Scan barcode",
-        closeScanner: "Close scanner",
-        openScanner: "Open scanner",
-        barcode: "Barcode",
-        barcodePlaceholder: "Scan or enter the barcode (optional)",
-        name: "Name",
-        description: "Description",
-        category: "Category",
-        chooseCategory: "Choose a category",
-        otherCategory: "Other",
-        customCategory: "Custom category",
-        customCategoryPlaceholder: "Enter a category",
-        unit: "Unit",
-        selectUnit: "Select a unit",
-        unitPrice: "Unit price",
-        minimumStock: "Minimum stock",
-        active: "Active",
-        updating: "Updating...",
-        creating: "Creating...",
-        update: "Update product",
-        create: "Create product",
-        cancel: "Cancel",
-        listTitle: "Product list",
-        search: "Search",
-        searchPlaceholder: "Search by name, SKU, barcode, category...",
-        clearFilters: "Clear filters",
-        allCategories: "All categories",
-        loading: "Loading products...",
-        sku: "SKU",
-        referenceCost: "Ref. cost",
-        stock: "Stock",
-        status: "Status",
-        empty: "No products found.",
-        emptyFiltered: "No products match the current filters.",
-        edit: "Edit",
-        inactive: "Inactive",
-      }
-
   const isEditMode = editingProductId !== null
 
   const localizedPresetCategories = useMemo(
-    () =>
-      presetCategoryOptions.map((option) => ({
-        key: option.key,
-        label: language === "fr" ? option.fr : option.en,
-      })),
-    [language]
+    () => getLocalizedPresetCategories(language),
+    [language],
   )
 
   useEffect(() => {
-    loadProducts()
-    loadUnits()
+    void loadProducts()
+    void loadUnits()
   }, [])
 
   useEffect(() => {
@@ -208,7 +79,7 @@ export default function ProductsPage() {
         : {
             ...prev,
             category: matchedOption.label,
-          }
+          },
     )
   }, [categorySelection, localizedPresetCategories])
 

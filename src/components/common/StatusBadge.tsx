@@ -5,17 +5,17 @@ type Props = {
 }
 
 export default function StatusBadge({ value }: Props) {
-  const { language } = useI18n()
+  const { copy } = useI18n()
 
   const normalizedValue =
     value === "COMPLETED"
-      ? language === "fr" ? "Terminée" : "Completed"
+      ? copy.common.statusCompleted
       : value === "CANCELLED"
-        ? language === "fr" ? "Annulée" : "Cancelled"
+        ? copy.common.statusCancelled
         : value === "ACTIVE"
-          ? language === "fr" ? "Actif" : "Active"
+          ? copy.common.statusActive
           : value === "INACTIVE"
-            ? language === "fr" ? "Inactif" : "Inactive"
+            ? copy.common.statusInactive
             : value
 
   const className =

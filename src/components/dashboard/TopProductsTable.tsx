@@ -7,24 +7,8 @@ type Props = {
 }
 
 export default function TopProductsTable({ rows }: Props) {
-  const { language } = useI18n()
-  const text = language === "fr"
-    ? {
-        title: "Top produits",
-        product: "Produit",
-        sku: "SKU",
-        quantitySold: "Quantité vendue",
-        salesAmount: "Montant des ventes",
-        empty: "Aucun top produit disponible.",
-      }
-    : {
-        title: "Top products",
-        product: "Product",
-        sku: "SKU",
-        quantitySold: "Quantity sold",
-        salesAmount: "Sales amount",
-        empty: "No top product data available.",
-      }
+  const { copy } = useI18n()
+  const text = copy.topProductsTable
 
   return (
     <div className="card">

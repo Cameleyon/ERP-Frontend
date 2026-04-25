@@ -17,22 +17,8 @@ type Props = {
 }
 
 export default function SalesTrendChart({ rows }: Props) {
-  const { language } = useI18n()
-  const text = language === "fr"
-    ? {
-        title: "Tendance des ventes",
-        empty: "Aucune donnée de tendance des ventes disponible.",
-        sales: "Ventes",
-        cost: "Coût",
-        profit: "Profit",
-      }
-    : {
-        title: "Sales trend",
-        empty: "No sales trend data available.",
-        sales: "Sales",
-        cost: "Cost",
-        profit: "Profit",
-      }
+  const { copy } = useI18n()
+  const text = copy.salesTrendChart
 
   return (
     <div className="card">

@@ -13,21 +13,8 @@ export default function BarcodeLookup({
   onLookup,
   loading = false,
 }: Props) {
-  const { language } = useI18n()
-
-  const text = language === "fr"
-    ? {
-        title: "Recherche par code-barres ou SKU",
-        placeholder: "Entrer le code-barres ou le SKU",
-        loading: "Recherche...",
-        action: "Trouver le produit",
-      }
-    : {
-        title: "Barcode or SKU lookup",
-        placeholder: "Enter the barcode or SKU",
-        loading: "Looking up...",
-        action: "Find product",
-      }
+  const { copy } = useI18n()
+  const text = copy.barcodeLookup
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
