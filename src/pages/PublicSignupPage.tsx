@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import { useI18n } from "../i18n/I18nContext"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
 import {
+  confirmSignupCompany,
   signupCompany,
   type PublicSignupRequest,
 } from "../api/publicSignupApi"
@@ -26,6 +27,13 @@ type FormState = {
   adminPassword: string
   planCode: string
   billingCycle: "MONTHLY" | "YEARLY"
+}
+
+type PendingVerificationState = {
+  pendingSignupId: string
+  adminEmail: string
+  expiresAt: string
+  attemptsRemaining: number
 }
 
 const emptyForm: FormState = {
@@ -63,35 +71,44 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
   const [plans, setPlans] = useState<PublicPlanResponse[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [verificationError, setVerificationError] = useState("")
+  const [verificationCode, setVerificationCode] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [pendingVerification, setPendingVerification] = useState<PendingVerificationState | null>(null)
+  const [secondsLeft, setSecondsLeft] = useState(0)
 
   const text = language === "fr"
     ? {
         loadPlansError: "Impossible de charger les plans",
         companyNameRequired: "Le nom de l'entreprise est requis",
-        adminFirstNameRequired: "Le prénom de l'administrateur est requis",
+        adminFirstNameRequired: "Le prenom de l'administrateur est requis",
         adminLastNameRequired: "Le nom de l'administrateur est requis",
         adminEmailRequired: "L'email de l'administrateur est requis",
         adminPasswordRequired: "Le mot de passe de l'administrateur est requis",
         planRequired: "Le plan est requis",
-        businessTypeRequired: "Le type d'activité est requis",
+        businessTypeRequired: "Le type d'activite est requis",
+        verificationCodeRequired: "Le code de verification est requis",
         redirecting: "Redirection vers le paiement Stripe...",
-        signupFailed: "L'inscription a échoué",
-        success: (message: string, adminEmail: string) => `${message}. Votre entreprise a été créée et vous pouvez maintenant vous connecter avec ${adminEmail}.`,
-        backHome: "Retour à l'accueil",
+        signupFailed: "L'inscription a echoue",
+        verificationStartSuccess: (email: string) => `Un code a ete envoye a ${email}.`,
+        verificationExpired: "Le delai de verification est expire. Veuillez renseigner le formulaire de nouveau.",
+        verificationRestart: "La verification a ete annulee. Veuillez renseigner le formulaire de nouveau.",
+        success: (message: string, adminEmail: string) => `${message}. Votre entreprise a ete creee et vous pouvez maintenant vous connecter avec ${adminEmail}.`,
+        backHome: "Retour a l'accueil",
         title: "Inscription",
         companyName: "Nom de l'entreprise",
-        businessType: "Type d'activité",
-        selectBusinessType: "Choisir un type d'activité",
+        businessType: "Type d'activite",
+        selectBusinessType: "Choisir un type d'activite",
         other: "Autre",
-        otherBusinessType: "Autre type d'activité",
+        otherBusinessType: "Autre type d'activite",
         companyEmail: "Email de l'entreprise",
-        phone: "Téléphone",
+        phone: "Telephone",
         currency: "Devise",
         address: "Adresse",
-        adminFirstName: "Prénom de l'administrateur",
+        adminFirstName: "Prenom de l'administrateur",
         adminLastName: "Nom de l'administrateur",
         adminEmail: "Email de l'administrateur",
         adminPassword: "Mot de passe de l'administrateur",
@@ -100,8 +117,16 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         billingCycle: "Cycle de facturation",
         monthly: "Mensuel",
         yearly: "Annuel",
-        submit: "Créer le compte de l'entreprise",
-        submitting: "Création du compte...",
+        submit: "Verifier l'email admin",
+        submitting: "Envoi du code...",
+        verificationTitle: "Confirmer l'email admin",
+        verificationText: (email: string) => `Saisissez le code envoye a ${email}.`,
+        verificationHint: "Vous avez 3 essais et 30 secondes.",
+        verificationCode: "Code de verification",
+        confirmVerification: "Confirmer le code",
+        confirmingVerification: "Verification...",
+        attemptsRemaining: (count: number) => `Essais restants : ${count}`,
+        timeRemaining: (count: number) => `Temps restant : ${count}s`,
       }
     : {
         loadPlansError: "Failed to load plans",
@@ -112,8 +137,12 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         adminPasswordRequired: "Admin password is required",
         planRequired: "Plan is required",
         businessTypeRequired: "Business type is required",
+        verificationCodeRequired: "Verification code is required",
         redirecting: "Redirecting to Stripe payment...",
         signupFailed: "Signup failed",
+        verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
+        verificationExpired: "The verification time expired. Please fill in the form again.",
+        verificationRestart: "Verification was cancelled. Please fill in the form again.",
         success: (message: string, adminEmail: string) => `${message}. Your company has been created and you can now log in with ${adminEmail}.`,
         backHome: "Back to home",
         title: "Sign Up",
@@ -135,13 +164,57 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         billingCycle: "Billing cycle",
         monthly: "Monthly",
         yearly: "Yearly",
-        submit: "Create company account",
-        submitting: "Creating account...",
+        submit: "Verify admin email",
+        submitting: "Sending code...",
+        verificationTitle: "Confirm admin email",
+        verificationText: (email: string) => `Enter the code sent to ${email}.`,
+        verificationHint: "You have 3 attempts and 30 seconds.",
+        verificationCode: "Verification code",
+        confirmVerification: "Confirm code",
+        confirmingVerification: "Verifying...",
+        attemptsRemaining: (count: number) => `Attempts remaining: ${count}`,
+        timeRemaining: (count: number) => `Time remaining: ${count}s`,
       }
 
   useEffect(() => {
     loadPlans()
   }, [])
+
+  useEffect(() => {
+    if (!pendingVerification) {
+      setSecondsLeft(0)
+      return
+    }
+
+    const expiresAt = pendingVerification.expiresAt
+
+    function updateCountdown() {
+      const remaining = Math.max(
+        0,
+        Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000),
+      )
+      setSecondsLeft(remaining)
+
+      if (remaining <= 0) {
+        resetSignupFlow(text.verificationExpired)
+      }
+    }
+
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 500)
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [pendingVerification, text.verificationExpired])
+
+  const resolvedBusinessType = useMemo(
+    () => (
+      form.businessType === BUSINESS_TYPE_OTHER
+        ? form.businessTypeOther.trim()
+        : form.businessType.trim()
+    ),
+    [form.businessType, form.businessTypeOther],
+  )
 
   async function loadPlans() {
     try {
@@ -172,10 +245,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     }))
   }
 
-  const resolvedBusinessType =
-    form.businessType === BUSINESS_TYPE_OTHER
-      ? form.businessTypeOther.trim()
-      : form.businessType.trim()
+  function resetSignupFlow(message: string) {
+    setPendingVerification(null)
+    setVerificationCode("")
+    setVerificationError("")
+    setForm(emptyForm)
+    setSuccess("")
+    setError(message)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -213,6 +290,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       setSaving(true)
       setError("")
       setSuccess("")
+      setVerificationError("")
 
       const payload: PublicSignupRequest = {
         companyName: form.companyName.trim(),
@@ -230,15 +308,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       }
 
       const response = await signupCompany(payload)
-
-      if (response.checkoutUrl) {
-        setSuccess(text.redirecting)
-        window.location.href = response.checkoutUrl
-        return
-      }
-
-      setSuccess(text.success(response.message, response.adminEmail))
-      setForm(emptyForm)
+      setPendingVerification({
+        pendingSignupId: response.pendingSignupId,
+        adminEmail: response.adminEmail,
+        expiresAt: response.expiresAt,
+        attemptsRemaining: response.attemptsRemaining,
+      })
+      setVerificationCode("")
+      setSuccess(text.verificationStartSuccess(response.adminEmail))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.signupFailed)
@@ -247,8 +324,66 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     }
   }
 
+  async function handleConfirmVerification(event: React.FormEvent) {
+    event.preventDefault()
+
+    if (!pendingVerification) {
+      return
+    }
+
+    if (!verificationCode.trim()) {
+      setVerificationError(text.verificationCodeRequired)
+      return
+    }
+
+    try {
+      setVerifying(true)
+      setVerificationError("")
+      setError("")
+      const response = await confirmSignupCompany({
+        pendingSignupId: pendingVerification.pendingSignupId,
+        verificationCode: verificationCode.trim(),
+      })
+
+      if (!response.verified) {
+        if (response.requiresRestart || response.expired) {
+          resetSignupFlow(response.message || text.verificationRestart)
+          return
+        }
+
+        setPendingVerification((current) => current
+          ? { ...current, attemptsRemaining: response.attemptsRemaining }
+          : current)
+        setVerificationError(response.message)
+        return
+      }
+
+      if (!response.signup) {
+        setVerificationError(text.signupFailed)
+        return
+      }
+
+      setPendingVerification(null)
+      setVerificationCode("")
+
+      if (response.signup.checkoutUrl) {
+        setSuccess(text.redirecting)
+        window.location.href = response.signup.checkoutUrl
+        return
+      }
+
+      setSuccess(text.success(response.signup.message, response.signup.adminEmail))
+      setForm(emptyForm)
+    } catch (err) {
+      console.error(err)
+      setVerificationError(err instanceof Error ? err.message : text.signupFailed)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   return (
-    <div className="public-page">
+    <div className="public-page" style={{ position: "relative" }}>
       <div className="card">
         <div className="login-language-row">
           <LanguageSwitcher />
@@ -272,6 +407,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.companyName}
               onChange={(e) => updateForm("companyName", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -286,6 +422,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
                   updateForm("businessTypeOther", "")
                 }
               }}
+              disabled={Boolean(pendingVerification)}
             >
               <option value="">{text.selectBusinessType}</option>
               {BUSINESS_TYPE_OPTIONS.map((option) => (
@@ -303,6 +440,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
                 type="text"
                 value={form.businessTypeOther}
                 onChange={(e) => updateForm("businessTypeOther", e.target.value)}
+                disabled={Boolean(pendingVerification)}
               />
             </label>
           )}
@@ -313,6 +451,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="email"
               value={form.companyEmail}
               onChange={(e) => updateForm("companyEmail", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -322,6 +461,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.phone}
               onChange={(e) => updateForm("phone", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -331,6 +471,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.currencyCode}
               onChange={(e) => updateForm("currencyCode", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -340,6 +481,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.address}
               onChange={(e) => updateForm("address", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -349,6 +491,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.adminFirstName}
               onChange={(e) => updateForm("adminFirstName", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -358,6 +501,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.adminLastName}
               onChange={(e) => updateForm("adminLastName", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -367,6 +511,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="email"
               value={form.adminEmail}
               onChange={(e) => updateForm("adminEmail", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -376,6 +521,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="password"
               value={form.adminPassword}
               onChange={(e) => updateForm("adminPassword", e.target.value)}
+              disabled={Boolean(pendingVerification)}
             />
           </label>
 
@@ -384,7 +530,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
             <select
               value={form.planCode}
               onChange={(e) => updateForm("planCode", e.target.value)}
-              disabled={loadingPlans}
+              disabled={loadingPlans || Boolean(pendingVerification)}
             >
               <option value="">{text.selectPlan}</option>
               {plans.map((plan) => (
@@ -399,9 +545,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
             {text.billingCycle}
             <select
               value={form.billingCycle}
-              onChange={(e) =>
-                updateForm("billingCycle", e.target.value as "MONTHLY" | "YEARLY")
-              }
+              onChange={(e) => updateForm("billingCycle", e.target.value as "MONTHLY" | "YEARLY")}
+              disabled={Boolean(pendingVerification)}
             >
               <option value="MONTHLY">{text.monthly}</option>
               <option value="YEARLY">{text.yearly}</option>
@@ -409,12 +554,55 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           </label>
 
           <div className="form-actions full-width">
-            <button type="submit" disabled={saving || loadingPlans}>
+            <button type="submit" disabled={saving || loadingPlans || Boolean(pendingVerification)}>
               {saving ? text.submitting : text.submit}
             </button>
           </div>
         </form>
       </div>
+
+      {pendingVerification && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(4, 73, 117, 0.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            zIndex: 20,
+          }}
+        >
+          <div className="card" style={{ width: "min(520px, 100%)", margin: 0 }}>
+            <h2>{text.verificationTitle}</h2>
+            <p>{text.verificationText(pendingVerification.adminEmail)}</p>
+            <p>{text.verificationHint}</p>
+            <p><strong>{text.attemptsRemaining(pendingVerification.attemptsRemaining)}</strong></p>
+            <p><strong>{text.timeRemaining(secondsLeft)}</strong></p>
+
+            {verificationError && <div className="card error">{verificationError}</div>}
+
+            <form onSubmit={handleConfirmVerification} className="product-form-grid">
+              <label className="full-width">
+                {text.verificationCode}
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  autoFocus
+                />
+              </label>
+
+              <div className="form-actions full-width">
+                <button type="submit" disabled={verifying || secondsLeft <= 0}>
+                  {verifying ? text.confirmingVerification : text.confirmVerification}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

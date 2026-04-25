@@ -50,9 +50,31 @@ export type PublicSignupResponse = {
     message: string
 }
 
+export type PublicSignupVerificationStartResponse = {
+    pendingSignupId: string
+    adminEmail: string
+    expiresAt: string
+    attemptsRemaining: number
+    message: string
+}
+
+export type PublicSignupVerificationConfirmRequest = {
+    pendingSignupId: string
+    verificationCode: string
+}
+
+export type PublicSignupVerificationConfirmResponse = {
+    verified: boolean
+    expired: boolean
+    requiresRestart: boolean
+    attemptsRemaining: number
+    message: string
+    signup: PublicSignupResponse | null
+}
+
 export async function signupCompany(
     payload: PublicSignupRequest
-): Promise<PublicSignupResponse> {
+): Promise<PublicSignupVerificationStartResponse> {
     const response = await fetch(`${API_BASE_URL}/public/signup-company`, {
         method: "POST",
         headers: {
@@ -61,5 +83,19 @@ export async function signupCompany(
         body: JSON.stringify(payload),
     })
 
-    return handleResponse<PublicSignupResponse>(response)
+    return handleResponse<PublicSignupVerificationStartResponse>(response)
+}
+
+export async function confirmSignupCompany(
+    payload: PublicSignupVerificationConfirmRequest
+): Promise<PublicSignupVerificationConfirmResponse> {
+    const response = await fetch(`${API_BASE_URL}/public/signup-company/confirm`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    })
+
+    return handleResponse<PublicSignupVerificationConfirmResponse>(response)
 }
