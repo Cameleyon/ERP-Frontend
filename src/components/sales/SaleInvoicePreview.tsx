@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { getCompanySubscription } from "../../api/companySubscriptionApi"
 import { sendSaleInvoiceEmail, type SaleDetailResponse } from "../../api/salesApi"
 import { useI18n } from "../../i18n/I18nContext"
 import { formatCurrency, formatDateTime, formatNumber } from "../../utils/format"
@@ -23,14 +24,16 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSuccess, setEmailSuccess] = useState("")
   const [emailError, setEmailError] = useState("")
+  const [invoiceEmailEnabled, setInvoiceEmailEnabled] = useState(false)
 
   const text = language === "fr"
     ? {
         title: "Facture",
         sendEmail: "Envoyer par e-mail",
         sendingEmail: "Envoi...",
-        emailSent: "La facture a été envoyée par e-mail avec succès.",
-        sendPhone: "Envoyer par téléphone",
+        emailSent: "La facture a ete envoyee par e-mail avec succes.",
+        invoiceEmailUnavailable: "L'envoi de facture par e-mail est disponible avec la version Standard uniquement.",
+        sendPhone: "Envoyer par telephone",
         print: "Imprimer la facture",
         saleInvoice: "Facture de vente",
         invoiceNumber: "No facture",
@@ -39,10 +42,10 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         customer: "Client",
         walkInCustomer: "Client passage",
         customerEmail: "E-mail du client",
-        customerPhone: "Téléphone du client",
-        paymentMethod: "Méthode de paiement",
+        customerPhone: "Telephone du client",
+        paymentMethod: "Methode de paiement",
         product: "Produit",
-        quantity: "Quantité",
+        quantity: "Quantite",
         unitPrice: "Prix unitaire",
         lineTotal: "Total ligne",
         empty: "Aucune ligne de facture.",
@@ -56,6 +59,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         sendEmail: "Send by email",
         sendingEmail: "Sending...",
         emailSent: "Invoice email sent successfully.",
+        invoiceEmailUnavailable: "Invoice email sending is available on the Standard plan only.",
         sendPhone: "Send by phone",
         print: "Print invoice",
         saleInvoice: "Sales invoice",
@@ -98,6 +102,30 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
     setEmailError("")
   }, [sale.id])
 
+  useEffect(() => {
+    let ignore = false
+
+    async function loadSubscriptionFeatures() {
+      try {
+        const subscription = await getCompanySubscription()
+        if (!ignore) {
+          setInvoiceEmailEnabled(Boolean(subscription.invoiceEmailEnabled))
+        }
+      } catch (error) {
+        console.error(error)
+        if (!ignore) {
+          setInvoiceEmailEnabled(false)
+        }
+      }
+    }
+
+    loadSubscriptionFeatures()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
   const barcodeBars = useMemo(() => buildPseudoBarcode(`*${sale.saleNumber.toUpperCase()}*`), [sale.saleNumber])
 
   function handlePrintInvoice() {
@@ -115,6 +143,11 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
 
   async function handleEmailInvoice() {
     if (!sale.customerEmail) {
+      return
+    }
+    if (!invoiceEmailEnabled) {
+      setEmailSuccess("")
+      setEmailError(text.invoiceEmailUnavailable)
       return
     }
 
@@ -150,7 +183,13 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         <h3 style={{ margin: 0 }}>{text.title}</h3>
         <div className="table-actions">
           {sale.customerEmail && (
-            <button type="button" className="secondary-button" onClick={handleEmailInvoice} disabled={sendingEmail}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleEmailInvoice}
+              disabled={sendingEmail || !invoiceEmailEnabled}
+              title={invoiceEmailEnabled ? undefined : text.invoiceEmailUnavailable}
+            >
               {sendingEmail ? text.sendingEmail : text.sendEmail}
             </button>
           )}
@@ -260,7 +299,7 @@ function buildInvoiceMessage(sale: SaleDetailResponse, companyName: string | nul
     const header = `${companyName || "CAMELEYON ERP"}\nFacture de vente ${sale.saleNumber}`
     const customer = `Client : ${sale.customerName || "Client passage"}`
     const date = `Date : ${formatDateTime(sale.soldAt)}`
-    const paymentMethod = `Méthode de paiement : ${sale.paymentMethod || "-"}`
+    const paymentMethod = `Methode de paiement : ${sale.paymentMethod || "-"}`
     const items = sale.items.length === 0
       ? "Articles : aucune ligne de facture."
       : `Articles :\n${sale.items

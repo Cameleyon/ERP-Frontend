@@ -18,6 +18,8 @@ export type CompanySubscriptionResponse = {
     gracePeriodEndAt: string | null
     autoRenew: boolean
     requiresPaymentMethod: boolean
+    invoiceEmailEnabled: boolean
+    promotionalMessagingEnabled: boolean
     notes: string | null
 }
 
