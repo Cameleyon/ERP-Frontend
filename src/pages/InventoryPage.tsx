@@ -4,6 +4,7 @@ import {
   createInventoryAdjustment,
   type InventoryAdjustmentResponse,
 } from "../api/inventoryApi"
+import BarcodeScanner from "../components/sales/BarcodeScanner"
 
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
@@ -16,6 +17,7 @@ export default function InventoryPage() {
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
   const [adjustmentLoading, setAdjustmentLoading] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
 
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [adjustmentType, setAdjustmentType] = useState("ADD")
@@ -36,6 +38,9 @@ export default function InventoryPage() {
         adjustSuccess: (name: string) => `L'inventaire a été ajusté avec succès pour ${name}`,
         adjustError: "Échec de l'ajustement d'inventaire",
         lookupTitle: "Rechercher un produit",
+        scannerTitle: "Scanner le code-barres",
+        closeScanner: "Fermer le scanner",
+        openScanner: "Ouvrir le scanner",
         barcodePlaceholder: "Saisir le code-barres ou le SKU",
         lookupLoading: "Recherche...",
         lookup: "Rechercher le produit",
@@ -68,6 +73,9 @@ export default function InventoryPage() {
         adjustSuccess: (name: string) => `Inventory adjusted successfully for ${name}`,
         adjustError: "Failed to adjust inventory",
         lookupTitle: "Find a product",
+        scannerTitle: "Scan barcode",
+        closeScanner: "Close scanner",
+        openScanner: "Open scanner",
         barcodePlaceholder: "Enter the barcode or SKU",
         lookupLoading: "Looking up...",
         lookup: "Find product",
@@ -156,6 +164,13 @@ export default function InventoryPage() {
     }
   }
 
+  function handleDetectedBarcode(value: string) {
+    setProductCode(value)
+    setShowScanner(false)
+    setError("")
+    setSuccess("")
+  }
+
   const unitLabel = selectedProduct?.unitCode ? ` ${selectedProduct.unitCode}` : ""
 
   return (
@@ -167,6 +182,24 @@ export default function InventoryPage() {
 
       <div className="card">
         <h3>{text.lookupTitle}</h3>
+        <div className="card nested-card scanner-toggle-card">
+          <div className="scanner-header">
+            <h3>{text.scannerTitle}</h3>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setShowScanner((prev) => !prev)}
+            >
+              {showScanner ? text.closeScanner : text.openScanner}
+            </button>
+          </div>
+
+          {showScanner && (
+            <div className="scanner-container">
+              <BarcodeScanner onDetected={handleDetectedBarcode} />
+            </div>
+          )}
+        </div>
         <div className="sale-form-row">
           <input
             type="text"

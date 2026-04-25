@@ -8,6 +8,7 @@ import {
   createInventoryReceipt,
   type InventoryReceiptResponse,
 } from "../api/inventoryReceiptApi"
+import BarcodeScanner from "../components/sales/BarcodeScanner"
 import { useI18n } from "../i18n/I18nContext"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 
@@ -19,6 +20,7 @@ export default function InventoryReceiptPage() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
   const [rubricsLoading, setRubricsLoading] = useState(true)
+  const [showScanner, setShowScanner] = useState(false)
 
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
@@ -43,6 +45,9 @@ export default function InventoryReceiptPage() {
         createError: "Échec de la création de la réception d'inventaire",
         title: "Réception d'inventaire",
         lookupTitle: "Rechercher un produit",
+        scannerTitle: "Scanner le code-barres",
+        closeScanner: "Fermer le scanner",
+        openScanner: "Ouvrir le scanner",
         barcodePlaceholder: "Saisir le code-barres ou le SKU",
         lookupLoading: "Recherche...",
         lookup: "Rechercher le produit",
@@ -77,6 +82,9 @@ export default function InventoryReceiptPage() {
         createError: "Failed to create inventory receipt",
         title: "Inventory receipt",
         lookupTitle: "Find a product",
+        scannerTitle: "Scan barcode",
+        closeScanner: "Close scanner",
+        openScanner: "Open scanner",
         barcodePlaceholder: "Enter the barcode or SKU",
         lookupLoading: "Looking up...",
         lookup: "Find product",
@@ -228,6 +236,13 @@ export default function InventoryReceiptPage() {
     }))
   }
 
+  function handleDetectedBarcode(value: string) {
+    setProductCode(value)
+    setShowScanner(false)
+    setError("")
+    setSuccess("")
+  }
+
   return (
     <div>
       <h1>{text.title}</h1>
@@ -237,6 +252,24 @@ export default function InventoryReceiptPage() {
 
       <div className="card">
         <h3>{text.lookupTitle}</h3>
+        <div className="card nested-card scanner-toggle-card">
+          <div className="scanner-header">
+            <h3>{text.scannerTitle}</h3>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setShowScanner((prev) => !prev)}
+            >
+              {showScanner ? text.closeScanner : text.openScanner}
+            </button>
+          </div>
+
+          {showScanner && (
+            <div className="scanner-container">
+              <BarcodeScanner onDetected={handleDetectedBarcode} />
+            </div>
+          )}
+        </div>
         <div className="sale-form-row">
           <input
             type="text"
