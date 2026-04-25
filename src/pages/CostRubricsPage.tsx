@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   createCostRubric,
   getCostRubrics,
@@ -6,6 +6,10 @@ import {
   type CompanyCostRubricResponse,
 } from "../api/costRubricManagementApi"
 import { useI18n } from "../i18n/I18nContext"
+import {
+  DEFAULT_COST_RUBRIC_OPTIONS,
+  getLocalizedCostRubricName,
+} from "../utils/costRubrics"
 
 type FormState = {
   code: string
@@ -27,32 +31,37 @@ export default function CostRubricsPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [presetSelection, setPresetSelection] = useState("")
 
   const text = language === "fr"
     ? {
-        title: "Rubriques de coût",
-        loadError: "Échec du chargement des rubriques de coût",
+        title: "Rubriques de cout",
+        loadError: "Echec du chargement des rubriques de cout",
         codeRequired: "Le code est requis",
         nameRequired: "Le nom est requis",
-        createSuccess: "La rubrique de coût a été créée avec succès",
-        createError: "Échec de la création de la rubrique de coût",
-        deactivateSuccess: "La rubrique de coût a été désactivée avec succès",
-        activateSuccess: "La rubrique de coût a été activée avec succès",
-        statusError: "Échec de la mise à jour du statut de la rubrique de coût",
-        newTitle: "Nouvelle rubrique de coût",
+        createSuccess: "La rubrique de cout a ete creee avec succes",
+        createError: "Echec de la creation de la rubrique de cout",
+        deactivateSuccess: "La rubrique de cout a ete desactivee avec succes",
+        activateSuccess: "La rubrique de cout a ete activee avec succes",
+        statusError: "Echec de la mise a jour du statut de la rubrique de cout",
+        newTitle: "Nouvelle rubrique de cout",
+        choosePreset: "Choisir une rubrique",
+        otherPreset: "Autre",
         code: "Code",
         name: "Nom",
+        customName: "Nom personnalise",
+        customNamePlaceholder: "Saisir le nom de la rubrique",
         displayOrder: "Ordre d'affichage",
-        create: "Créer la rubrique de coût",
-        creating: "Création...",
-        listTitle: "Liste des rubriques de coût",
-        loading: "Chargement des rubriques de coût...",
+        create: "Creer la rubrique de cout",
+        creating: "Creation...",
+        listTitle: "Liste des rubriques de cout",
+        loading: "Chargement des rubriques de cout...",
         status: "Statut",
-        empty: "Aucune rubrique de coût trouvée.",
+        empty: "Aucune rubrique de cout trouvee.",
         active: "Actif",
         inactive: "Inactif",
         activate: "Activer",
-        deactivate: "Désactiver",
+        deactivate: "Desactiver",
       }
     : {
         title: "Cost rubrics",
@@ -65,8 +74,12 @@ export default function CostRubricsPage() {
         activateSuccess: "Cost rubric activated successfully",
         statusError: "Failed to update cost rubric status",
         newTitle: "New cost rubric",
+        choosePreset: "Choose a rubric",
+        otherPreset: "Other",
         code: "Code",
         name: "Name",
+        customName: "Custom name",
+        customNamePlaceholder: "Enter the rubric name",
         displayOrder: "Display order",
         create: "Create cost rubric",
         creating: "Creating...",
@@ -80,9 +93,23 @@ export default function CostRubricsPage() {
         deactivate: "Deactivate",
       }
 
+  const availablePresetRubrics = useMemo(() => {
+    const existingCodes = new Set(rubrics.map((rubric) => rubric.code))
+    return DEFAULT_COST_RUBRIC_OPTIONS.filter((option) => !existingCodes.has(option.code))
+  }, [rubrics])
+
   useEffect(() => {
     loadRubrics()
   }, [])
+
+  function getPresetLabel(code: string) {
+    const matchedOption = DEFAULT_COST_RUBRIC_OPTIONS.find((option) => option.code === code)
+    if (!matchedOption) {
+      return code
+    }
+
+    return language === "fr" ? matchedOption.fr : matchedOption.en
+  }
 
   async function loadRubrics() {
     try {
@@ -103,6 +130,35 @@ export default function CostRubricsPage() {
       ...prev,
       [key]: value,
     }))
+  }
+
+  function handlePresetSelectionChange(value: string) {
+    setPresetSelection(value)
+
+    if (!value) {
+      setForm(emptyForm)
+      return
+    }
+
+    if (value === "OTHER") {
+      setForm({
+        code: "",
+        name: "",
+        displayOrder: "0",
+      })
+      return
+    }
+
+    const matchedOption = availablePresetRubrics.find((option) => option.code === value)
+    if (!matchedOption) {
+      return
+    }
+
+    setForm({
+      code: matchedOption.code,
+      name: language === "fr" ? matchedOption.fr : matchedOption.en,
+      displayOrder: String(matchedOption.displayOrder),
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -131,6 +187,7 @@ export default function CostRubricsPage() {
 
       setSuccess(text.createSuccess)
       setForm(emptyForm)
+      setPresetSelection("")
       await loadRubrics()
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
@@ -169,22 +226,40 @@ export default function CostRubricsPage() {
 
         <form onSubmit={handleSubmit} className="product-form-grid">
           <label>
+            {text.name}
+            <select
+              value={presetSelection}
+              onChange={(e) => handlePresetSelectionChange(e.target.value)}
+            >
+              <option value="">{text.choosePreset}</option>
+              {availablePresetRubrics.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {getPresetLabel(option.code)}
+                </option>
+              ))}
+              <option value="OTHER">{text.otherPreset}</option>
+            </select>
+          </label>
+
+          <label>
             {text.code}
             <input
               type="text"
               value={form.code}
               onChange={(e) => updateForm("code", e.target.value)}
-              placeholder="PURCHASE"
+              placeholder="COST_OF_GOODS"
+              disabled={presetSelection !== "" && presetSelection !== "OTHER"}
             />
           </label>
 
           <label>
-            {text.name}
+            {presetSelection === "OTHER" ? text.customName : text.name}
             <input
               type="text"
               value={form.name}
               onChange={(e) => updateForm("name", e.target.value)}
-              placeholder={language === "fr" ? "Coût d'achat" : "Purchase cost"}
+              placeholder={text.customNamePlaceholder}
+              disabled={presetSelection !== "" && presetSelection !== "OTHER"}
             />
           </label>
 
@@ -231,7 +306,7 @@ export default function CostRubricsPage() {
                 rubrics.map((rubric) => (
                   <tr key={rubric.id}>
                     <td>{rubric.code}</td>
-                    <td>{rubric.name}</td>
+                    <td>{getLocalizedCostRubricName(rubric.code, rubric.name, language)}</td>
                     <td>{rubric.displayOrder}</td>
                     <td>{rubric.active ? text.active : text.inactive}</td>
                     <td>

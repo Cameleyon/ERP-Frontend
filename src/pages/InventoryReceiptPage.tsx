@@ -10,6 +10,7 @@ import {
 } from "../api/inventoryReceiptApi"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import { useI18n } from "../i18n/I18nContext"
+import { getLocalizedCostRubricName } from "../utils/costRubrics"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 
 type CostAmountMap = Record<number, string>
@@ -331,7 +332,7 @@ export default function InventoryReceiptPage() {
               <div className="inventory-form-grid">
                 {rubrics.map((rubric) => (
                   <label key={rubric.id}>
-                    {rubric.name}
+                    {getLocalizedCostRubricName(rubric.code, rubric.name, language)}
                     <input
                       type="number"
                       min={0}

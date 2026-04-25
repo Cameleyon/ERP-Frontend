@@ -32,6 +32,33 @@ const emptyForm: ProductFormState = {
   unitId: "",
 }
 
+const presetCategoryOptions = [
+  { key: "GROCERIES", fr: "Épicerie", en: "Groceries" },
+  { key: "BEAUTY", fr: "Beauté et soins", en: "Beauty and personal care" },
+  { key: "HOUSEHOLD", fr: "Maison et entretien", en: "Household supplies" },
+  { key: "ELECTRONICS", fr: "Électronique", en: "Electronics" },
+  { key: "CLOTHING", fr: "Vêtements et accessoires", en: "Clothing and accessories" },
+  { key: "OFFICE", fr: "Papeterie et bureau", en: "Office and stationery" },
+  { key: "PHARMACY", fr: "Pharmacie", en: "Pharmacy" },
+  { key: "HARDWARE", fr: "Quincaillerie", en: "Hardware" },
+  { key: "RESTAURANT", fr: "Restaurant et cuisine", en: "Restaurant and kitchen" },
+  { key: "SERVICES", fr: "Services", en: "Services" },
+] as const
+
+function findPresetCategoryKey(category: string) {
+  const normalizedCategory = category.trim().toLowerCase()
+
+  if (!normalizedCategory) {
+    return ""
+  }
+
+  const matchedOption = presetCategoryOptions.find((option) =>
+    option.fr.toLowerCase() === normalizedCategory || option.en.toLowerCase() === normalizedCategory
+  )
+
+  return matchedOption?.key ?? ""
+}
+
 export default function ProductsPage() {
   const { language } = useI18n()
   const [products, setProducts] = useState<ProductResponse[]>([])
@@ -47,17 +74,18 @@ export default function ProductsPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("ALL")
+  const [categorySelection, setCategorySelection] = useState("")
 
   const text = language === "fr"
     ? {
-        loadProductsError: "Échec du chargement des produits",
-        loadUnitsError: "Échec du chargement des unités",
+        loadProductsError: "Echec du chargement des produits",
+        loadUnitsError: "Echec du chargement des unites",
         nameRequired: "Le nom est requis",
         unitPriceRequired: "Le prix unitaire est requis",
-        unitRequired: "L'unité est requise",
-        updateSuccess: "Le produit a été mis à jour avec succès",
-        createSuccess: "Le produit a été créé avec succès",
-        saveError: "Échec de l'enregistrement du produit",
+        unitRequired: "L'unite est requise",
+        updateSuccess: "Le produit a ete mis a jour avec succes",
+        createSuccess: "Le produit a ete cree avec succes",
+        saveError: "Echec de l'enregistrement du produit",
         title: "Produits",
         editTitle: "Modifier le produit",
         newTitle: "Nouveau produit",
@@ -68,28 +96,32 @@ export default function ProductsPage() {
         barcodePlaceholder: "Scanner ou saisir le code-barres (optionnel)",
         name: "Nom",
         description: "Description",
-        category: "Catégorie",
-        unit: "Unité",
-        selectUnit: "Sélectionner une unité",
+        category: "Categorie",
+        chooseCategory: "Choisir une categorie",
+        otherCategory: "Autre",
+        customCategory: "Categorie personnalisee",
+        customCategoryPlaceholder: "Saisir une categorie",
+        unit: "Unite",
+        selectUnit: "Selectionner une unite",
         unitPrice: "Prix unitaire",
         minimumStock: "Stock minimum",
         active: "Actif",
-        updating: "Mise à jour...",
-        creating: "Création...",
-        update: "Mettre à jour le produit",
-        create: "Créer le produit",
+        updating: "Mise a jour...",
+        creating: "Creation...",
+        update: "Mettre a jour le produit",
+        create: "Creer le produit",
         cancel: "Annuler",
         listTitle: "Liste des produits",
         search: "Rechercher",
-        searchPlaceholder: "Rechercher par nom, SKU, code-barres, catégorie...",
+        searchPlaceholder: "Rechercher par nom, SKU, code-barres, categorie...",
         clearFilters: "Effacer les filtres",
-        allCategories: "Toutes les catégories",
+        allCategories: "Toutes les categories",
         loading: "Chargement des produits...",
         sku: "SKU",
-        referenceCost: "Coût réf.",
+        referenceCost: "Cout ref.",
         stock: "Stock",
         status: "Statut",
-        empty: "Aucun produit trouvé.",
+        empty: "Aucun produit trouve.",
         emptyFiltered: "Aucun produit ne correspond aux filtres actuels.",
         edit: "Modifier",
         inactive: "Inactif",
@@ -114,6 +146,10 @@ export default function ProductsPage() {
         name: "Name",
         description: "Description",
         category: "Category",
+        chooseCategory: "Choose a category",
+        otherCategory: "Other",
+        customCategory: "Custom category",
+        customCategoryPlaceholder: "Enter a category",
         unit: "Unit",
         selectUnit: "Select a unit",
         unitPrice: "Unit price",
@@ -142,10 +178,39 @@ export default function ProductsPage() {
 
   const isEditMode = editingProductId !== null
 
+  const localizedPresetCategories = useMemo(
+    () =>
+      presetCategoryOptions.map((option) => ({
+        key: option.key,
+        label: language === "fr" ? option.fr : option.en,
+      })),
+    [language]
+  )
+
   useEffect(() => {
     loadProducts()
     loadUnits()
   }, [])
+
+  useEffect(() => {
+    if (!categorySelection || categorySelection === "OTHER") {
+      return
+    }
+
+    const matchedOption = localizedPresetCategories.find((option) => option.key === categorySelection)
+    if (!matchedOption) {
+      return
+    }
+
+    setForm((prev) =>
+      prev.category === matchedOption.label
+        ? prev
+        : {
+            ...prev,
+            category: matchedOption.label,
+          }
+    )
+  }, [categorySelection, localizedPresetCategories])
 
   async function loadProducts() {
     try {
@@ -211,9 +276,12 @@ export default function ProductsPage() {
   }
 
   function handleEdit(product: ProductResponse) {
+    const presetCategoryKey = findPresetCategoryKey(product.category ?? "")
+
     setEditingProductId(product.id)
     setError("")
     setSuccess("")
+    setCategorySelection(presetCategoryKey || (product.category?.trim() ? "OTHER" : ""))
     setForm({
       barcode: product.barcode ?? "",
       name: product.name,
@@ -230,6 +298,7 @@ export default function ProductsPage() {
   function handleCancelEdit() {
     setEditingProductId(null)
     setForm(emptyForm)
+    setCategorySelection("")
     setShowScanner(false)
     setError("")
     setSuccess("")
@@ -245,6 +314,25 @@ export default function ProductsPage() {
     setShowScanner(false)
     setError("")
     setSuccess("")
+  }
+
+  function handleCategorySelectionChange(value: string) {
+    setCategorySelection(value)
+
+    if (!value) {
+      updateForm("category", "")
+      return
+    }
+
+    if (value === "OTHER") {
+      if (findPresetCategoryKey(form.category)) {
+        updateForm("category", "")
+      }
+      return
+    }
+
+    const matchedOption = localizedPresetCategories.find((option) => option.key === value)
+    updateForm("category", matchedOption?.label ?? "")
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -289,6 +377,7 @@ export default function ProductsPage() {
 
       setEditingProductId(null)
       setForm(emptyForm)
+      setCategorySelection("")
       setShowScanner(false)
       await loadProducts()
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -361,12 +450,31 @@ export default function ProductsPage() {
 
           <label>
             {text.category}
-            <input
-              type="text"
-              value={form.category}
-              onChange={(e) => updateForm("category", e.target.value)}
-            />
+            <select
+              value={categorySelection}
+              onChange={(e) => handleCategorySelectionChange(e.target.value)}
+            >
+              <option value="">{text.chooseCategory}</option>
+              {localizedPresetCategories.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+              <option value="OTHER">{text.otherCategory}</option>
+            </select>
           </label>
+
+          {categorySelection === "OTHER" && (
+            <label>
+              {text.customCategory}
+              <input
+                type="text"
+                value={form.category}
+                onChange={(e) => updateForm("category", e.target.value)}
+                placeholder={text.customCategoryPlaceholder}
+              />
+            </label>
+          )}
 
           <label>
             {text.unit}
