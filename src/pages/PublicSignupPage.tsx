@@ -55,15 +55,60 @@ const emptyForm: FormState = {
 const BUSINESS_TYPE_OTHER = "OTHER"
 
 const BUSINESS_TYPE_OPTIONS = [
-  "Retail",
-  "Wholesale",
-  "Restaurant",
-  "Pharmacy",
-  "Beauty / Salon",
-  "Electronics",
-  "Construction",
-  "Services",
-  BUSINESS_TYPE_OTHER,
+  {
+    value: "Retail",
+    fr: "Commerce de detail",
+    en: "Retail",
+    es: "Venta al por menor",
+  },
+  {
+    value: "Wholesale",
+    fr: "Vente en gros",
+    en: "Wholesale",
+    es: "Venta al por mayor",
+  },
+  {
+    value: "Restaurant",
+    fr: "Restaurant",
+    en: "Restaurant",
+    es: "Restaurante",
+  },
+  {
+    value: "Pharmacy",
+    fr: "Pharmacie",
+    en: "Pharmacy",
+    es: "Farmacia",
+  },
+  {
+    value: "Beauty / Salon",
+    fr: "Beaute / Salon",
+    en: "Beauty / Salon",
+    es: "Belleza / Salon",
+  },
+  {
+    value: "Electronics",
+    fr: "Electronique",
+    en: "Electronics",
+    es: "Electronica",
+  },
+  {
+    value: "Construction",
+    fr: "Construction",
+    en: "Construction",
+    es: "Construccion",
+  },
+  {
+    value: "Services",
+    fr: "Services",
+    en: "Services",
+    es: "Servicios",
+  },
+  {
+    value: BUSINESS_TYPE_OTHER,
+    fr: "Autre",
+    en: "Other",
+    es: "Otro",
+  },
 ] as const
 
 export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome }: Props) {
@@ -102,7 +147,6 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         companyName: "Nom de l'entreprise",
         businessType: "Type d'activite",
         selectBusinessType: "Choisir un type d'activite",
-        other: "Autre",
         otherBusinessType: "Autre type d'activite",
         companyEmail: "Email de l'entreprise",
         phone: "Telephone",
@@ -128,53 +172,99 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         attemptsRemaining: (count: number) => `Essais restants : ${count}`,
         timeRemaining: (count: number) => `Temps restant : ${count}s`,
       }
-    : {
-        loadPlansError: "Failed to load plans",
-        companyNameRequired: "Company name is required",
-        adminFirstNameRequired: "Admin first name is required",
-        adminLastNameRequired: "Admin last name is required",
-        adminEmailRequired: "Admin email is required",
-        adminPasswordRequired: "Admin password is required",
-        planRequired: "Plan is required",
-        businessTypeRequired: "Business type is required",
-        verificationCodeRequired: "Verification code is required",
-        redirecting: "Redirecting to Stripe payment...",
-        signupFailed: "Signup failed",
-        verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
-        verificationExpired: "The verification time expired. Please fill in the form again.",
-        verificationRestart: "Verification was cancelled. Please fill in the form again.",
-        success: (message: string, adminEmail: string) => `${message}. Your company has been created and you can now log in with ${adminEmail}.`,
-        backHome: "Back to home",
-        title: "Sign Up",
-        companyName: "Company name",
-        businessType: "Business type",
-        selectBusinessType: "Choose a business type",
-        other: "Other",
-        otherBusinessType: "Other business type",
-        companyEmail: "Company email",
-        phone: "Phone",
-        currency: "Currency",
-        address: "Address",
-        adminFirstName: "Admin first name",
-        adminLastName: "Admin last name",
-        adminEmail: "Admin email",
-        adminPassword: "Admin password",
-        plan: "Plan",
-        selectPlan: "Choose a plan",
-        billingCycle: "Billing cycle",
-        monthly: "Monthly",
-        yearly: "Yearly",
-        submit: "Verify admin email",
-        submitting: "Sending code...",
-        verificationTitle: "Confirm admin email",
-        verificationText: (email: string) => `Enter the code sent to ${email}.`,
-        verificationHint: "You have 3 attempts and 30 seconds.",
-        verificationCode: "Verification code",
-        confirmVerification: "Confirm code",
-        confirmingVerification: "Verifying...",
-        attemptsRemaining: (count: number) => `Attempts remaining: ${count}`,
-        timeRemaining: (count: number) => `Time remaining: ${count}s`,
-      }
+    : language === "es"
+      ? {
+          loadPlansError: "No fue posible cargar los planes",
+          companyNameRequired: "El nombre de la empresa es obligatorio",
+          adminFirstNameRequired: "El nombre del administrador es obligatorio",
+          adminLastNameRequired: "El apellido del administrador es obligatorio",
+          adminEmailRequired: "El correo del administrador es obligatorio",
+          adminPasswordRequired: "La contrasena del administrador es obligatoria",
+          planRequired: "El plan es obligatorio",
+          businessTypeRequired: "El tipo de negocio es obligatorio",
+          verificationCodeRequired: "El codigo de verificacion es obligatorio",
+          redirecting: "Redirigiendo al pago de Stripe...",
+          signupFailed: "El registro fallo",
+          verificationStartSuccess: (email: string) => `Se envio un codigo a ${email}.`,
+          verificationExpired: "El tiempo de verificacion expiro. Complete nuevamente el formulario.",
+          verificationRestart: "La verificacion fue cancelada. Complete nuevamente el formulario.",
+          success: (message: string, adminEmail: string) => `${message}. Su empresa ha sido creada y ahora puede iniciar sesion con ${adminEmail}.`,
+          backHome: "Volver al inicio",
+          title: "Registro",
+          companyName: "Nombre de la empresa",
+          businessType: "Tipo de negocio",
+          selectBusinessType: "Elegir un tipo de negocio",
+          otherBusinessType: "Otro tipo de negocio",
+          companyEmail: "Correo de la empresa",
+          phone: "Telefono",
+          currency: "Moneda",
+          address: "Direccion",
+          adminFirstName: "Nombre del administrador",
+          adminLastName: "Apellido del administrador",
+          adminEmail: "Correo del administrador",
+          adminPassword: "Contrasena del administrador",
+          plan: "Plan",
+          selectPlan: "Elegir un plan",
+          billingCycle: "Ciclo de facturacion",
+          monthly: "Mensual",
+          yearly: "Anual",
+          submit: "Verificar correo del administrador",
+          submitting: "Enviando codigo...",
+          verificationTitle: "Confirmar correo del administrador",
+          verificationText: (email: string) => `Ingrese el codigo enviado a ${email}.`,
+          verificationHint: "Tiene 3 intentos y 30 segundos.",
+          verificationCode: "Codigo de verificacion",
+          confirmVerification: "Confirmar codigo",
+          confirmingVerification: "Verificando...",
+          attemptsRemaining: (count: number) => `Intentos restantes: ${count}`,
+          timeRemaining: (count: number) => `Tiempo restante: ${count}s`,
+        }
+      : {
+          loadPlansError: "Failed to load plans",
+          companyNameRequired: "Company name is required",
+          adminFirstNameRequired: "Admin first name is required",
+          adminLastNameRequired: "Admin last name is required",
+          adminEmailRequired: "Admin email is required",
+          adminPasswordRequired: "Admin password is required",
+          planRequired: "Plan is required",
+          businessTypeRequired: "Business type is required",
+          verificationCodeRequired: "Verification code is required",
+          redirecting: "Redirecting to Stripe payment...",
+          signupFailed: "Signup failed",
+          verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
+          verificationExpired: "The verification time expired. Please fill in the form again.",
+          verificationRestart: "Verification was cancelled. Please fill in the form again.",
+          success: (message: string, adminEmail: string) => `${message}. Your company has been created and you can now log in with ${adminEmail}.`,
+          backHome: "Back to home",
+          title: "Sign Up",
+          companyName: "Company name",
+          businessType: "Business type",
+          selectBusinessType: "Choose a business type",
+          otherBusinessType: "Other business type",
+          companyEmail: "Company email",
+          phone: "Phone",
+          currency: "Currency",
+          address: "Address",
+          adminFirstName: "Admin first name",
+          adminLastName: "Admin last name",
+          adminEmail: "Admin email",
+          adminPassword: "Admin password",
+          plan: "Plan",
+          selectPlan: "Choose a plan",
+          billingCycle: "Billing cycle",
+          monthly: "Monthly",
+          yearly: "Yearly",
+          submit: "Verify admin email",
+          submitting: "Sending code...",
+          verificationTitle: "Confirm admin email",
+          verificationText: (email: string) => `Enter the code sent to ${email}.`,
+          verificationHint: "You have 3 attempts and 30 seconds.",
+          verificationCode: "Verification code",
+          confirmVerification: "Confirm code",
+          confirmingVerification: "Verifying...",
+          attemptsRemaining: (count: number) => `Attempts remaining: ${count}`,
+          timeRemaining: (count: number) => `Time remaining: ${count}s`,
+        }
 
   useEffect(() => {
     loadPlans()
@@ -206,6 +296,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       window.clearInterval(timer)
     }
   }, [pendingVerification, text.verificationExpired])
+
+  const localizedBusinessTypeOptions = useMemo(
+    () => BUSINESS_TYPE_OPTIONS.map((option) => ({
+      value: option.value,
+      label: option[language],
+    })),
+    [language]
+  )
 
   const resolvedBusinessType = useMemo(
     () => (
@@ -425,9 +523,9 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               disabled={Boolean(pendingVerification)}
             >
               <option value="">{text.selectBusinessType}</option>
-              {BUSINESS_TYPE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option === BUSINESS_TYPE_OTHER ? text.other : option}
+              {localizedBusinessTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

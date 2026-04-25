@@ -14,27 +14,42 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
 
   const text = language === "fr"
     ? {
-        fallbackError: "La connexion a échoué",
-        backHome: "Retour à l'accueil",
+        fallbackError: "La connexion a echoue",
+        backHome: "Retour a l'accueil",
         signUp: "S'inscrire",
         subtitle: "Connectez-vous pour continuer",
+        email: "Email",
         password: "Mot de passe",
         passwordPlaceholder: "Entrez votre mot de passe",
         emailPlaceholder: "vous@exemple.com",
         submitting: "Connexion...",
         submit: "Se connecter",
       }
-    : {
-        fallbackError: "Login failed",
-        backHome: "Back to home",
-        signUp: "Sign Up",
-        subtitle: "Sign in to continue",
-        password: "Password",
-        passwordPlaceholder: "Enter your password",
-        emailPlaceholder: "you@example.com",
-        submitting: "Logging in...",
-        submit: "Login",
-      }
+    : language === "es"
+      ? {
+          fallbackError: "Error de inicio de sesion",
+          backHome: "Volver al inicio",
+          signUp: "Registrarse",
+          subtitle: "Inicia sesion para continuar",
+          email: "Correo electronico",
+          password: "Contrasena",
+          passwordPlaceholder: "Ingrese su contrasena",
+          emailPlaceholder: "usted@ejemplo.com",
+          submitting: "Conectando...",
+          submit: "Iniciar sesion",
+        }
+      : {
+          fallbackError: "Login failed",
+          backHome: "Back to home",
+          signUp: "Sign Up",
+          subtitle: "Sign in to continue",
+          email: "Email",
+          password: "Password",
+          passwordPlaceholder: "Enter your password",
+          emailPlaceholder: "you@example.com",
+          submitting: "Logging in...",
+          submit: "Login",
+        }
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -83,7 +98,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
 
         <form onSubmit={handleSubmit} className="login-form">
           <label>
-            Email
+            {text.email}
             <input
               type="email"
               value={email}

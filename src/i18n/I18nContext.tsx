@@ -17,11 +17,21 @@ function detectInitialLanguage(): Language {
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY)
-  if (stored === "fr" || stored === "en") {
+  if (stored === "fr" || stored === "en" || stored === "es") {
     return stored
   }
 
-  return window.navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en"
+  const browserLanguage = window.navigator.language.toLowerCase()
+
+  if (browserLanguage.startsWith("fr")) {
+    return "fr"
+  }
+
+  if (browserLanguage.startsWith("es")) {
+    return "es"
+  }
+
+  return "en"
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

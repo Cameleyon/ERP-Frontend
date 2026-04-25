@@ -23,6 +23,13 @@ export default function LanguageSwitcher({ className = "" }: Props) {
       >
         {copy.language.en}
       </button>
+      <button
+        type="button"
+        className={`language-switcher-button ${language === "es" ? "active" : ""}`}
+        onClick={() => setLanguage("es")}
+      >
+        {copy.language.es}
+      </button>
     </div>
   )
 }

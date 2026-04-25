@@ -22,88 +22,131 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
   const text = language === "fr"
     ? {
-        loadError: "Impossible de charger les données publiques",
-        badge: "Propulsé par CAMELEYON Dynamics",
-        heroSubtitle: "Une seule plateforme pour les opérations, le stock, les ventes et la croissance.",
+        loadError: "Impossible de charger les donnees publiques",
+        badge: "Propulse par CAMELEYON Dynamics",
+        heroSubtitle: "Une seule plateforme pour les operations, le stock, les ventes et la croissance.",
         signUp: "S'inscrire",
         login: "Se connecter",
         introTitle:
-          "CAMELEYON ERP réunit les ventes, l'inventaire, les produits, les prix et la prise de décision dans un espace de travail élégant conçu pour les organisations en croissance.",
-        introSubtitle: "Fini les tableurs et les feuilles dispersées.",
-        featuresEyebrow: "Fonctionnalités clés",
-        featuresTitle: "Tout ce dont votre organisation a besoin pour rester alignée",
-        featuresSubtitle: "Zéro rupture d'inventaire. Zéro déficit surprise. Zéro opportunité manquée.",
+          "CAMELEYON ERP reunit les ventes, l'inventaire, les produits, les prix et la prise de decision dans un espace de travail elegant concu pour les organisations en croissance.",
+        introSubtitle: "Fini les tableurs et les feuilles dispersees.",
+        featuresEyebrow: "Fonctionnalites cles",
+        featuresTitle: "Tout ce dont votre organisation a besoin pour rester alignee",
+        featuresSubtitle: "Zero rupture d'inventaire. Zero deficit surprise. Zero opportunite manquee.",
         cards: [
-          ["Pilotage des ventes", "Créez rapidement des transactions et conservez un historique de ventes clair."],
-          ["Contrôle de l'inventaire", "Suivez les mouvements de stock et restez alerté sur les écarts d'inventaire."],
-          ["Structure produits", "Gérez les produits et les prix."],
-          ["Visibilité d'entreprise", "Accédez à votre entreprise à tout moment, partout."],
+          ["Pilotage des ventes", "Creez rapidement des transactions et conservez un historique de ventes clair."],
+          ["Controle de l'inventaire", "Suivez les mouvements de stock et restez alerte sur les ecarts d'inventaire."],
+          ["Structure produits", "Gerez les produits et les prix."],
+          ["Visibilite d'entreprise", "Accedez a votre entreprise a tout moment, partout."],
         ],
         promotionsEyebrow: "Promotions",
         promotionsTitle: "Offres en cours",
         promotionsLoading: "Chargement des promotions...",
         promotionsEmpty: "Aucune promotion disponible pour le moment.",
-        specialOffer: "Offre spéciale",
+        specialOffer: "Offre speciale",
         promoText: "Tarification promotionnelle actuellement disponible.",
         freeTrial: "Essai gratuit :",
         days: "jours",
         monthlyPromo: "Promo mensuelle :",
         yearlyPromo: "Promo annuelle :",
         plansEyebrow: "Plans",
-        plansTitle: "Choisissez l'abonnement qui correspond à votre rythme",
+        plansTitle: "Choisissez l'abonnement qui correspond a votre rythme",
         plansLoading: "Chargement des plans...",
         plansEmpty: "Aucun plan disponible.",
-        defaultPlanText: "Pack opérationnel pour les équipes qui veulent de la clarté et de la rapidité.",
+        defaultPlanText: "Pack operationnel pour les equipes qui veulent de la clarte et de la rapidite.",
         custom: "Sur mesure",
         perMonth: "par mois",
         yearly: "Annuel :",
         continuePlan: "Continuer avec ce plan",
       }
-    : {
-        loadError: "Failed to load public data",
-        badge: "Powered by CAMELEYON Dynamics",
-        heroSubtitle: "One platform for operations, stock, sales, and growth.",
-        signUp: "Sign Up",
-        login: "Login",
-        introTitle:
-          "CAMELEYON ERP brings sales, inventory, products, pricing, and decision-making into one elegant workspace built for growing organisations.",
-        introSubtitle: "No more spreadsheets and loose sheets.",
-        featuresEyebrow: "Key features",
-        featuresTitle: "Everything your organisation needs to stay aligned",
-        featuresSubtitle: "Zero inventory gaps. Zero surprise deficits. Zero missed opportunities.",
-        cards: [
-          ["Sales control", "Create transactions quickly and keep a clean sales history."],
-          ["Inventory control", "Track stock movement and stay alert on inventory gaps."],
-          ["Product structure", "Manage products and pricing."],
-          ["Business visibility", "Access your company anytime, anywhere."],
-        ],
-        promotionsEyebrow: "Promotions",
-        promotionsTitle: "Current offers",
-        promotionsLoading: "Loading promotions...",
-        promotionsEmpty: "No promotions available at the moment.",
-        specialOffer: "Special offer",
-        promoText: "Promotional pricing currently available.",
-        freeTrial: "Free trial:",
-        days: "days",
-        monthlyPromo: "Monthly promo:",
-        yearlyPromo: "Yearly promo:",
-        plansEyebrow: "Plans",
-        plansTitle: "Choose the subscription that matches your pace",
-        plansLoading: "Loading plans...",
-        plansEmpty: "No plan available.",
-        defaultPlanText: "Operational package for teams that want clarity and speed.",
-        custom: "Custom",
-        perMonth: "per month",
-        yearly: "Yearly:",
-        continuePlan: "Continue with this plan",
-      }
+    : language === "es"
+      ? {
+          loadError: "No fue posible cargar los datos publicos",
+          badge: "Impulsado por CAMELEYON Dynamics",
+          heroSubtitle: "Una sola plataforma para operaciones, inventario, ventas y crecimiento.",
+          signUp: "Registrarse",
+          login: "Iniciar sesion",
+          introTitle:
+            "CAMELEYON ERP integra ventas, inventario, productos, precios y toma de decisiones en un espacio de trabajo elegante creado para organizaciones en crecimiento.",
+          introSubtitle: "No mas hojas de calculo ni papeles sueltos.",
+          featuresEyebrow: "Funciones clave",
+          featuresTitle: "Todo lo que su organizacion necesita para mantenerse alineada",
+          featuresSubtitle: "Cero faltantes de inventario. Cero deficits sorpresa. Cero oportunidades perdidas.",
+          cards: [
+            ["Control de ventas", "Cree transacciones rapidamente y conserve un historial de ventas claro."],
+            ["Control de inventario", "Siga el movimiento del inventario y mantengase alerta ante faltantes."],
+            ["Estructura de productos", "Gestione productos y precios."],
+            ["Visibilidad del negocio", "Acceda a su empresa en cualquier momento y desde cualquier lugar."],
+          ],
+          promotionsEyebrow: "Promociones",
+          promotionsTitle: "Ofertas actuales",
+          promotionsLoading: "Cargando promociones...",
+          promotionsEmpty: "No hay promociones disponibles por el momento.",
+          specialOffer: "Oferta especial",
+          promoText: "Precio promocional disponible actualmente.",
+          freeTrial: "Prueba gratis:",
+          days: "dias",
+          monthlyPromo: "Promo mensual:",
+          yearlyPromo: "Promo anual:",
+          plansEyebrow: "Planes",
+          plansTitle: "Elija la suscripcion que mejor se adapte a su ritmo",
+          plansLoading: "Cargando planes...",
+          plansEmpty: "No hay planes disponibles.",
+          defaultPlanText: "Paquete operativo para equipos que buscan claridad y rapidez.",
+          custom: "Personalizado",
+          perMonth: "por mes",
+          yearly: "Anual:",
+          continuePlan: "Continuar con este plan",
+        }
+      : {
+          loadError: "Failed to load public data",
+          badge: "Powered by CAMELEYON Dynamics",
+          heroSubtitle: "One platform for operations, stock, sales, and growth.",
+          signUp: "Sign Up",
+          login: "Login",
+          introTitle:
+            "CAMELEYON ERP brings sales, inventory, products, pricing, and decision-making into one elegant workspace built for growing organisations.",
+          introSubtitle: "No more spreadsheets and loose sheets.",
+          featuresEyebrow: "Key features",
+          featuresTitle: "Everything your organisation needs to stay aligned",
+          featuresSubtitle: "Zero inventory gaps. Zero surprise deficits. Zero missed opportunities.",
+          cards: [
+            ["Sales control", "Create transactions quickly and keep a clean sales history."],
+            ["Inventory control", "Track stock movement and stay alert on inventory gaps."],
+            ["Product structure", "Manage products and pricing."],
+            ["Business visibility", "Access your company anytime, anywhere."],
+          ],
+          promotionsEyebrow: "Promotions",
+          promotionsTitle: "Current offers",
+          promotionsLoading: "Loading promotions...",
+          promotionsEmpty: "No promotions available at the moment.",
+          specialOffer: "Special offer",
+          promoText: "Promotional pricing currently available.",
+          freeTrial: "Free trial:",
+          days: "days",
+          monthlyPromo: "Monthly promo:",
+          yearlyPromo: "Yearly promo:",
+          plansEyebrow: "Plans",
+          plansTitle: "Choose the subscription that matches your pace",
+          plansLoading: "Loading plans...",
+          plansEmpty: "No plan available.",
+          defaultPlanText: "Operational package for teams that want clarity and speed.",
+          custom: "Custom",
+          perMonth: "per month",
+          yearly: "Yearly:",
+          continuePlan: "Continue with this plan",
+        }
 
   function formatTrialDuration(days: number) {
     if (days === 60) {
-      return language === "fr" ? "2 mois" : "2 months"
+      if (language === "fr") return "2 mois"
+      if (language === "es") return "2 meses"
+      return "2 months"
     }
 
-    return language === "fr" ? `${days} jours` : `${days} days`
+    if (language === "fr") return `${days} jours`
+    if (language === "es") return `${days} dias`
+    return `${days} days`
   }
 
   function resolvePromotionName(promotion: PublicPromotionResponse) {
@@ -113,9 +156,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
 
     if (promotion.freeTrialDays) {
-      return language === "fr"
-        ? `${formatTrialDuration(promotion.freeTrialDays)} gratuits`
-        : `${formatTrialDuration(promotion.freeTrialDays)} free`
+      if (language === "fr") return `${formatTrialDuration(promotion.freeTrialDays)} gratuits`
+      if (language === "es") return `${formatTrialDuration(promotion.freeTrialDays)} gratis`
+      return `${formatTrialDuration(promotion.freeTrialDays)} free`
     }
 
     return promotion.name
@@ -128,9 +171,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
 
     if (promotion.freeTrialDays) {
-      return language === "fr"
-        ? `${formatTrialDuration(promotion.freeTrialDays)} gratuits pour les nouvelles compagnies.`
-        : `${formatTrialDuration(promotion.freeTrialDays)} free for new companies.`
+      if (language === "fr") return `${formatTrialDuration(promotion.freeTrialDays)} gratuits pour les nouvelles compagnies.`
+      if (language === "es") return `${formatTrialDuration(promotion.freeTrialDays)} gratis para nuevas empresas.`
+      return `${formatTrialDuration(promotion.freeTrialDays)} free for new companies.`
     }
 
     return promotion.description || text.promoText

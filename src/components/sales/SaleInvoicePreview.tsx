@@ -294,7 +294,11 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   )
 }
 
-function buildInvoiceMessage(sale: SaleDetailResponse, companyName: string | null | undefined, language: "fr" | "en") {
+function buildInvoiceMessage(
+  sale: SaleDetailResponse,
+  companyName: string | null | undefined,
+  language: "fr" | "en" | "es",
+) {
   if (language === "fr") {
     const header = `${companyName || "CAMELEYON ERP"}\nFacture de vente ${sale.saleNumber}`
     const customer = `Client : ${sale.customerName || "Client passage"}`
@@ -309,6 +313,25 @@ function buildInvoiceMessage(sale: SaleDetailResponse, companyName: string | nul
       `Sous-total : ${formatCurrency(sale.subtotalAmount)}`,
       `Taxe : ${formatCurrency(sale.taxAmount)}`,
       `Total : ${formatCurrency(sale.totalAmount)}`,
+    ].join("\n")
+
+    return [header, customer, date, paymentMethod, "", items, "", totals].join("\n")
+  }
+
+  if (language === "es") {
+    const header = `${companyName || "CAMELEYON ERP"}\nFactura de venta ${sale.saleNumber}`
+    const customer = `Cliente: ${sale.customerName || "Cliente ocasional"}`
+    const date = `Fecha: ${formatDateTime(sale.soldAt)}`
+    const paymentMethod = `Metodo de pago: ${sale.paymentMethod || "-"}`
+    const items = sale.items.length === 0
+      ? "Articulos: no hay lineas en la factura."
+      : `Articulos:\n${sale.items
+        .map((item) => `- ${item.productName || "-"} x ${formatNumber(item.quantity)} = ${formatCurrency(item.lineTotal)}`)
+        .join("\n")}`
+    const totals = [
+      `Subtotal: ${formatCurrency(sale.subtotalAmount)}`,
+      `Impuesto: ${formatCurrency(sale.taxAmount)}`,
+      `Total: ${formatCurrency(sale.totalAmount)}`,
     ].join("\n")
 
     return [header, customer, date, paymentMethod, "", items, "", totals].join("\n")

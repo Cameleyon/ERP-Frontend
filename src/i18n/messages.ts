@@ -1,10 +1,11 @@
-export type Language = "fr" | "en"
+export type Language = "fr" | "en" | "es"
 
 export const messages = {
   fr: {
     language: {
       fr: "FR",
       en: "EN",
+      es: "ES",
     },
     app: {
       sessionLoading: "Chargement de la session...",
@@ -15,7 +16,7 @@ export const messages = {
       save: "Enregistrer",
       close: "Fermer",
       menu: "Menu",
-      logout: "Déconnexion",
+      logout: "Deconnexion",
       profile: "Profil",
       active: "Actif",
       inactive: "Inactif",
@@ -26,16 +27,17 @@ export const messages = {
       newSale: "Nouvelle vente",
       salesHistory: "Historique des ventes",
       inventory: "Inventaire",
-      inventoryReceipt: "Réception d'inventaire",
+      inventoryReceipt: "Reception d'inventaire",
       products: "Produits",
-      units: "Unités",
-      costRubrics: "Rubriques de coût",
+      units: "Unites",
+      costRubrics: "Rubriques de cout",
     },
   },
   en: {
     language: {
       fr: "FR",
       en: "EN",
+      es: "ES",
     },
     app: {
       sessionLoading: "Loading session...",
@@ -61,6 +63,38 @@ export const messages = {
       products: "Products",
       units: "Units",
       costRubrics: "Cost Rubrics",
+    },
+  },
+  es: {
+    language: {
+      fr: "FR",
+      en: "EN",
+      es: "ES",
+    },
+    app: {
+      sessionLoading: "Cargando la sesion...",
+    },
+    common: {
+      loading: "Cargando...",
+      cancel: "Cancelar",
+      save: "Guardar",
+      close: "Cerrar",
+      menu: "Menu",
+      logout: "Cerrar sesion",
+      profile: "Perfil",
+      active: "Activo",
+      inactive: "Inactivo",
+    },
+    sidebar: {
+      dashboard: "Panel",
+      customers: "Clientes",
+      newSale: "Nueva venta",
+      salesHistory: "Historial de ventas",
+      inventory: "Inventario",
+      inventoryReceipt: "Recepcion de inventario",
+      products: "Productos",
+      units: "Unidades",
+      costRubrics: "Rubricas de costo",
     },
   },
 } as const
