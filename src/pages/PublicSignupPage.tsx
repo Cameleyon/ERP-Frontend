@@ -563,17 +563,6 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           </label>
 
           <label>
-            {text.partnerCode}
-            <input
-              type="text"
-              value={form.partnerCode}
-              onChange={(e) => updateForm("partnerCode", e.target.value)}
-              placeholder={text.partnerCodePlaceholder}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
             {text.phone}
             <input
               type="text"
@@ -589,6 +578,17 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
               type="text"
               value={form.currencyCode}
               onChange={(e) => updateForm("currencyCode", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+          </label>
+
+          <label>
+            {text.partnerCode}
+            <input
+              type="text"
+              value={form.partnerCode}
+              onChange={(e) => updateForm("partnerCode", e.target.value)}
+              placeholder={text.partnerCodePlaceholder}
               disabled={Boolean(pendingVerification)}
             />
           </label>
