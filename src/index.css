@@ -471,6 +471,43 @@ td {
   gap: 16px;
 }
 
+.inline-text-button {
+  margin-top: 14px;
+  border: none;
+  background: transparent;
+  color: #044975;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.inline-text-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 73, 117, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.auth-overlay-card {
+  width: min(520px, 100%);
+  margin: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(4, 73, 117, 0.14);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 20px 60px rgba(11, 45, 72, 0.12);
+  padding: 28px;
+}
+
 .sidebar {
   width: 240px;
   color: white;
