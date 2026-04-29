@@ -8,5 +8,4 @@ export type Page =
   | "sales-history"
   | "inventory"
   | "inventory-receipt"
-  | "users"
   | "profile"

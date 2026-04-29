@@ -23,6 +23,12 @@ import StripePaymentMethodForm from "../components/billing/StripePaymentMethodFo
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
+import {
+  createCompanyUser,
+  getCompanyUsers,
+  setCompanyUserActive,
+  type CompanyUserResponse,
+} from "../api/companyUsersApi"
 
 type FormState = {
   name: string
@@ -44,6 +50,15 @@ type UserProfileFormState = {
   lastName: string
   email: string
   currentPassword: string
+}
+
+type CompanyUserCreateFormState = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  role: "ADMIN" | "CASHIER"
+  feeConsentAccepted: boolean
 }
 
 type EditableUserField = "firstName" | "lastName" | "email" | "password" | null
@@ -68,6 +83,15 @@ const emptyUserProfileForm: UserProfileFormState = {
   lastName: "",
   email: "",
   currentPassword: "",
+}
+
+const emptyCompanyUserCreateForm: CompanyUserCreateFormState = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  role: "CASHIER",
+  feeConsentAccepted: false,
 }
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -113,10 +137,13 @@ export default function ProfilePage() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm)
   const [userForm, setUserForm] = useState<UserProfileFormState>(emptyUserProfileForm)
+  const [companyUsers, setCompanyUsers] = useState<CompanyUserResponse[]>([])
+  const [companyUserCreateForm, setCompanyUserCreateForm] = useState<CompanyUserCreateFormState>(emptyCompanyUserCreateForm)
   const [editingUserField, setEditingUserField] = useState<EditableUserField>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
+  const [companyUsersSaving, setCompanyUsersSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isEditing, setIsEditing] = useState(false)
@@ -157,6 +184,30 @@ export default function ProfilePage() {
         userProfileError: "Echec de la mise a jour du profil utilisateur",
         emailPasswordRequired: "Le mot de passe actuel est requis pour changer l'email",
         companyInfo: "Informations de l'entreprise",
+        usersSectionTitle: "Utilisateurs",
+        usersSectionSubtitle: "Ajoutez ou retirez des utilisateurs supplementaires. Tout mois entame reste du, et la prochaine facturation refletera les changements de statut.",
+        usersLoadError: "Echec du chargement des utilisateurs",
+        usersCreateError: "Echec de la creation de l'utilisateur",
+        usersCreateSuccess: "Utilisateur cree avec succes",
+        usersUpdateStatusError: "Echec de la mise a jour du statut de l'utilisateur",
+        usersUpdateStatusSuccess: "Statut de l'utilisateur mis a jour avec succes",
+        additionalUserWarningTitle: "Impact tarifaire",
+        additionalUserWarningMessage: "Chaque utilisateur supplementaire actif ajoute 5 USD au prochain cycle de facturation. Si un utilisateur est desactive, le changement sera pris en compte a la prochaine facturation.",
+        additionalUserConsentLabel: "Je comprends et j'accepte l'augmentation de 5 USD pour cet utilisateur supplementaire.",
+        additionalUserConsentRequired: "Votre consentement est requis avant de creer un utilisateur supplementaire.",
+        usersRequired: "Tous les champs de creation d'utilisateur sont requis",
+        usersListTitle: "Utilisateurs de l'entreprise",
+        addUserTitle: "Ajouter un utilisateur",
+        addUserButton: "Ajouter l'utilisateur",
+        addUserSubmitting: "Ajout...",
+        noUsers: "Aucun utilisateur trouve.",
+        consent: "Consentement",
+        consentDate: "Date du consentement",
+        fee: "Frais",
+        notTracked: "Non renseigne",
+        deactivate: "Rendre inactif",
+        reactivate: "Reactiver",
+        cannotDeactivateSelf: "Vous ne pouvez pas desactiver votre propre compte.",
         editProfile: "Modifier le profil",
         status: "Statut",
         active: "Actif",
@@ -182,6 +233,9 @@ export default function ProfilePage() {
         graceEnd: "Fin de grâce",
         autoRenew: "Renouvellement auto",
         requiresPaymentMethod: "Méthode de paiement requise",
+        additionalUsers: "Utilisateurs supplementaires",
+        additionalUserFee: "Frais par utilisateur supplementaire",
+        additionalUserTotal: "Supplement total par cycle",
         notes: "Notes",
         yes: "Oui",
         no: "Non",
@@ -236,6 +290,30 @@ export default function ProfilePage() {
         userProfileError: "Failed to update user profile",
         emailPasswordRequired: "Current password is required to change email",
         companyInfo: "Company information",
+        usersSectionTitle: "Users",
+        usersSectionSubtitle: "Add or remove additional users here. Any started month remains due, and the next billing cycle will reflect status changes.",
+        usersLoadError: "Failed to load users",
+        usersCreateError: "Failed to create the user",
+        usersCreateSuccess: "User created successfully",
+        usersUpdateStatusError: "Failed to update the user status",
+        usersUpdateStatusSuccess: "User status updated successfully",
+        additionalUserWarningTitle: "Fee impact",
+        additionalUserWarningMessage: "Each active additional user adds 5 USD to the next billing cycle. If a user is deactivated, the change will be reflected on the next billing cycle.",
+        additionalUserConsentLabel: "I understand and accept the 5 USD increase for this additional user.",
+        additionalUserConsentRequired: "Your consent is required before creating an additional user.",
+        usersRequired: "All user creation fields are required",
+        usersListTitle: "Company users",
+        addUserTitle: "Add user",
+        addUserButton: "Add user",
+        addUserSubmitting: "Adding...",
+        noUsers: "No users found.",
+        consent: "Consent",
+        consentDate: "Consent date",
+        fee: "Fee",
+        notTracked: "Not recorded",
+        deactivate: "Deactivate",
+        reactivate: "Reactivate",
+        cannotDeactivateSelf: "You cannot deactivate your own account.",
         editProfile: "Edit profile",
         status: "Status",
         active: "Active",
@@ -261,6 +339,9 @@ export default function ProfilePage() {
         graceEnd: "Grace end",
         autoRenew: "Auto renew",
         requiresPaymentMethod: "Payment method required",
+        additionalUsers: "Additional users",
+        additionalUserFee: "Fee per additional user",
+        additionalUserTotal: "Total extra per cycle",
         notes: "Notes",
         yes: "Yes",
         no: "No",
@@ -319,18 +400,21 @@ export default function ProfilePage() {
         setProfile(null)
         setSubscription(null)
         setPaymentMethod(null)
+        setCompanyUsers([])
         setForm(emptyForm)
         setIsEditing(false)
         return
       }
 
-      const [profileData, subscriptionData] = await Promise.all([
+      const [profileData, subscriptionData, companyUsersData] = await Promise.all([
         getCompanyProfile(),
         getCompanySubscription(),
+        getCompanyUsers(),
       ])
 
       setProfile(profileData)
       setSubscription(subscriptionData)
+      setCompanyUsers(companyUsersData)
       setForm(buildFormState(profileData))
       setIsEditing(false)
 
@@ -364,6 +448,13 @@ export default function ProfilePage() {
     setUserForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function updateCompanyUserCreateForm<K extends keyof CompanyUserCreateFormState>(
+    key: K,
+    value: CompanyUserCreateFormState[K]
+  ) {
+    setCompanyUserCreateForm((prev) => ({ ...prev, [key]: value }))
+  }
+
   function handleStartUserEdit(field: EditableUserField) {
     setError("")
     setSuccess("")
@@ -386,6 +477,99 @@ export default function ProfilePage() {
       email: user?.email || "",
       currentPassword: "",
     })
+  }
+
+  function formatCompanyUserConsentDate(value: string | null) {
+    if (!value) {
+      return text.notTracked
+    }
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return value
+    }
+
+    return new Intl.DateTimeFormat(language === "fr" ? "fr-CA" : "en-CA", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(date)
+  }
+
+  function getCompanyUserRoleLabel(role: string) {
+    return role === "ADMIN" ? "ADMIN" : role === "CASHIER" ? "CASHIER" : role
+  }
+
+  async function handleCreateCompanyUser(event: React.FormEvent) {
+    event.preventDefault()
+
+    if (
+      !companyUserCreateForm.firstName.trim() ||
+      !companyUserCreateForm.lastName.trim() ||
+      !companyUserCreateForm.email.trim() ||
+      !companyUserCreateForm.password.trim()
+    ) {
+      setError(text.usersRequired)
+      return
+    }
+
+    if (!companyUserCreateForm.feeConsentAccepted) {
+      setError(text.additionalUserConsentRequired)
+      return
+    }
+
+    try {
+      setCompanyUsersSaving(true)
+      setError("")
+      setSuccess("")
+
+      const createdUser = await createCompanyUser({
+        firstName: companyUserCreateForm.firstName.trim(),
+        lastName: companyUserCreateForm.lastName.trim(),
+        email: companyUserCreateForm.email.trim(),
+        password: companyUserCreateForm.password,
+        role: companyUserCreateForm.role,
+        feeConsentAccepted: companyUserCreateForm.feeConsentAccepted,
+      })
+
+      setCompanyUsers((prev) => [...prev, createdUser].sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase()
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase()
+        return nameA.localeCompare(nameB)
+      }))
+      setCompanyUserCreateForm(emptyCompanyUserCreateForm)
+      const refreshedSubscription = await getCompanySubscription()
+      setSubscription(refreshedSubscription)
+      setSuccess(text.usersCreateSuccess)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.usersCreateError)
+    } finally {
+      setCompanyUsersSaving(false)
+    }
+  }
+
+  async function handleToggleCompanyUserActive(targetUser: CompanyUserResponse, nextActive: boolean) {
+    if (!nextActive && targetUser.id === user?.id) {
+      setError(text.cannotDeactivateSelf)
+      return
+    }
+
+    try {
+      setCompanyUsersSaving(true)
+      setError("")
+      setSuccess("")
+
+      const updatedUser = await setCompanyUserActive(targetUser.id, nextActive)
+      setCompanyUsers((prev) => prev.map((item) => (item.id === updatedUser.id ? updatedUser : item)))
+      const refreshedSubscription = await getCompanySubscription()
+      setSubscription(refreshedSubscription)
+      setSuccess(text.usersUpdateStatusSuccess)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.usersUpdateStatusError)
+    } finally {
+      setCompanyUsersSaving(false)
+    }
   }
 
   async function handleSaveUserProfile() {
@@ -740,6 +924,131 @@ export default function ProfilePage() {
           {isAdmin && (
             <>
           <div className="card">
+            <h3>{text.usersSectionTitle}</h3>
+            <p>{text.usersSectionSubtitle}</p>
+
+            <div className="company-user-warning">
+              <strong>{text.additionalUserWarningTitle}</strong>
+              <span>{text.additionalUserWarningMessage}</span>
+            </div>
+
+            <form onSubmit={handleCreateCompanyUser} className="product-form-grid">
+              <h4 className="full-width" style={{ margin: 0 }}>{text.addUserTitle}</h4>
+
+              <label>
+                {text.firstName}
+                <input
+                  type="text"
+                  value={companyUserCreateForm.firstName}
+                  onChange={(event) => updateCompanyUserCreateForm("firstName", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.lastName}
+                <input
+                  type="text"
+                  value={companyUserCreateForm.lastName}
+                  onChange={(event) => updateCompanyUserCreateForm("lastName", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.email}
+                <input
+                  type="email"
+                  value={companyUserCreateForm.email}
+                  onChange={(event) => updateCompanyUserCreateForm("email", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.password}
+                <input
+                  type="password"
+                  value={companyUserCreateForm.password}
+                  onChange={(event) => updateCompanyUserCreateForm("password", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.role}
+                <select
+                  value={companyUserCreateForm.role}
+                  onChange={(event) => updateCompanyUserCreateForm("role", event.target.value as "ADMIN" | "CASHIER")}
+                >
+                  <option value="CASHIER">CASHIER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+              </label>
+
+              <label className="checkbox-field full-width company-user-consent">
+                <input
+                  type="checkbox"
+                  checked={companyUserCreateForm.feeConsentAccepted}
+                  onChange={(event) => updateCompanyUserCreateForm("feeConsentAccepted", event.target.checked)}
+                />
+                <span>{text.additionalUserConsentLabel}</span>
+              </label>
+
+              <div className="form-actions full-width">
+                <button type="submit" disabled={companyUsersSaving}>
+                  {companyUsersSaving ? text.addUserSubmitting : text.addUserButton}
+                </button>
+              </div>
+            </form>
+
+            <div style={{ marginTop: 24 }}>
+              <h4 style={{ marginTop: 0 }}>{text.usersListTitle}</h4>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{text.firstName}</th>
+                    <th>{text.lastName}</th>
+                    <th>{text.email}</th>
+                    <th>{text.role}</th>
+                    <th>{text.status}</th>
+                    <th>{text.consent}</th>
+                    <th>{text.consentDate}</th>
+                    <th>{text.fee}</th>
+                    <th>{text.edit}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {companyUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={9}>{text.noUsers}</td>
+                    </tr>
+                  ) : (
+                    companyUsers.map((companyUser) => (
+                      <tr key={companyUser.id}>
+                        <td>{companyUser.firstName}</td>
+                        <td>{companyUser.lastName}</td>
+                        <td>{companyUser.email}</td>
+                        <td>{getCompanyUserRoleLabel(companyUser.role)}</td>
+                        <td>{companyUser.active ? text.active : text.inactive}</td>
+                        <td>{companyUser.feeConsentAccepted ? text.yes : text.no}</td>
+                        <td>{formatCompanyUserConsentDate(companyUser.feeConsentAcceptedAt)}</td>
+                        <td>{companyUser.feeAmountUsd ? `${companyUser.feeAmountUsd} USD` : text.notTracked}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={companyUsersSaving || companyUser.id === user?.id}
+                            onClick={() => handleToggleCompanyUserActive(companyUser, !companyUser.active)}
+                          >
+                            {companyUser.active ? text.deactivate : text.reactivate}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card">
             <div className="table-actions" style={{ marginBottom: 16, justifyContent: "space-between" }}>
               <h3 style={{ margin: 0 }}>{text.companyInfo}</h3>
               {!isEditing && (
@@ -858,6 +1167,19 @@ export default function ProfilePage() {
                 <p>
                   <strong>{text.requiresPaymentMethod}:</strong>{" "}
                   {subscription.requiresPaymentMethod ? text.yes : text.no}
+                </p>
+                <p><strong>{text.additionalUsers}:</strong> {subscription.additionalUserCount ?? 0}</p>
+                <p>
+                  <strong>{text.additionalUserFee}:</strong>{" "}
+                  {subscription.additionalUserFeePerCycleUsd
+                    ? `${subscription.additionalUserFeePerCycleUsd} USD`
+                    : "-"}
+                </p>
+                <p>
+                  <strong>{text.additionalUserTotal}:</strong>{" "}
+                  {subscription.additionalUserTotalFeeUsd
+                    ? `${subscription.additionalUserTotalFeeUsd} USD`
+                    : "-"}
                 </p>
                 <p className="full-width"><strong>{text.notes}:</strong> {cleanSubscriptionNotes(subscription.notes)}</p>
               </div>

@@ -11,7 +11,6 @@ import InventoryReceiptPage from "./pages/InventoryReceiptPage"
 import ProductsPage from "./pages/ProductsPage"
 import CostRubricsPage from "./pages/CostRubricsPage"
 import UnitsPage from "./pages/UnitsPage"
-import CompanyUsersPage from "./pages/CompanyUsersPage"
 import LoginPage from "./pages/LoginPage"
 import type { Page } from "./types/navigation"
 import PublicLandingPage from "./pages/PublicLandingPage"
@@ -81,7 +80,6 @@ function AppContent() {
       (page === "inventory" ||
           page === "inventory-receipt" ||
           page === "cost-rubrics" ||
-          page === "users" ||
           page === "units" ||
           page === "products")
           ? "dashboard"
@@ -92,7 +90,6 @@ function AppContent() {
         {safePage === "dashboard" && <DashboardPage />}
         {safePage === "customers" && <CustomersPage />}
         {safePage === "products" && isAdmin && <ProductsPage />}
-        {safePage === "users" && isAdmin && <CompanyUsersPage />}
         {safePage === "units" && isAdmin && <UnitsPage />}
         {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage />}
         {safePage === "new-sale" && <NewSalePage />}

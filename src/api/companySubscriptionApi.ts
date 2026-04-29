@@ -20,6 +20,9 @@ export type CompanySubscriptionResponse = {
     requiresPaymentMethod: boolean
     invoiceEmailEnabled: boolean
     promotionalMessagingEnabled: boolean
+    additionalUserCount: number
+    additionalUserFeePerCycleUsd: string | null
+    additionalUserTotalFeeUsd: string | null
     notes: string | null
 }
 

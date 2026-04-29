@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "./client"
+import { apiGet, apiPatch, apiPost } from "./client"
 
 export type CompanyUserResponse = {
   id: number
@@ -29,4 +29,8 @@ export function getCompanyUsers() {
 
 export function createCompanyUser(payload: CreateCompanyUserRequest) {
   return apiPost<CompanyUserResponse, CreateCompanyUserRequest>("/company/users", payload)
+}
+
+export function setCompanyUserActive(userId: number, active: boolean) {
+  return apiPatch<CompanyUserResponse, { active: boolean }>(`/company/users/${userId}/status`, { active })
 }
