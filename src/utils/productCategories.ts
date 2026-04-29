@@ -1,16 +1,21 @@
 import type { Language } from "../i18n/messages"
 
 const presetCategoryOptions = [
-  { key: "GROCERIES", fr: "Epicerie", en: "Groceries", es: "Abarrotes" },
-  { key: "BEAUTY", fr: "Beaute et soins", en: "Beauty and personal care", es: "Belleza y cuidado personal" },
-  { key: "HOUSEHOLD", fr: "Maison et entretien", en: "Household supplies", es: "Hogar y mantenimiento" },
+  { key: "FOOD", fr: "Aliments", en: "Food", es: "Alimentos" },
+  { key: "BEVERAGES", fr: "Boissons", en: "Beverages", es: "Bebidas" },
+  { key: "CLOTHING", fr: "Vetements", en: "Clothing", es: "Ropa" },
+  { key: "SHOES", fr: "Chaussures", en: "Shoes", es: "Zapatos" },
+  { key: "ACCESSORIES", fr: "Accessoires", en: "Accessories", es: "Accesorios" },
   { key: "ELECTRONICS", fr: "Electronique", en: "Electronics", es: "Electronica" },
-  { key: "CLOTHING", fr: "Vetements et accessoires", en: "Clothing and accessories", es: "Ropa y accesorios" },
-  { key: "OFFICE", fr: "Papeterie et bureau", en: "Office and stationery", es: "Papeleria y oficina" },
+  { key: "HOME", fr: "Maison", en: "Home", es: "Hogar" },
+  { key: "BEAUTY", fr: "Beaute", en: "Beauty", es: "Belleza" },
+  { key: "HEALTH", fr: "Sante", en: "Health", es: "Salud" },
   { key: "PHARMACY", fr: "Pharmacie", en: "Pharmacy", es: "Farmacia" },
+  { key: "OFFICE", fr: "Papeterie", en: "Stationery", es: "Papeleria" },
+  { key: "TOYS", fr: "Jouets", en: "Toys", es: "Juguetes" },
+  { key: "SPORTS", fr: "Sport", en: "Sports", es: "Deportes" },
+  { key: "AUTO", fr: "Auto", en: "Auto", es: "Auto" },
   { key: "HARDWARE", fr: "Quincaillerie", en: "Hardware", es: "Ferreteria" },
-  { key: "RESTAURANT", fr: "Restaurant et cuisine", en: "Restaurant and kitchen", es: "Restaurante y cocina" },
-  { key: "SERVICES", fr: "Services", en: "Services", es: "Servicios" },
 ] as const
 
 export function getLocalizedPresetCategories(language: Language) {
