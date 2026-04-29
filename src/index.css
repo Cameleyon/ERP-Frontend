@@ -390,6 +390,28 @@ td {
   margin: 0;
 }
 
+.company-user-warning {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff8e1;
+  border: 1px solid rgba(4, 73, 117, 0.12);
+}
+
+.company-user-warning strong {
+  color: #044975;
+}
+
+.company-user-consent {
+  align-items: flex-start;
+}
+
+.company-user-consent span {
+  line-height: 1.5;
+}
+
 .chart-container {
   width: 100%;
   height: 320px;
