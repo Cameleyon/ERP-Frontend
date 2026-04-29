@@ -23,12 +23,7 @@ import StripePaymentMethodForm from "../components/billing/StripePaymentMethodFo
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
-import {
-  createCompanyUser,
-  getCompanyUsers,
-  setCompanyUserActive,
-  type CompanyUserResponse,
-} from "../api/companyUsersApi"
+import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 
 type FormState = {
   name: string
@@ -402,6 +397,7 @@ export default function ProfilePage() {
         setPaymentMethod(null)
         setCompanyUsers([])
         setForm(emptyForm)
+        setCompanyUserCreateForm(emptyCompanyUserCreateForm)
         setIsEditing(false)
         return
       }
@@ -489,7 +485,7 @@ export default function ProfilePage() {
       return value
     }
 
-    return new Intl.DateTimeFormat(language === "fr" ? "fr-CA" : "en-CA", {
+    return new Intl.DateTimeFormat(language === "fr" ? "fr-CA" : language === "es" ? "es-ES" : "en-CA", {
       dateStyle: "medium",
       timeStyle: "short",
     }).format(date)
