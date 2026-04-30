@@ -37,6 +37,7 @@ export const messages = {
       users: "Utilisateurs",
       units: "Unites",
       costRubrics: "Rubriques de cout",
+      contactUs: "Contactez-nous",
     },
     dashboardPage: {
       title: "Tableau de bord",
@@ -342,6 +343,7 @@ export const messages = {
       users: "Users",
       units: "Units",
       costRubrics: "Cost Rubrics",
+      contactUs: "Contact us",
     },
     dashboardPage: {
       title: "Dashboard",
@@ -647,6 +649,7 @@ export const messages = {
       users: "Usuarios",
       units: "Unidades",
       costRubrics: "Rubricas de costo",
+      contactUs: "Contactenos",
     },
     dashboardPage: {
       title: "Panel",

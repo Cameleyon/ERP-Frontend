@@ -628,6 +628,12 @@ td {
   padding-top: 10px;
 }
 
+.sidebar-contact-link {
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
+
 .mobile-topbar {
   display: none;
   margin-bottom: 16px;
@@ -869,6 +875,51 @@ td {
   font-size: 18px;
   font-family: var(--heading-font);
   color: var(--text-muted);
+}
+
+.public-contact-card {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.public-contact-heading h3 {
+  margin: 8px 0 0;
+  color: #044975;
+  font-size: 22px;
+}
+
+.public-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.public-contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  text-decoration: none;
+  background: linear-gradient(180deg, rgba(236, 239, 241, 0.9) 0%, rgba(255, 248, 225, 0.78) 100%);
+  border: 1px solid rgba(4, 73, 117, 0.1);
+  color: var(--text-color);
+}
+
+.public-contact-item span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.public-contact-item strong {
+  color: #044975;
+  font-size: 16px;
 }
 
 .public-hero-tagline {
@@ -1374,6 +1425,10 @@ body.invoice-printing .sidebar-overlay {
   .public-hero-copy,
   .platform-hero-copy {
     padding: 28px 22px;
+  }
+
+  .public-contact-grid {
+    grid-template-columns: 1fr;
   }
 
   .scanner-header {

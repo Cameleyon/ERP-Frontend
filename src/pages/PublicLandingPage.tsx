@@ -27,6 +27,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         heroSubtitle: "Une seule plateforme pour les operations, le stock, les ventes et la croissance.",
         signUp: "S'inscrire",
         login: "Se connecter",
+        contactEyebrow: "Contact",
+        contactTitle: "Parlons de votre projet",
+        websiteLabel: "Site web",
+        emailLabel: "Email",
         introTitle:
           "CAMELEYON ERP reunit les ventes, l'inventaire, les produits, les prix et la prise de decision dans un espace de travail elegant concu pour les organisations en croissance.",
         introSubtitle: "Fini les tableurs et les feuilles dispersees.",
@@ -66,6 +70,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           heroSubtitle: "Una sola plataforma para operaciones, inventario, ventas y crecimiento.",
           signUp: "Registrarse",
           login: "Iniciar sesion",
+          contactEyebrow: "Contacto",
+          contactTitle: "Hablemos de su proyecto",
+          websiteLabel: "Sitio web",
+          emailLabel: "Correo",
           introTitle:
             "CAMELEYON ERP integra ventas, inventario, productos, precios y toma de decisiones en un espacio de trabajo elegante creado para organizaciones en crecimiento.",
           introSubtitle: "No mas hojas de calculo ni papeles sueltos.",
@@ -104,6 +112,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           heroSubtitle: "One platform for operations, stock, sales, and growth.",
           signUp: "Sign Up",
           login: "Login",
+          contactEyebrow: "Contact",
+          contactTitle: "Let's talk about your project",
+          websiteLabel: "Website",
+          emailLabel: "Email",
           introTitle:
             "CAMELEYON ERP brings sales, inventory, products, pricing, and decision-making into one elegant workspace built for growing organisations.",
           introSubtitle: "No more spreadsheets and loose sheets.",
@@ -227,6 +239,30 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
       <section className="public-intro card">
         <h2>{text.introTitle}</h2>
         <p>{text.introSubtitle}</p>
+      </section>
+
+      <section className="public-contact-card card">
+        <div className="public-contact-heading">
+          <p className="eyebrow">{text.contactEyebrow}</p>
+          <h3>{text.contactTitle}</h3>
+        </div>
+
+        <div className="public-contact-grid">
+          <a
+            className="public-contact-item"
+            href="https://www.cameleyondynamics.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>{text.websiteLabel}</span>
+            <strong>www.cameleyondynamics.com</strong>
+          </a>
+
+          <a className="public-contact-item" href="mailto:contact@cameleyondynamics.com">
+            <span>{text.emailLabel}</span>
+            <strong>contact@cameleyondynamics.com</strong>
+          </a>
+        </div>
       </section>
 
       {error && <div className="card error">{error}</div>}

@@ -155,6 +155,15 @@ export default function Sidebar({
           <div className="sidebar-product-name">
             CAMELEYON ERP
           </div>
+
+          <a
+            className="sidebar-button sidebar-footer-button sidebar-contact-link"
+            href="https://www.cameleyondynamics.com/contact"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {copy.sidebar.contactUs}
+          </a>
         </div>
       </aside>
     </>
