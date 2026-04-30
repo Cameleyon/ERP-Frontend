@@ -27,13 +27,12 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const [invoiceEmailEnabled, setInvoiceEmailEnabled] = useState(false)
 
   const text = language === "fr"
-    ? {
+      ? {
         title: "Facture",
         sendEmail: "Envoyer par e-mail",
         sendingEmail: "Envoi...",
         emailSent: "La facture a ete envoyee par e-mail avec succes.",
         invoiceEmailUnavailable: "L'envoi de facture par e-mail est disponible avec la version Standard uniquement.",
-        sendPhone: "Envoyer par telephone",
         print: "Imprimer la facture",
         saleInvoice: "Facture de vente",
         invoiceNumber: "No facture",
@@ -60,7 +59,6 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         sendingEmail: "Sending...",
         emailSent: "Invoice email sent successfully.",
         invoiceEmailUnavailable: "Invoice email sending is available on the Standard plan only.",
-        sendPhone: "Send by phone",
         print: "Print invoice",
         saleInvoice: "Sales invoice",
         invoiceNumber: "Invoice no",
@@ -165,15 +163,6 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
     }
   }
 
-  function handlePhoneInvoice() {
-    if (!sale.customerPhone) {
-      return
-    }
-
-    const body = encodeURIComponent(buildInvoiceMessage(sale, companyName, language))
-    window.location.href = `sms:${sanitizePhoneNumber(sale.customerPhone)}?body=${body}`
-  }
-
   return (
     <div className="card">
       {emailError && <div className="card error">{emailError}</div>}
@@ -191,12 +180,6 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
               title={invoiceEmailEnabled ? undefined : text.invoiceEmailUnavailable}
             >
               {sendingEmail ? text.sendingEmail : text.sendEmail}
-            </button>
-          )}
-
-          {sale.customerPhone && (
-            <button type="button" className="secondary-button" onClick={handlePhoneInvoice}>
-              {text.sendPhone}
             </button>
           )}
 
@@ -292,71 +275,6 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
       </div>
     </div>
   )
-}
-
-function buildInvoiceMessage(
-  sale: SaleDetailResponse,
-  companyName: string | null | undefined,
-  language: "fr" | "en" | "es",
-) {
-  if (language === "fr") {
-    const header = `${companyName || "CAMELEYON ERP"}\nFacture de vente ${sale.saleNumber}`
-    const customer = `Client : ${sale.customerName || "Client passage"}`
-    const date = `Date : ${formatDateTime(sale.soldAt)}`
-    const paymentMethod = `Methode de paiement : ${sale.paymentMethod || "-"}`
-    const items = sale.items.length === 0
-      ? "Articles : aucune ligne de facture."
-      : `Articles :\n${sale.items
-        .map((item) => `- ${item.productName || "-"} x ${formatNumber(item.quantity)} = ${formatCurrency(item.lineTotal)}`)
-        .join("\n")}`
-    const totals = [
-      `Sous-total : ${formatCurrency(sale.subtotalAmount)}`,
-      `Taxe : ${formatCurrency(sale.taxAmount)}`,
-      `Total : ${formatCurrency(sale.totalAmount)}`,
-    ].join("\n")
-
-    return [header, customer, date, paymentMethod, "", items, "", totals].join("\n")
-  }
-
-  if (language === "es") {
-    const header = `${companyName || "CAMELEYON ERP"}\nFactura de venta ${sale.saleNumber}`
-    const customer = `Cliente: ${sale.customerName || "Cliente ocasional"}`
-    const date = `Fecha: ${formatDateTime(sale.soldAt)}`
-    const paymentMethod = `Metodo de pago: ${sale.paymentMethod || "-"}`
-    const items = sale.items.length === 0
-      ? "Articulos: no hay lineas en la factura."
-      : `Articulos:\n${sale.items
-        .map((item) => `- ${item.productName || "-"} x ${formatNumber(item.quantity)} = ${formatCurrency(item.lineTotal)}`)
-        .join("\n")}`
-    const totals = [
-      `Subtotal: ${formatCurrency(sale.subtotalAmount)}`,
-      `Impuesto: ${formatCurrency(sale.taxAmount)}`,
-      `Total: ${formatCurrency(sale.totalAmount)}`,
-    ].join("\n")
-
-    return [header, customer, date, paymentMethod, "", items, "", totals].join("\n")
-  }
-
-  const header = `${companyName || "CAMELEYON ERP"}\nSales invoice ${sale.saleNumber}`
-  const customer = `Customer: ${sale.customerName || "Walk-in customer"}`
-  const date = `Date: ${formatDateTime(sale.soldAt)}`
-  const paymentMethod = `Payment method: ${sale.paymentMethod || "-"}`
-  const items = sale.items.length === 0
-    ? "Items: no invoice lines."
-    : `Items:\n${sale.items
-      .map((item) => `- ${item.productName || "-"} x ${formatNumber(item.quantity)} = ${formatCurrency(item.lineTotal)}`)
-      .join("\n")}`
-  const totals = [
-    `Subtotal: ${formatCurrency(sale.subtotalAmount)}`,
-    `Tax: ${formatCurrency(sale.taxAmount)}`,
-    `Total: ${formatCurrency(sale.totalAmount)}`,
-  ].join("\n")
-
-  return [header, customer, date, paymentMethod, "", items, "", totals].join("\n")
-}
-
-function sanitizePhoneNumber(phone: string) {
-  return phone.replace(/[^+\d]/g, "")
 }
 
 function renderBarcodeBars(bars: BarcodeBar[]) {

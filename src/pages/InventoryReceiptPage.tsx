@@ -115,10 +115,11 @@ export default function InventoryReceiptPage() {
       try {
         setRubricsLoading(true)
         const data = await getCostRubrics()
-        setRubrics(data)
+        const activeRubrics = data.filter((rubric) => rubric.active)
+        setRubrics(activeRubrics)
 
         const initial: CostAmountMap = {}
-        data.forEach((rubric) => {
+        activeRubrics.forEach((rubric) => {
           initial[rubric.id] = "0"
         })
         setCostAmounts(initial)
