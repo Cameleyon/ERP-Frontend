@@ -639,12 +639,20 @@ td {
   margin-bottom: 16px;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
 }
 
 .mobile-menu-button,
 .sidebar-close-button {
   border-radius: 10px;
+}
+
+.mobile-topbar .language-switcher {
+  margin-right: 6px;
+}
+
+.mobile-menu-button {
+  margin-left: 6px;
 }
 
 .status-badge {
