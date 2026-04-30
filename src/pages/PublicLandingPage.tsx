@@ -28,7 +28,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         signUp: "S'inscrire",
         login: "Se connecter",
         contactEyebrow: "Contact",
-        contactTitle: "Parlons de votre projet",
+        contactTitle: "Cette solution ne correspond pas a vos besoins? Pas de souci, parlons de vos besoins.",
         websiteLabel: "Site web",
         emailLabel: "Email",
         introTitle:
@@ -71,7 +71,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           signUp: "Registrarse",
           login: "Iniciar sesion",
           contactEyebrow: "Contacto",
-          contactTitle: "Hablemos de su proyecto",
+          contactTitle: "Si esta solucion no corresponde a sus necesidades, no se preocupe, conversemos sobre ellas.",
           websiteLabel: "Sitio web",
           emailLabel: "Correo",
           introTitle:
@@ -113,7 +113,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           signUp: "Sign Up",
           login: "Login",
           contactEyebrow: "Contact",
-          contactTitle: "Let's talk about your project",
+          contactTitle: "If this solution does not match your needs, no problem, let's talk about what you need.",
           websiteLabel: "Website",
           emailLabel: "Email",
           introTitle:
@@ -241,30 +241,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         <p>{text.introSubtitle}</p>
       </section>
 
-      <section className="public-contact-card card">
-        <div className="public-contact-heading">
-          <p className="eyebrow">{text.contactEyebrow}</p>
-          <h3>{text.contactTitle}</h3>
-        </div>
-
-        <div className="public-contact-grid">
-          <a
-            className="public-contact-item"
-            href="https://www.cameleyondynamics.com/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <span>{text.websiteLabel}</span>
-            <strong>www.cameleyondynamics.com</strong>
-          </a>
-
-          <a className="public-contact-item" href="mailto:contact@cameleyondynamics.com">
-            <span>{text.emailLabel}</span>
-            <strong>contact@cameleyondynamics.com</strong>
-          </a>
-        </div>
-      </section>
-
       {error && <div className="card error">{error}</div>}
 
       <section className="public-band">
@@ -355,6 +331,25 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             ))}
           </div>
         )}
+      </section>
+
+      <section className="public-contact-card card">
+        <div className="public-contact-heading">
+          <p className="eyebrow">{text.contactEyebrow}</p>
+          <h3>{text.contactTitle}</h3>
+        </div>
+
+        <div className="public-contact-grid">
+          <div className="public-contact-item">
+            <span>{text.websiteLabel}</span>
+            <strong>www.cameleyondynamics.com</strong>
+          </div>
+
+          <div className="public-contact-item">
+            <span>{text.emailLabel}</span>
+            <strong>contact@cameleyondynamics.com</strong>
+          </div>
+        </div>
       </section>
     </div>
   )

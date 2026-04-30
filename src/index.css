@@ -888,6 +888,7 @@ td {
   margin: 8px 0 0;
   color: #044975;
   font-size: 22px;
+  line-height: 1.45;
 }
 
 .public-contact-grid {
@@ -903,10 +904,11 @@ td {
   gap: 4px;
   padding: 16px 18px;
   border-radius: 18px;
-  text-decoration: none;
   background: linear-gradient(180deg, rgba(236, 239, 241, 0.9) 0%, rgba(255, 248, 225, 0.78) 100%);
   border: 1px solid rgba(4, 73, 117, 0.1);
   color: var(--text-color);
+  user-select: text;
+  cursor: text;
 }
 
 .public-contact-item span {
