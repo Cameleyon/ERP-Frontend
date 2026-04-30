@@ -15,6 +15,14 @@ export type ProductLookupResponse = {
   unitId: number | null
   unitCode: string | null
   unitName: string | null
+  priceTiers: ProductPriceTier[]
+}
+
+export type ProductPriceTier = {
+  id?: number
+  label: string | null
+  minQuantity: number
+  unitPrice: number
 }
 
 export function getProductByCode(code: string) {

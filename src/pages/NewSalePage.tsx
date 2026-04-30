@@ -20,6 +20,17 @@ type CartItem = {
   lineTotal: number
 }
 
+function resolveUnitPrice(product: ProductLookupResponse, itemQuantity: number) {
+  const appliedTier = [...(product.priceTiers ?? [])]
+    .sort((a, b) => b.minQuantity - a.minQuantity)
+    .find((tier) => itemQuantity >= tier.minQuantity)
+
+  return {
+    unitPrice: appliedTier?.unitPrice ?? product.unitPrice,
+    appliedTier,
+  }
+}
+
 export default function NewSalePage() {
   const { user } = useAuth()
   const { copy } = useI18n()
@@ -109,6 +120,7 @@ export default function NewSalePage() {
 
     if (existing) {
       const newQuantity = existing.quantity + quantity
+      const pricing = resolveUnitPrice(selectedProduct, newQuantity)
 
       if (newQuantity > selectedProduct.currentStock) {
         setError(text.cartExceedsStock)
@@ -121,12 +133,15 @@ export default function NewSalePage() {
             ? {
                 ...item,
                 quantity: newQuantity,
-                lineTotal: newQuantity * item.unitPrice,
+                unitPrice: pricing.unitPrice,
+                lineTotal: newQuantity * pricing.unitPrice,
               }
             : item,
         ),
       )
     } else {
+      const pricing = resolveUnitPrice(selectedProduct, quantity)
+
       setCartItems((prev) => [
         ...prev,
         {
@@ -135,8 +150,8 @@ export default function NewSalePage() {
           sku: selectedProduct.sku,
           unitCode: selectedProduct.unitCode,
           quantity,
-          unitPrice: selectedProduct.unitPrice,
-          lineTotal: quantity * selectedProduct.unitPrice,
+          unitPrice: pricing.unitPrice,
+          lineTotal: quantity * pricing.unitPrice,
         },
       ])
     }
@@ -211,6 +226,8 @@ export default function NewSalePage() {
     setSuccess("")
   }
 
+  const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantity) : null
+
   return (
     <div>
       <h1>{text.title}</h1>
@@ -232,7 +249,15 @@ export default function NewSalePage() {
           <h3>{text.selectedProduct}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>{text.sku}:</strong> {selectedProduct.sku}</p>
-          <p><strong>{text.price}:</strong> {formatCurrency(selectedProduct.unitPrice)}</p>
+          <p><strong>{text.basePrice}:</strong> {formatCurrency(selectedProduct.unitPrice)}</p>
+          {selectedPricing && (
+            <p>
+              <strong>{text.appliedPrice}:</strong> {formatCurrency(selectedPricing.unitPrice)}
+              {selectedPricing.appliedTier
+                ? ` (${selectedPricing.appliedTier.label || text.wholesalePriceApplied})`
+                : ""}
+            </p>
+          )}
           <p>
             <strong>{text.currentStock}:</strong> {formatNumber(selectedProduct.currentStock)}
             {selectedProduct.unitCode ? ` ${selectedProduct.unitCode}` : ""}
@@ -255,6 +280,11 @@ export default function NewSalePage() {
 
             <button onClick={handleAddToCart}>{text.addToCart}</button>
           </div>
+
+          <p>
+            <strong>{text.linePreview}:</strong>{" "}
+            {formatCurrency(quantity * (selectedPricing?.unitPrice ?? selectedProduct.unitPrice))}
+          </p>
         </div>
       )}
 

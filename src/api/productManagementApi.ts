@@ -35,6 +35,14 @@ export type ProductResponse = {
   unitId: number | null
   unitCode: string | null
   unitName: string | null
+  priceTiers: ProductPriceTier[]
+}
+
+export type ProductPriceTier = {
+  id?: number
+  label: string | null
+  minQuantity: number
+  unitPrice: number
 }
 
 export type CreateProductRequest = {
@@ -46,6 +54,7 @@ export type CreateProductRequest = {
   minimumStock: number
   active: boolean
   unitId: number
+  priceTiers: ProductPriceTierRequest[]
 }
 
 export type UpdateProductRequest = {
@@ -57,6 +66,13 @@ export type UpdateProductRequest = {
   minimumStock: number
   active: boolean
   unitId: number
+  priceTiers: ProductPriceTierRequest[]
+}
+
+export type ProductPriceTierRequest = {
+  label: string | null
+  minQuantity: number
+  unitPrice: number
 }
 
 export async function getProducts(): Promise<ProductResponse[]> {

@@ -20,6 +20,13 @@ type ProductFormState = {
   minimumStock: string
   active: boolean
   unitId: string
+  priceTiers: PriceTierFormState[]
+}
+
+type PriceTierFormState = {
+  label: string
+  minQuantity: string
+  unitPrice: string
 }
 
 const emptyForm: ProductFormState = {
@@ -31,7 +38,10 @@ const emptyForm: ProductFormState = {
   minimumStock: "0",
   active: true,
   unitId: "",
+  priceTiers: [],
 }
+
+const MAX_PRICE_TIERS = 3
 
 export default function ProductsPage() {
   const { language, copy } = useI18n()
@@ -162,6 +172,11 @@ export default function ProductsPage() {
       minimumStock: String(product.minimumStock),
       active: product.active,
       unitId: product.unitId ? String(product.unitId) : "",
+      priceTiers: (product.priceTiers ?? []).map((tier) => ({
+        label: tier.label ?? "",
+        minQuantity: String(tier.minQuantity),
+        unitPrice: String(tier.unitPrice),
+      })),
     })
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -206,6 +221,86 @@ export default function ProductsPage() {
     updateForm("category", matchedOption?.label ?? "")
   }
 
+  function handleAddPriceTier() {
+    if (form.priceTiers.length >= MAX_PRICE_TIERS) {
+      setError(text.maxWholesalePrices)
+      return
+    }
+
+    updateForm("priceTiers", [
+      ...form.priceTiers,
+      {
+        label: "",
+        minQuantity: "",
+        unitPrice: "",
+      },
+    ])
+  }
+
+  function handleUpdatePriceTier<K extends keyof PriceTierFormState>(
+    index: number,
+    key: K,
+    value: PriceTierFormState[K],
+  ) {
+    updateForm(
+      "priceTiers",
+      form.priceTiers.map((tier, tierIndex) =>
+        tierIndex === index
+          ? {
+              ...tier,
+              [key]: value,
+            }
+          : tier,
+      ),
+    )
+  }
+
+  function handleRemovePriceTier(index: number) {
+    updateForm(
+      "priceTiers",
+      form.priceTiers.filter((_, tierIndex) => tierIndex !== index),
+    )
+  }
+
+  function normalizePriceTiers() {
+    const completedTiers = form.priceTiers.filter(
+      (tier) =>
+        tier.label.trim() !== "" ||
+        tier.minQuantity.trim() !== "" ||
+        tier.unitPrice.trim() !== "",
+    )
+
+    if (completedTiers.length > MAX_PRICE_TIERS) {
+      throw new Error(text.maxWholesalePrices)
+    }
+
+    const usedQuantities = new Set<string>()
+
+    return completedTiers.map((tier) => {
+      const minQuantity = Number(tier.minQuantity)
+      const unitPrice = Number(tier.unitPrice)
+
+      if (!Number.isFinite(minQuantity) || minQuantity <= 1) {
+        throw new Error(text.invalidWholesaleMinimum)
+      }
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new Error(text.invalidWholesalePrice)
+      }
+
+      const normalizedQuantityKey = minQuantity.toFixed(4)
+      if (usedQuantities.has(normalizedQuantityKey)) {
+        throw new Error(text.duplicateWholesaleMinimum)
+      }
+      usedQuantities.add(normalizedQuantityKey)
+
+      return {
+        label: tier.label.trim() || null,
+        minQuantity,
+        unitPrice,
+      }
+    })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
@@ -227,6 +322,8 @@ export default function ProductsPage() {
       setError("")
       setSuccess("")
 
+      const priceTiers = normalizePriceTiers()
+
       const payload = {
         barcode: form.barcode.trim(),
         name: form.name.trim(),
@@ -236,6 +333,7 @@ export default function ProductsPage() {
         minimumStock: Number(form.minimumStock || "0"),
         active: form.active,
         unitId: Number(form.unitId),
+        priceTiers,
       }
 
       if (isEditMode && editingProductId !== null) {
@@ -373,6 +471,78 @@ export default function ProductsPage() {
               onChange={(e) => updateForm("unitPrice", e.target.value)}
             />
           </label>
+
+          <div className="full-width card nested-card">
+            <div className="scanner-header">
+              <div>
+                <h3>{text.wholesalePrices}</h3>
+                <p>{text.wholesalePricesHelp}</p>
+              </div>
+
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleAddPriceTier}
+                disabled={form.priceTiers.length >= MAX_PRICE_TIERS}
+              >
+                {text.addWholesalePrice}
+              </button>
+            </div>
+
+            {form.priceTiers.length === 0 ? (
+              <p>{text.noWholesalePrices}</p>
+            ) : (
+              <div className="product-form-grid">
+                {form.priceTiers.map((tier, index) => (
+                  <div key={index} className="full-width product-form-grid">
+                    <label>
+                      {text.wholesaleLabel}
+                      <input
+                        type="text"
+                        value={tier.label}
+                        onChange={(e) => handleUpdatePriceTier(index, "label", e.target.value)}
+                        placeholder={text.wholesaleLabelPlaceholder}
+                      />
+                    </label>
+
+                    <label>
+                      {text.wholesaleMinimum}
+                      <input
+                        type="number"
+                        min={2}
+                        step="0.0001"
+                        value={tier.minQuantity}
+                        onChange={(e) => handleUpdatePriceTier(index, "minQuantity", e.target.value)}
+                        placeholder="3"
+                      />
+                    </label>
+
+                    <label>
+                      {text.wholesaleUnitPrice}
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={tier.unitPrice}
+                        onChange={(e) => handleUpdatePriceTier(index, "unitPrice", e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </label>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => handleRemovePriceTier(index)}
+                      >
+                        {text.removeWholesalePrice}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <label>
             {text.minimumStock}
