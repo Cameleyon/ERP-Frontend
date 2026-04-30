@@ -20,6 +20,9 @@ export type CreateSaleRequest = {
   customerId?: number | null
   customerName: string
   paymentMethod: string
+  paymentReference?: string | null
+  paymentAuthorizationCode?: string | null
+  paymentConfirmedManually?: boolean
   notes: string
   items: CreateSaleItemRequest[]
 }
@@ -33,6 +36,10 @@ export type CreateSaleResponse = {
   customerEmail: string | null
   customerPhone: string | null
   paymentMethod: string
+  paymentReference: string | null
+  paymentAuthorizationCode: string | null
+  paymentConfirmedManually: boolean
+  paymentConfirmedAt: string | null
   subtotalAmount: number
   taxAmount: number
   totalAmount: number
@@ -50,6 +57,10 @@ export type SaleResponse = {
   customerEmail: string | null
   customerPhone: string | null
   paymentMethod: string
+  paymentReference: string | null
+  paymentAuthorizationCode: string | null
+  paymentConfirmedManually: boolean
+  paymentConfirmedAt: string | null
   subtotalAmount: number
   taxAmount: number
   totalAmount: number
@@ -75,6 +86,10 @@ export type SaleDetailResponse = {
   customerEmail: string | null
   customerPhone: string | null
   paymentMethod: string
+  paymentReference: string | null
+  paymentAuthorizationCode: string | null
+  paymentConfirmedManually: boolean
+  paymentConfirmedAt: string | null
   subtotalAmount: number
   taxAmount: number
   totalAmount: number

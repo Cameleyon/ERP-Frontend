@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
@@ -46,6 +46,11 @@ export default function NewSalePage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState("WALK_IN")
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("CASH")
+  const [paymentReference, setPaymentReference] = useState("")
+  const [paymentAuthorizationCode, setPaymentAuthorizationCode] = useState("")
+  const [paymentConfirmedManually, setPaymentConfirmedManually] = useState(false)
   const [quantity, setQuantity] = useState(1)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastSaleInvoice, setLastSaleInvoice] = useState<SaleDetailResponse | null>(null)
@@ -172,6 +177,11 @@ export default function NewSalePage() {
       return
     }
 
+    if ((paymentMethod === "CREDIT_CARD" || paymentMethod === "DEBIT_CARD") && !paymentConfirmedManually) {
+      setError(text.manualCardConfirmationRequired)
+      return
+    }
+
     try {
       setSaleLoading(true)
       setError("")
@@ -185,7 +195,10 @@ export default function NewSalePage() {
       const response = await createSale({
         customerId: selectedCustomerId === "WALK_IN" ? null : Number(selectedCustomerId),
         customerName,
-        paymentMethod: "CASH",
+        paymentMethod,
+        paymentReference: paymentReference.trim() || null,
+        paymentAuthorizationCode: paymentAuthorizationCode.trim() || null,
+        paymentConfirmedManually,
         notes: text.notes,
         items: cartItems.map((item) => ({
           productId: item.productId,
@@ -201,6 +214,11 @@ export default function NewSalePage() {
       setProductCode("")
       setQuantity(1)
       setSelectedCustomerId("WALK_IN")
+      setCustomerSearch("")
+      setPaymentMethod("CASH")
+      setPaymentReference("")
+      setPaymentAuthorizationCode("")
+      setPaymentConfirmedManually(false)
       setLastSaleInvoice(saleDetail)
 
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -224,6 +242,40 @@ export default function NewSalePage() {
     setProductCode(value)
     setError("")
     setSuccess("")
+  }
+
+  const filteredCustomers = useMemo(() => {
+    const search = customerSearch.trim().toLowerCase()
+
+    if (!search) {
+      return customers
+    }
+
+    return customers.filter((customer) => {
+      const haystack = [
+        customer.name,
+        customer.phone ?? "",
+        customer.email ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+
+      return haystack.includes(search)
+    })
+  }, [customers, customerSearch])
+
+  const selectedCustomer = selectedCustomerId === "WALK_IN"
+    ? null
+    : customers.find((customer) => String(customer.id) === selectedCustomerId) ?? null
+
+  function handleSelectCustomer(customer: CustomerResponse) {
+    setSelectedCustomerId(String(customer.id))
+    setCustomerSearch(customer.name)
+  }
+
+  function handleWalkInCustomer() {
+    setSelectedCustomerId("WALK_IN")
+    setCustomerSearch("")
   }
 
   const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantity) : null
@@ -294,22 +346,120 @@ export default function NewSalePage() {
         <h3>{text.customer}</h3>
 
         <div className="sale-form-row">
-          <label className="sale-inline-field">
+          <label className="sale-inline-field sale-customer-search-field">
             <span>{text.chooseCustomer}</span>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
+            <input
+              type="text"
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value)
+                if (selectedCustomerId !== "WALK_IN") {
+                  setSelectedCustomerId("WALK_IN")
+                }
+              }}
+              placeholder={text.searchCustomerPlaceholder}
               disabled={customersLoading}
-            >
-              <option value="WALK_IN">{text.walkInCustomer}</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                  {customer.phone ? ` - ${customer.phone}` : ""}
-                </option>
+            />
+          </label>
+        </div>
+
+        <div className="sale-customer-results">
+          <button
+            type="button"
+            className={`secondary-button ${selectedCustomerId === "WALK_IN" ? "active-choice" : ""}`}
+            onClick={handleWalkInCustomer}
+            disabled={customersLoading}
+          >
+            {text.walkInCustomer}
+          </button>
+
+          {selectedCustomer && (
+            <p className="sale-customer-selected">
+              <strong>{text.selectedCustomer}:</strong> {selectedCustomer.name}
+              {selectedCustomer.phone ? ` - ${selectedCustomer.phone}` : ""}
+            </p>
+          )}
+
+          {!customersLoading && customerSearch.trim() && filteredCustomers.length === 0 && (
+            <p className="sale-customer-empty">{text.noCustomerMatch}</p>
+          )}
+
+          {!customersLoading && filteredCustomers.length > 0 && (
+            <div className="sale-customer-options">
+              {filteredCustomers.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  className={`sale-customer-option ${selectedCustomerId === String(customer.id) ? "selected" : ""}`}
+                  onClick={() => handleSelectCustomer(customer)}
+                >
+                  <span>{customer.name}</span>
+                  <small>
+                    {[customer.phone, customer.email].filter(Boolean).join(" - ")}
+                  </small>
+                </button>
               ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>{text.paymentMethod}</h3>
+
+        <div className="inventory-form-grid">
+          <label>
+            {text.paymentMethod}
+            <select
+              value={paymentMethod}
+              onChange={(e) => {
+                const nextMethod = e.target.value
+                setPaymentMethod(nextMethod)
+                if (nextMethod === "CASH") {
+                  setPaymentReference("")
+                  setPaymentAuthorizationCode("")
+                  setPaymentConfirmedManually(false)
+                }
+              }}
+            >
+              <option value="CASH">{text.cash}</option>
+              <option value="CREDIT_CARD">{text.creditCard}</option>
+              <option value="DEBIT_CARD">{text.debitCard}</option>
             </select>
           </label>
+
+          {paymentMethod !== "CASH" && (
+            <>
+              <label>
+                {text.paymentReference}
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder={text.paymentReferencePlaceholder}
+                />
+              </label>
+
+              <label>
+                {text.authorizationCode}
+                <input
+                  type="text"
+                  value={paymentAuthorizationCode}
+                  onChange={(e) => setPaymentAuthorizationCode(e.target.value)}
+                  placeholder={text.authorizationCodePlaceholder}
+                />
+              </label>
+
+              <label className="checkbox-field full-width">
+                <input
+                  type="checkbox"
+                  checked={paymentConfirmedManually}
+                  onChange={(e) => setPaymentConfirmedManually(e.target.checked)}
+                />
+                <span>{text.manualCardConfirmation}</span>
+              </label>
+            </>
+          )}
         </div>
       </div>
 

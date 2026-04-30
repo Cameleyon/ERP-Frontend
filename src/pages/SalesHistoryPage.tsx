@@ -281,6 +281,9 @@ export default function SalesHistoryPage() {
               <p><strong>{text.date}:</strong> {formatDateTime(selectedSale.soldAt)}</p>
               <p><strong>{text.customer}:</strong> {selectedSale.customerName || "-"}</p>
               <p><strong>{text.payment}:</strong> {selectedSale.paymentMethod || "-"}</p>
+              <p><strong>{text.paymentReference}:</strong> {selectedSale.paymentReference || "-"}</p>
+              <p><strong>{text.authorizationCode}:</strong> {selectedSale.paymentAuthorizationCode || "-"}</p>
+              <p><strong>{text.paymentConfirmedAt}:</strong> {selectedSale.paymentConfirmedAt ? formatDateTime(selectedSale.paymentConfirmedAt) : "-"}</p>
               <p><strong>{text.status}:</strong> <StatusBadge value={selectedSale.status} /></p>
               <p><strong>{text.subtotal}:</strong> {formatCurrency(selectedSale.subtotalAmount)}</p>
               <p><strong>{text.tax}:</strong> {formatCurrency(selectedSale.taxAmount)}</p>

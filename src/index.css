@@ -236,6 +236,53 @@ td {
   display: block;
 }
 
+.sale-customer-search-field {
+  width: 100%;
+  max-width: 520px;
+}
+
+.sale-customer-search-field input {
+  width: 100%;
+}
+
+.sale-customer-results {
+  display: grid;
+  gap: 12px;
+}
+
+.sale-customer-selected,
+.sale-customer-empty {
+  margin: 0;
+}
+
+.sale-customer-options {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.sale-customer-option {
+  display: grid;
+  gap: 4px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(248, 251, 254, 0.96);
+  color: var(--text-color);
+  text-align: left;
+  border: 1px solid rgba(4, 73, 117, 0.12);
+}
+
+.sale-customer-option.selected,
+.secondary-button.active-choice {
+  background: rgba(128, 203, 196, 0.2);
+  border-color: rgba(4, 73, 117, 0.24);
+}
+
+.sale-customer-option small {
+  color: var(--text-muted);
+}
+
 .summary-grid,
 .inventory-form-grid,
 .product-form-grid,
