@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   createCostRubric,
+  deleteCostRubric,
   getCostRubrics,
   updateCostRubricStatus,
   type CompanyCostRubricResponse,
@@ -44,6 +45,9 @@ export default function CostRubricsPage() {
         deactivateSuccess: "La rubrique de cout a ete desactivee avec succes",
         activateSuccess: "La rubrique de cout a ete activee avec succes",
         statusError: "Echec de la mise a jour du statut de la rubrique de cout",
+        deleteConfirm: (code: string) => `Supprimer definitivement la rubrique de cout ${code} ?`,
+        deleteSuccess: "La rubrique de cout a ete supprimee definitivement",
+        deleteError: "Echec de la suppression de la rubrique de cout",
         newTitle: "Nouvelle rubrique de cout",
         choosePreset: "Choisir une rubrique",
         otherPreset: "Autre",
@@ -57,11 +61,15 @@ export default function CostRubricsPage() {
         listTitle: "Liste des rubriques de cout",
         loading: "Chargement des rubriques de cout...",
         status: "Statut",
+        type: "Type",
         empty: "Aucune rubrique de cout trouvee.",
+        system: "Systeme",
+        custom: "Personnalisee",
         active: "Actif",
         inactive: "Inactif",
         activate: "Activer",
         deactivate: "Desactiver",
+        delete: "Supprimer",
       }
     : {
         title: "Cost rubrics",
@@ -73,6 +81,9 @@ export default function CostRubricsPage() {
         deactivateSuccess: "Cost rubric deactivated successfully",
         activateSuccess: "Cost rubric activated successfully",
         statusError: "Failed to update cost rubric status",
+        deleteConfirm: (code: string) => `Permanently delete cost rubric ${code}?`,
+        deleteSuccess: "Cost rubric permanently deleted",
+        deleteError: "Failed to delete the cost rubric",
         newTitle: "New cost rubric",
         choosePreset: "Choose a rubric",
         otherPreset: "Other",
@@ -86,11 +97,15 @@ export default function CostRubricsPage() {
         listTitle: "Cost rubric list",
         loading: "Loading cost rubrics...",
         status: "Status",
+        type: "Type",
         empty: "No cost rubrics found.",
+        system: "System",
+        custom: "Custom",
         active: "Active",
         inactive: "Inactive",
         activate: "Activate",
         deactivate: "Deactivate",
+        delete: "Delete",
       }
 
   const availablePresetRubrics = useMemo(() => {
@@ -214,6 +229,26 @@ export default function CostRubricsPage() {
     }
   }
 
+  async function handleDeleteRubric(rubric: CompanyCostRubricResponse) {
+    if (rubric.system) return
+
+    const confirmed = window.confirm(text.deleteConfirm(rubric.code))
+    if (!confirmed) return
+
+    try {
+      setError("")
+      setSuccess("")
+
+      await deleteCostRubric(rubric.id)
+
+      setSuccess(text.deleteSuccess)
+      await loadRubrics()
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.deleteError)
+    }
+  }
+
   return (
     <div>
       <h1>{text.title}</h1>
@@ -293,6 +328,7 @@ export default function CostRubricsPage() {
                 <th>{text.code}</th>
                 <th>{text.name}</th>
                 <th>{text.displayOrder}</th>
+                <th>{text.type}</th>
                 <th>{text.status}</th>
                 <th></th>
               </tr>
@@ -300,7 +336,7 @@ export default function CostRubricsPage() {
             <tbody>
               {rubrics.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>{text.empty}</td>
+                  <td colSpan={6}>{text.empty}</td>
                 </tr>
               ) : (
                 rubrics.map((rubric) => (
@@ -308,15 +344,28 @@ export default function CostRubricsPage() {
                     <td>{rubric.code}</td>
                     <td>{getLocalizedCostRubricName(rubric.code, rubric.name, language)}</td>
                     <td>{rubric.displayOrder}</td>
+                    <td>{rubric.system ? text.system : text.custom}</td>
                     <td>{rubric.active ? text.active : text.inactive}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => handleToggleRubric(rubric)}
-                      >
-                        {rubric.active ? text.deactivate : text.activate}
-                      </button>
+                      <div className="table-actions">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => handleToggleRubric(rubric)}
+                        >
+                          {rubric.active ? text.deactivate : text.activate}
+                        </button>
+
+                        {!rubric.system && (
+                          <button
+                            type="button"
+                            className="danger-button"
+                            onClick={() => handleDeleteRubric(rubric)}
+                          >
+                            {text.delete}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

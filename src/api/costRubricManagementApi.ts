@@ -25,6 +25,7 @@ export type CompanyCostRubricResponse = {
   code: string
   name: string
   active: boolean
+  system: boolean
   displayOrder: number
 }
 
@@ -70,4 +71,16 @@ export async function createCostRubric(
   })
 
   return handleResponse<CompanyCostRubricResponse>(response)
+}
+
+export async function deleteCostRubric(rubricId: number): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/cost-rubrics/${rubricId}`, {
+    method: "DELETE",
+    headers: buildAuthHeaders(),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
 }
