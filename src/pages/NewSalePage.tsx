@@ -47,6 +47,7 @@ export default function NewSalePage() {
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState("WALK_IN")
   const [customerSearch, setCustomerSearch] = useState("")
+  const [customerSuggestionsOpen, setCustomerSuggestionsOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("CASH")
   const [paymentReference, setPaymentReference] = useState("")
   const [paymentAuthorizationCode, setPaymentAuthorizationCode] = useState("")
@@ -248,20 +249,34 @@ export default function NewSalePage() {
     const search = customerSearch.trim().toLowerCase()
 
     if (!search) {
-      return customers
+      return []
     }
 
-    return customers.filter((customer) => {
-      const haystack = [
-        customer.name,
-        customer.phone ?? "",
-        customer.email ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
+    return customers
+      .filter((customer) => {
+        const haystack = [
+          customer.name,
+          customer.phone ?? "",
+          customer.email ?? "",
+        ]
+          .join(" ")
+          .toLowerCase()
 
-      return haystack.includes(search)
-    })
+        return haystack.includes(search)
+      })
+      .sort((left, right) => {
+        const leftName = left.name.toLowerCase()
+        const rightName = right.name.toLowerCase()
+        const leftStarts = leftName.startsWith(search) ? 0 : 1
+        const rightStarts = rightName.startsWith(search) ? 0 : 1
+
+        if (leftStarts !== rightStarts) {
+          return leftStarts - rightStarts
+        }
+
+        return left.name.localeCompare(right.name)
+      })
+      .slice(0, 8)
   }, [customers, customerSearch])
 
   const selectedCustomer = selectedCustomerId === "WALK_IN"
@@ -271,11 +286,23 @@ export default function NewSalePage() {
   function handleSelectCustomer(customer: CustomerResponse) {
     setSelectedCustomerId(String(customer.id))
     setCustomerSearch(customer.name)
+    setCustomerSuggestionsOpen(false)
   }
 
   function handleWalkInCustomer() {
     setSelectedCustomerId("WALK_IN")
     setCustomerSearch("")
+    setCustomerSuggestionsOpen(false)
+  }
+
+  function handlePaymentMethodChange(nextMethod: string) {
+    setPaymentMethod(nextMethod)
+
+    if (nextMethod === "CASH") {
+      setPaymentReference("")
+      setPaymentAuthorizationCode("")
+      setPaymentConfirmedManually(false)
+    }
   }
 
   const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantity) : null
@@ -345,22 +372,80 @@ export default function NewSalePage() {
       <div className="card">
         <h3>{text.customer}</h3>
 
-        <div className="sale-form-row">
-          <label className="sale-inline-field sale-customer-search-field">
-            <span>{text.chooseCustomer}</span>
-            <input
-              type="text"
-              value={customerSearch}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value)
-                if (selectedCustomerId !== "WALK_IN") {
-                  setSelectedCustomerId("WALK_IN")
-                }
-              }}
-              placeholder={text.searchCustomerPlaceholder}
-              disabled={customersLoading}
-            />
-          </label>
+        <div className="sale-customer-payment-row">
+          <div className="sale-customer-search-block">
+            <label className="sale-inline-field sale-customer-search-field">
+              <span>{text.chooseCustomer}</span>
+              <input
+                type="text"
+                value={customerSearch}
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value)
+                  if (selectedCustomerId !== "WALK_IN") {
+                    setSelectedCustomerId("WALK_IN")
+                  }
+                  setCustomerSuggestionsOpen(true)
+                }}
+                onFocus={() => {
+                  if (customerSearch.trim()) {
+                    setCustomerSuggestionsOpen(true)
+                  }
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setCustomerSuggestionsOpen(false)
+                  }, 120)
+                }}
+                placeholder={text.searchCustomerPlaceholder}
+                disabled={customersLoading}
+              />
+            </label>
+
+            {customerSuggestionsOpen && !customersLoading && filteredCustomers.length > 0 && (
+              <div className="sale-customer-suggestions">
+                {filteredCustomers.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    className={`sale-customer-suggestion ${selectedCustomerId === String(customer.id) ? "selected" : ""}`}
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      handleSelectCustomer(customer)
+                    }}
+                  >
+                    {customer.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="sale-payment-choice-group">
+            <span>{text.paymentMethod}</span>
+            <div className="sale-payment-choice-buttons">
+              <button
+                type="button"
+                className={`secondary-button ${paymentMethod === "CASH" ? "active-choice" : ""}`}
+                onClick={() => handlePaymentMethodChange("CASH")}
+              >
+                {text.cash}
+              </button>
+              <button
+                type="button"
+                className={`secondary-button ${paymentMethod === "CREDIT_CARD" ? "active-choice" : ""}`}
+                onClick={() => handlePaymentMethodChange("CREDIT_CARD")}
+              >
+                {text.creditCard}
+              </button>
+              <button
+                type="button"
+                className={`secondary-button ${paymentMethod === "DEBIT_CARD" ? "active-choice" : ""}`}
+                onClick={() => handlePaymentMethodChange("DEBIT_CARD")}
+              >
+                {text.debitCard}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="sale-customer-results">
@@ -384,52 +469,8 @@ export default function NewSalePage() {
             <p className="sale-customer-empty">{text.noCustomerMatch}</p>
           )}
 
-          {!customersLoading && filteredCustomers.length > 0 && (
-            <div className="sale-customer-options">
-              {filteredCustomers.map((customer) => (
-                <button
-                  key={customer.id}
-                  type="button"
-                  className={`sale-customer-option ${selectedCustomerId === String(customer.id) ? "selected" : ""}`}
-                  onClick={() => handleSelectCustomer(customer)}
-                >
-                  <span>{customer.name}</span>
-                  <small>
-                    {[customer.phone, customer.email].filter(Boolean).join(" - ")}
-                  </small>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>{text.paymentMethod}</h3>
-
-        <div className="inventory-form-grid">
-          <label>
-            {text.paymentMethod}
-            <select
-              value={paymentMethod}
-              onChange={(e) => {
-                const nextMethod = e.target.value
-                setPaymentMethod(nextMethod)
-                if (nextMethod === "CASH") {
-                  setPaymentReference("")
-                  setPaymentAuthorizationCode("")
-                  setPaymentConfirmedManually(false)
-                }
-              }}
-            >
-              <option value="CASH">{text.cash}</option>
-              <option value="CREDIT_CARD">{text.creditCard}</option>
-              <option value="DEBIT_CARD">{text.debitCard}</option>
-            </select>
-          </label>
-
           {paymentMethod !== "CASH" && (
-            <>
+            <div className="inventory-form-grid">
               <label>
                 {text.paymentReference}
                 <input
@@ -458,7 +499,7 @@ export default function NewSalePage() {
                 />
                 <span>{text.manualCardConfirmation}</span>
               </label>
-            </>
+            </div>
           )}
         </div>
       </div>
