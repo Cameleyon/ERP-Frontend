@@ -289,12 +289,6 @@ export default function NewSalePage() {
     setCustomerSuggestionsOpen(false)
   }
 
-  function handleWalkInCustomer() {
-    setSelectedCustomerId("WALK_IN")
-    setCustomerSearch("")
-    setCustomerSuggestionsOpen(false)
-  }
-
   function handlePaymentMethodChange(nextMethod: string) {
     setPaymentMethod(nextMethod)
 
@@ -449,15 +443,6 @@ export default function NewSalePage() {
         </div>
 
         <div className="sale-customer-results">
-          <button
-            type="button"
-            className={`secondary-button ${selectedCustomerId === "WALK_IN" ? "active-choice" : ""}`}
-            onClick={handleWalkInCustomer}
-            disabled={customersLoading}
-          >
-            {text.walkInCustomer}
-          </button>
-
           {selectedCustomer && (
             <p className="sale-customer-selected">
               <strong>{text.selectedCustomer}:</strong> {selectedCustomer.name}

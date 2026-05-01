@@ -67,6 +67,9 @@ export type SaleResponse = {
   totalCostAmount: number
   totalProfitAmount: number
   status: string
+  cancellationRequestStatus: string | null
+  cancellationRequestedAt: string | null
+  cancellationRequestedByName: string | null
 }
 
 export type SaleItemResponse = {
@@ -96,7 +99,28 @@ export type SaleDetailResponse = {
   totalCostAmount: number
   totalProfitAmount: number
   status: string
+  cancellationRequestStatus: string | null
+  cancellationRequestedAt: string | null
+  cancellationRequestedByName: string | null
   items: SaleItemResponse[]
+}
+
+export type SaleCancellationRequestResponse = {
+  id: number
+  saleId: number
+  saleNumber: string
+  soldAt: string
+  customerName: string | null
+  paymentMethod: string | null
+  totalAmount: number
+  saleStatus: string
+  status: string
+  requestedByUserId: number
+  requestedByName: string | null
+  requestedAt: string
+  reviewedByUserId: number | null
+  reviewedByName: string | null
+  reviewedAt: string | null
 }
 
 export type SendSaleInvoiceEmailResponse = {
@@ -178,6 +202,64 @@ export async function cancelSale(saleId: number): Promise<SaleResponse> {
   })
 
   return handleResponse<SaleResponse>(response)
+}
+
+export async function requestSaleCancellationApproval(
+  saleId: number
+): Promise<SaleCancellationRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/sales/${saleId}/cancellation-request`, {
+    method: "POST",
+    headers: {
+      ...(localStorage.getItem(TOKEN_KEY)
+        ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        : {}),
+    },
+  })
+
+  return handleResponse<SaleCancellationRequestResponse>(response)
+}
+
+export async function getPendingSaleCancellationRequests(): Promise<SaleCancellationRequestResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/sales/cancellation-requests`, {
+    method: "GET",
+    headers: {
+      ...(localStorage.getItem(TOKEN_KEY)
+        ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        : {}),
+    },
+  })
+
+  return handleResponse<SaleCancellationRequestResponse[]>(response)
+}
+
+export async function approveSaleCancellationRequest(
+  requestId: number
+): Promise<SaleCancellationRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/sales/cancellation-requests/${requestId}/approve`, {
+    method: "POST",
+    headers: {
+      ...(localStorage.getItem(TOKEN_KEY)
+        ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        : {}),
+    },
+  })
+
+  return handleResponse<SaleCancellationRequestResponse>(response)
+}
+
+export async function rejectSaleCancellationRequest(
+  requestId: number
+): Promise<SaleCancellationRequestResponse> {
+  const response = await fetch(`${API_BASE_URL}/sales/cancellation-requests/${requestId}/reject`, {
+    method: "POST",
+    headers: {
+      ...(localStorage.getItem(TOKEN_KEY)
+        ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+        : {}),
+    },
+  })
+
+  return handleResponse<SaleCancellationRequestResponse>(response)
 }
 
 export async function sendSaleInvoiceEmail(saleId: number): Promise<SendSaleInvoiceEmailResponse> {
