@@ -27,6 +27,11 @@ export type PublicSignupRequest = {
     phone: string
     companyEmail: string
     address: string
+    addressLine1?: string
+    city?: string
+    postalCode?: string
+    country?: string
+    timeZoneId?: string
     currencyCode: string
     adminFirstName: string
     adminLastName: string

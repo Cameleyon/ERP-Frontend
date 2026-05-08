@@ -7,6 +7,14 @@ import {
   signupCompany,
   type PublicSignupRequest,
 } from "../api/publicSignupApi"
+import {
+  composeStructuredAddress,
+  formatCurrentTimeInTimeZone,
+  getBrowserTimeZone,
+  getCountryOptions,
+  getTimeZoneOptions,
+  isValidTimeZone,
+} from "../utils/companyLocalization"
 
 type Props = {
   onGoToLogin: () => void
@@ -20,7 +28,11 @@ type FormState = {
   partnerCode: string
   phone: string
   companyEmail: string
-  address: string
+  addressLine1: string
+  city: string
+  postalCode: string
+  country: string
+  timeZoneId: string
   currencyCode: string
   adminFirstName: string
   adminLastName: string
@@ -44,7 +56,11 @@ const emptyForm: FormState = {
   partnerCode: "",
   phone: "",
   companyEmail: "",
-  address: "",
+  addressLine1: "",
+  city: "",
+  postalCode: "",
+  country: "",
+  timeZoneId: getBrowserTimeZone(),
   currencyCode: "CAD",
   adminFirstName: "",
   adminLastName: "",
@@ -126,6 +142,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
   const [form, setForm] = useState<FormState>(emptyForm)
   const [pendingVerification, setPendingVerification] = useState<PendingVerificationState | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
+  const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
 
   const text = language === "fr"
     ? {
@@ -155,7 +172,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         partnerCodePlaceholder: "Optionnel",
         phone: "Telephone",
         currency: "Devise",
-        address: "Adresse",
+        addressLine1: "Adresse",
+        city: "Ville",
+        postalCode: "Code postal",
+        country: "Pays",
+        timeZone: "Fuseau horaire",
+        currentTime: "Heure actuelle",
+        timeZonePlaceholder: "Ex. America/Port-au-Prince",
+        invalidTimeZone: "Fuseau horaire invalide",
         adminFirstName: "Prenom de l'administrateur",
         adminLastName: "Nom de l'administrateur",
         adminEmail: "Email de l'administrateur",
@@ -204,7 +228,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           partnerCodePlaceholder: "Opcional",
           phone: "Telefono",
           currency: "Moneda",
-          address: "Direccion",
+          addressLine1: "Direccion",
+          city: "Ciudad",
+          postalCode: "Codigo postal",
+          country: "Pais",
+          timeZone: "Zona horaria",
+          currentTime: "Hora actual",
+          timeZonePlaceholder: "Ej. America/Port-au-Prince",
+          invalidTimeZone: "Zona horaria invalida",
           adminFirstName: "Nombre del administrador",
           adminLastName: "Apellido del administrador",
           adminEmail: "Correo del administrador",
@@ -252,7 +283,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           partnerCodePlaceholder: "Optional",
           phone: "Phone",
           currency: "Currency",
-          address: "Address",
+          addressLine1: "Address",
+          city: "City",
+          postalCode: "Postal code",
+          country: "Country",
+          timeZone: "Time zone",
+          currentTime: "Current time",
+          timeZonePlaceholder: "Ex. America/Port-au-Prince",
+          invalidTimeZone: "Invalid time zone",
           adminFirstName: "Admin first name",
           adminLastName: "Admin last name",
           adminEmail: "Admin email",
@@ -313,6 +351,14 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     [language]
   )
 
+  const timeZoneOptions = useMemo(() => getTimeZoneOptions(), [])
+  const countryOptions = useMemo(() => getCountryOptions(), [])
+
+  const currentTimePreview = useMemo(
+    () => formatCurrentTimeInTimeZone(form.timeZoneId, language),
+    [form.timeZoneId, language, timePreviewTick]
+  )
+
   const resolvedBusinessType = useMemo(
     () => (
       form.businessType === BUSINESS_TYPE_OTHER
@@ -321,6 +367,20 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     ),
     [form.businessType, form.businessTypeOther],
   )
+
+  useEffect(() => {
+    if (!isValidTimeZone(form.timeZoneId)) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      setTimePreviewTick(Date.now())
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [form.timeZoneId])
 
   async function loadPlans() {
     try {
@@ -398,13 +458,25 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       setSuccess("")
       setVerificationError("")
 
+      const composedAddress = composeStructuredAddress({
+        addressLine1: form.addressLine1,
+        city: form.city,
+        postalCode: form.postalCode,
+        country: form.country,
+      })
+
       const payload: PublicSignupRequest = {
         companyName: form.companyName.trim(),
         businessType: resolvedBusinessType,
         phone: form.phone.trim(),
         companyEmail: form.companyEmail.trim(),
         partnerCode: form.partnerCode.trim() || undefined,
-        address: form.address.trim(),
+        address: composedAddress,
+        addressLine1: form.addressLine1.trim(),
+        city: form.city.trim(),
+        postalCode: form.postalCode.trim(),
+        country: form.country.trim(),
+        timeZoneId: form.timeZoneId.trim(),
         currencyCode: form.currencyCode.trim(),
         adminFirstName: form.adminFirstName.trim(),
         adminLastName: form.adminLastName.trim(),
@@ -594,13 +666,70 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           </label>
 
           <label className="full-width">
-            {text.address}
+            {text.addressLine1}
             <input
               type="text"
-              value={form.address}
-              onChange={(e) => updateForm("address", e.target.value)}
+              value={form.addressLine1}
+              onChange={(e) => updateForm("addressLine1", e.target.value)}
               disabled={Boolean(pendingVerification)}
             />
+          </label>
+
+          <label>
+            {text.city}
+            <input
+              type="text"
+              value={form.city}
+              onChange={(e) => updateForm("city", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+          </label>
+
+          <label>
+            {text.postalCode}
+            <input
+              type="text"
+              value={form.postalCode}
+              onChange={(e) => updateForm("postalCode", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+          </label>
+
+          <label>
+            {text.country}
+            <input
+              type="text"
+              list="public-signup-country-options"
+              value={form.country}
+              onChange={(e) => updateForm("country", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+            <datalist id="public-signup-country-options">
+              {countryOptions.map((country) => (
+                <option key={country} value={country} />
+              ))}
+            </datalist>
+          </label>
+
+          <label className="full-width">
+            {text.timeZone}
+            <input
+              type="text"
+              list="public-signup-time-zone-options"
+              value={form.timeZoneId}
+              placeholder={text.timeZonePlaceholder}
+              onChange={(e) => updateForm("timeZoneId", e.target.value)}
+              disabled={Boolean(pendingVerification)}
+            />
+            <datalist id="public-signup-time-zone-options">
+              {timeZoneOptions.map((timeZoneId) => (
+                <option key={timeZoneId} value={timeZoneId} />
+              ))}
+            </datalist>
+            <div className="timezone-preview">
+              <strong>{text.currentTime}:</strong>{" "}
+              {currentTimePreview || text.invalidTimeZone}
+            </div>
           </label>
 
           <label>

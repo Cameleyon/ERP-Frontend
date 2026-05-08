@@ -7,6 +7,11 @@ export type CompanyProfileResponse = {
     phone: string | null
     email: string | null
     address: string | null
+    addressLine1: string | null
+    city: string | null
+    postalCode: string | null
+    country: string | null
+    timeZoneId: string | null
     currencyCode: string
     active: boolean
     sidebarColor: string | null
@@ -20,6 +25,11 @@ export type UpdateCompanyProfileRequest = {
     phone: string
     email: string
     address: string
+    addressLine1: string
+    city: string
+    postalCode: string
+    country: string
+    timeZoneId: string
     currencyCode: string
 }
 

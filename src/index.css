@@ -476,6 +476,11 @@ td {
   gap: 6px;
 }
 
+.timezone-preview {
+  font-size: 0.92rem;
+  color: var(--muted-text, #37556f);
+}
+
 .product-filters {
   margin-bottom: 20px;
   background: #f9fafc;

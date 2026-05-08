@@ -24,13 +24,25 @@ import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
+import {
+  composeStructuredAddress,
+  formatCurrentTimeInTimeZone,
+  getBrowserTimeZone,
+  getCountryOptions,
+  getTimeZoneOptions,
+  isValidTimeZone,
+} from "../utils/companyLocalization"
 
 type FormState = {
   name: string
   businessType: string
   phone: string
   email: string
-  address: string
+  addressLine1: string
+  city: string
+  postalCode: string
+  country: string
+  timeZoneId: string
   currencyCode: string
 }
 
@@ -63,7 +75,11 @@ const emptyForm: FormState = {
   businessType: "",
   phone: "",
   email: "",
-  address: "",
+  addressLine1: "",
+  city: "",
+  postalCode: "",
+  country: "",
+  timeZoneId: getBrowserTimeZone(),
   currencyCode: "CAD",
 }
 
@@ -103,7 +119,11 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
     businessType: profile.businessType || "",
     phone: profile.phone || "",
     email: profile.email || "",
-    address: profile.address || "",
+    addressLine1: profile.addressLine1 || "",
+    city: profile.city || "",
+    postalCode: profile.postalCode || "",
+    country: profile.country || "",
+    timeZoneId: profile.timeZoneId || getBrowserTimeZone(),
     currencyCode: profile.currencyCode || "CAD",
   }
 }
@@ -142,6 +162,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isEditing, setIsEditing] = useState(false)
+  const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
 
   const text = language === "fr"
     ? {
@@ -211,6 +232,12 @@ export default function ProfilePage() {
         businessType: "Type d'activité",
         phone: "Téléphone",
         email: "E-mail",
+        city: "Ville",
+        postalCode: "Code postal",
+        country: "Pays",
+        timeZone: "Fuseau horaire",
+        currentTime: "Heure actuelle",
+        invalidTimeZone: "Fuseau horaire invalide",
         currency: "Devise",
         address: "Adresse",
         cancel: "Annuler",
@@ -317,6 +344,12 @@ export default function ProfilePage() {
         businessType: "Business type",
         phone: "Phone",
         email: "Email",
+        city: "City",
+        postalCode: "Postal code",
+        country: "Country",
+        timeZone: "Time zone",
+        currentTime: "Current time",
+        invalidTimeZone: "Invalid time zone",
         currency: "Currency",
         address: "Address",
         cancel: "Cancel",
@@ -370,9 +403,30 @@ export default function ProfilePage() {
     })
   }, [user])
 
+  useEffect(() => {
+    if (!isValidTimeZone(form.timeZoneId)) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      setTimePreviewTick(Date.now())
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [form.timeZoneId])
+
   const stripeEnabled = useMemo(() => {
     return subscription?.paymentProvider === "STRIPE" && stripePromise
   }, [subscription])
+
+  const timeZoneOptions = useMemo(() => getTimeZoneOptions(), [])
+  const countryOptions = useMemo(() => getCountryOptions(), [])
+  const currentTimePreview = useMemo(
+    () => formatCurrentTimeInTimeZone(form.timeZoneId, language),
+    [form.timeZoneId, language, timePreviewTick]
+  )
 
   const isDirty = useMemo(() => {
     if (!profile) {
@@ -616,12 +670,24 @@ export default function ProfilePage() {
       setError("")
       setSuccess("")
 
+      const composedAddress = composeStructuredAddress({
+        addressLine1: form.addressLine1,
+        city: form.city,
+        postalCode: form.postalCode,
+        country: form.country,
+      })
+
       const updatedProfile = await updateCompanyProfile({
         name: form.name.trim(),
         businessType: form.businessType.trim(),
         phone: form.phone.trim(),
         email: form.email.trim(),
-        address: form.address.trim(),
+        address: composedAddress,
+        addressLine1: form.addressLine1.trim(),
+        city: form.city.trim(),
+        postalCode: form.postalCode.trim(),
+        country: form.country.trim(),
+        timeZoneId: form.timeZoneId.trim(),
         currencyCode: form.currencyCode.trim(),
       })
 
@@ -1115,10 +1181,66 @@ export default function ProfilePage() {
                 {text.address}
                 <input
                   type="text"
-                  value={form.address}
+                  value={form.addressLine1}
                   disabled={!isEditing}
-                  onChange={(e) => updateForm("address", e.target.value)}
+                  onChange={(e) => updateForm("addressLine1", e.target.value)}
                 />
+              </label>
+
+              <label>
+                {text.city}
+                <input
+                  type="text"
+                  value={form.city}
+                  disabled={!isEditing}
+                  onChange={(e) => updateForm("city", e.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.postalCode}
+                <input
+                  type="text"
+                  value={form.postalCode}
+                  disabled={!isEditing}
+                  onChange={(e) => updateForm("postalCode", e.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.country}
+                <input
+                  type="text"
+                  list="profile-country-options"
+                  value={form.country}
+                  disabled={!isEditing}
+                  onChange={(e) => updateForm("country", e.target.value)}
+                />
+                <datalist id="profile-country-options">
+                  {countryOptions.map((country) => (
+                    <option key={country} value={country} />
+                  ))}
+                </datalist>
+              </label>
+
+              <label className="full-width">
+                {text.timeZone}
+                <input
+                  type="text"
+                  list="profile-time-zone-options"
+                  value={form.timeZoneId}
+                  disabled={!isEditing}
+                  onChange={(e) => updateForm("timeZoneId", e.target.value)}
+                />
+                <datalist id="profile-time-zone-options">
+                  {timeZoneOptions.map((timeZoneId) => (
+                    <option key={timeZoneId} value={timeZoneId} />
+                  ))}
+                </datalist>
+                <div className="timezone-preview">
+                  <strong>{text.currentTime}:</strong>{" "}
+                  {currentTimePreview || text.invalidTimeZone}
+                </div>
               </label>
 
               <div className="form-actions full-width">
