@@ -342,7 +342,15 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         <div className="public-contact-grid">
           <div className="public-contact-item">
             <span>{text.websiteLabel}</span>
-            <strong>www.cameleyondynamics.com</strong>
+            <strong>
+              <a
+                href="https://www.cameleyondynamics.com"
+                target="_blank"
+                rel="noreferrer"
+              >
+                www.cameleyondynamics.com
+              </a>
+            </strong>
           </div>
 
           <div className="public-contact-item">
