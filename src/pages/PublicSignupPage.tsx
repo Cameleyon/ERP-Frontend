@@ -61,7 +61,7 @@ const emptyForm: FormState = {
   postalCode: "",
   country: "",
   timeZoneId: getBrowserTimeZone(),
-  currencyCode: "CAD",
+  currencyCode: "",
   adminFirstName: "",
   adminLastName: "",
   adminEmail: "",
@@ -71,6 +71,17 @@ const emptyForm: FormState = {
 }
 
 const BUSINESS_TYPE_OTHER = "OTHER"
+const CURRENCY_OTHER = "__OTHER__"
+
+const CURRENCY_OPTIONS = [
+  "USD",
+  "CAD",
+  "HTG",
+  "DOP",
+  "EUR",
+  "MXN",
+  "GBP",
+] as const
 
 const BUSINESS_TYPE_OPTIONS = [
   {
@@ -154,6 +165,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         adminPasswordRequired: "Le mot de passe de l'administrateur est requis",
         planRequired: "Le plan est requis",
         businessTypeRequired: "Le type d'activite est requis",
+        currencyRequired: "La devise est requise",
         verificationCodeRequired: "Le code de verification est requis",
         redirecting: "Redirection vers le paiement Stripe...",
         signupFailed: "L'inscription a echoue",
@@ -172,6 +184,9 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         partnerCodePlaceholder: "Optionnel",
         phone: "Telephone",
         currency: "Devise",
+        selectCurrency: "Choisir une devise",
+        otherCurrency: "Autre devise",
+        otherCurrencyPlaceholder: "Saisir la devise",
         addressLine1: "Adresse",
         city: "Ville",
         postalCode: "Code postal",
@@ -210,6 +225,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           adminPasswordRequired: "La contrasena del administrador es obligatoria",
           planRequired: "El plan es obligatorio",
           businessTypeRequired: "El tipo de negocio es obligatorio",
+          currencyRequired: "La moneda es obligatoria",
           verificationCodeRequired: "El codigo de verificacion es obligatorio",
           redirecting: "Redirigiendo al pago de Stripe...",
           signupFailed: "El registro fallo",
@@ -228,6 +244,9 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           partnerCodePlaceholder: "Opcional",
           phone: "Telefono",
           currency: "Moneda",
+          selectCurrency: "Elegir una moneda",
+          otherCurrency: "Otra moneda",
+          otherCurrencyPlaceholder: "Ingrese la moneda",
           addressLine1: "Direccion",
           city: "Ciudad",
           postalCode: "Codigo postal",
@@ -265,6 +284,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           adminPasswordRequired: "Admin password is required",
           planRequired: "Plan is required",
           businessTypeRequired: "Business type is required",
+          currencyRequired: "Currency is required",
           verificationCodeRequired: "Verification code is required",
           redirecting: "Redirecting to Stripe payment...",
           signupFailed: "Signup failed",
@@ -283,6 +303,9 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           partnerCodePlaceholder: "Optional",
           phone: "Phone",
           currency: "Currency",
+          selectCurrency: "Choose a currency",
+          otherCurrency: "Other currency",
+          otherCurrencyPlaceholder: "Enter the currency",
           addressLine1: "Address",
           city: "City",
           postalCode: "Postal code",
@@ -349,6 +372,15 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       label: option[language],
     })),
     [language]
+  )
+
+  const selectedCurrencyOption = useMemo(
+    () => (CURRENCY_OPTIONS.includes(form.currencyCode as (typeof CURRENCY_OPTIONS)[number])
+      ? form.currencyCode
+      : form.currencyCode.trim()
+        ? CURRENCY_OTHER
+        : ""),
+    [form.currencyCode]
   )
 
   const timeZoneOptions = useMemo(() => getTimeZoneOptions(), [])
@@ -449,6 +481,10 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     }
     if (!resolvedBusinessType) {
       setError(text.businessTypeRequired)
+      return
+    }
+    if (!form.currencyCode.trim()) {
+      setError(text.currencyRequired)
       return
     }
 
@@ -646,13 +682,36 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
 
           <label>
             {text.currency}
-            <input
-              type="text"
-              value={form.currencyCode}
-              onChange={(e) => updateForm("currencyCode", e.target.value)}
+            <select
+              value={selectedCurrencyOption}
+              onChange={(e) => {
+                const value = e.target.value
+                updateForm("currencyCode", value === CURRENCY_OTHER ? "" : value)
+              }}
               disabled={Boolean(pendingVerification)}
-            />
+            >
+              <option value="">{text.selectCurrency}</option>
+              {CURRENCY_OPTIONS.map((currencyCode) => (
+                <option key={currencyCode} value={currencyCode}>
+                  {currencyCode}
+                </option>
+              ))}
+              <option value={CURRENCY_OTHER}>{text.otherCurrency}</option>
+            </select>
           </label>
+
+          {selectedCurrencyOption === CURRENCY_OTHER && (
+            <label>
+              {text.otherCurrency}
+              <input
+                type="text"
+                value={form.currencyCode}
+                onChange={(e) => updateForm("currencyCode", e.target.value.toUpperCase())}
+                placeholder={text.otherCurrencyPlaceholder}
+                disabled={Boolean(pendingVerification)}
+              />
+            </label>
+          )}
 
           <label>
             {text.partnerCode}
