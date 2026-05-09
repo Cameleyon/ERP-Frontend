@@ -3,6 +3,7 @@ import {
   createProduct,
   getProducts,
   updateProduct,
+  type CreateProductRequest,
   type ProductResponse,
 } from "../api/productManagementApi"
 import { getUnits, type UnitResponse } from "../api/unitApi"
@@ -10,6 +11,7 @@ import { useI18n } from "../i18n/I18nContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
+import { parseCsvText } from "../utils/csv"
 
 type ProductFormState = {
   barcode: string
@@ -42,6 +44,38 @@ const emptyForm: ProductFormState = {
 }
 
 const MAX_PRICE_TIERS = 3
+const PRODUCT_CSV_REQUIRED_HEADERS = ["name", "category", "unit", "unitPrice"] as const
+const PRODUCT_CSV_OPTIONAL_HEADERS = ["description", "barcode", "minimumStock", "active"] as const
+
+type CsvPreviewRow = {
+  rowNumber: number
+  rawValues: Record<string, string>
+  errors: string[]
+  payload?: CreateProductRequest
+}
+
+type ImportRunResult = {
+  createdCount: number
+  failedRows: Array<{ rowNumber: number; message: string }>
+}
+
+function normalizeCsvHeader(value: string) {
+  return value.trim().replace(/[\s_-]+/g, "").toLowerCase()
+}
+
+function parseBooleanLike(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) {
+    return true
+  }
+  if (["true", "1", "yes", "y", "oui", "si", "active", "actif", "activo"].includes(normalized)) {
+    return true
+  }
+  if (["false", "0", "no", "n", "non", "inactive", "inactif", "inactivo"].includes(normalized)) {
+    return false
+  }
+  return null
+}
 
 export default function ProductsPage() {
   const { language, copy } = useI18n()
@@ -56,6 +90,11 @@ export default function ProductsPage() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [form, setForm] = useState<ProductFormState>(emptyForm)
   const [showScanner, setShowScanner] = useState(false)
+  const [csvFileName, setCsvFileName] = useState("")
+  const [csvPreviewRows, setCsvPreviewRows] = useState<CsvPreviewRow[]>([])
+  const [csvMissingHeaders, setCsvMissingHeaders] = useState<string[]>([])
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvImportResult, setCsvImportResult] = useState<ImportRunResult | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("ALL")
@@ -149,11 +188,258 @@ export default function ProductsPage() {
     })
   }, [products, searchTerm, selectedCategory])
 
+  const unitLookup = useMemo(() => {
+    const lookup = new Map<string, UnitResponse>()
+
+    units.forEach((unit) => {
+      lookup.set(unit.code.trim().toLowerCase(), unit)
+      lookup.set(unit.name.trim().toLowerCase(), unit)
+    })
+
+    return lookup
+  }, [units])
+
+  const csvRequiredHeaders = useMemo(
+    () => [...PRODUCT_CSV_REQUIRED_HEADERS],
+    []
+  )
+
+  const csvOptionalHeaders = useMemo(
+    () => [...PRODUCT_CSV_OPTIONAL_HEADERS],
+    []
+  )
+
   function updateForm<K extends keyof ProductFormState>(key: K, value: ProductFormState[K]) {
     setForm((prev) => ({
       ...prev,
       [key]: value,
     }))
+  }
+
+  function resetCsvImportState() {
+    setCsvFileName("")
+    setCsvPreviewRows([])
+    setCsvMissingHeaders([])
+    setCsvImportResult(null)
+  }
+
+  function buildCsvPreviewRows(content: string) {
+    const rows = parseCsvText(content)
+    if (rows.length === 0) {
+      throw new Error(text.csvEmptyFile)
+    }
+
+    const [headerRow, ...dataRows] = rows
+    const normalizedHeaders = headerRow.map(normalizeCsvHeader)
+    const headerIndex = new Map<string, number>()
+
+    normalizedHeaders.forEach((header, index) => {
+      if (header && !headerIndex.has(header)) {
+        headerIndex.set(header, index)
+      }
+    })
+
+    const headerAliases: Record<string, string[]> = {
+      name: ["name", "productname"],
+      category: ["category"],
+      unit: ["unit", "unitcode", "unitname"],
+      unitPrice: ["unitprice", "price"],
+      description: ["description"],
+      barcode: ["barcode", "codebarres", "codigobarras"],
+      minimumStock: ["minimumstock", "minimumstocklevel", "minstock", "stockminimum"],
+      active: ["active", "isactive", "status"],
+    }
+
+    const resolvedHeaderNames = new Map<string, string>()
+    const missingHeaders = csvRequiredHeaders.filter((requiredHeader) => {
+      const alias = headerAliases[requiredHeader].find((candidate) => headerIndex.has(candidate))
+      if (alias) {
+        resolvedHeaderNames.set(requiredHeader, alias)
+        return false
+      }
+      return true
+    })
+
+    csvOptionalHeaders.forEach((optionalHeader) => {
+      const alias = headerAliases[optionalHeader].find((candidate) => headerIndex.has(candidate))
+      if (alias) {
+        resolvedHeaderNames.set(optionalHeader, alias)
+      }
+    })
+
+    const previewRows = dataRows
+      .map((row, rowIndex) => {
+        const rowNumber = rowIndex + 2
+        const rawValues = {
+          name: row[headerIndex.get(resolvedHeaderNames.get("name") ?? "") ?? -1]?.trim() ?? "",
+          category: row[headerIndex.get(resolvedHeaderNames.get("category") ?? "") ?? -1]?.trim() ?? "",
+          unit: row[headerIndex.get(resolvedHeaderNames.get("unit") ?? "") ?? -1]?.trim() ?? "",
+          unitPrice: row[headerIndex.get(resolvedHeaderNames.get("unitPrice") ?? "") ?? -1]?.trim() ?? "",
+          description: row[headerIndex.get(resolvedHeaderNames.get("description") ?? "") ?? -1]?.trim() ?? "",
+          barcode: row[headerIndex.get(resolvedHeaderNames.get("barcode") ?? "") ?? -1]?.trim() ?? "",
+          minimumStock: row[headerIndex.get(resolvedHeaderNames.get("minimumStock") ?? "") ?? -1]?.trim() ?? "",
+          active: row[headerIndex.get(resolvedHeaderNames.get("active") ?? "") ?? -1]?.trim() ?? "",
+        }
+
+        return { rowNumber, rawValues }
+      })
+      .filter((row) => Object.values(row.rawValues).some((value) => value !== ""))
+      .map(({ rowNumber, rawValues }) => {
+        const errors: string[] = []
+        const matchedUnit = rawValues.unit ? unitLookup.get(rawValues.unit.toLowerCase()) : undefined
+        const parsedUnitPrice = Number(rawValues.unitPrice)
+        const parsedMinimumStock = rawValues.minimumStock ? Number(rawValues.minimumStock) : 0
+        const parsedActive = parseBooleanLike(rawValues.active)
+
+        if (!rawValues.name) {
+          errors.push(text.csvRowNameRequired)
+        }
+        if (!rawValues.category) {
+          errors.push(text.csvRowCategoryRequired)
+        }
+        if (!rawValues.unit) {
+          errors.push(text.csvRowUnitRequired)
+        } else if (!matchedUnit) {
+          errors.push(text.csvRowUnitUnknown(rawValues.unit))
+        }
+        if (!rawValues.unitPrice) {
+          errors.push(text.csvRowUnitPriceRequired)
+        } else if (!Number.isFinite(parsedUnitPrice) || parsedUnitPrice < 0) {
+          errors.push(text.csvRowUnitPriceInvalid)
+        }
+        if (rawValues.minimumStock && (!Number.isFinite(parsedMinimumStock) || parsedMinimumStock < 0)) {
+          errors.push(text.csvRowMinimumStockInvalid)
+        }
+        if (parsedActive === null) {
+          errors.push(text.csvRowActiveInvalid)
+        }
+
+        const payload: CreateProductRequest | undefined = errors.length > 0 || !matchedUnit
+          ? undefined
+          : {
+              barcode: rawValues.barcode,
+              name: rawValues.name,
+              description: rawValues.description,
+              category: rawValues.category,
+              unitPrice: parsedUnitPrice,
+              minimumStock: parsedMinimumStock,
+              active: parsedActive ?? true,
+              unitId: matchedUnit.id,
+              priceTiers: [],
+            }
+
+        return {
+          rowNumber,
+          rawValues,
+          errors,
+          payload,
+        }
+      })
+
+    return { missingHeaders, previewRows }
+  }
+
+  function handleDownloadCsvTemplate() {
+    const lines = [
+      [...csvRequiredHeaders, ...csvOptionalHeaders].join(","),
+      "Soda 3,Boisson,UNIT,2.00,Soft drink,1234567890123,5,true",
+    ]
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = "cameleyon-products-template.csv"
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleCsvFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) {
+      resetCsvImportState()
+      return
+    }
+
+    try {
+      const content = await file.text()
+      const { missingHeaders, previewRows } = buildCsvPreviewRows(content)
+
+      setCsvFileName(file.name)
+      setCsvMissingHeaders(missingHeaders)
+      setCsvPreviewRows(previewRows)
+      setCsvImportResult(null)
+
+      if (previewRows.length === 0) {
+        setError(text.csvNoRows)
+        return
+      }
+
+      if (missingHeaders.length > 0) {
+        setError(text.csvMissingHeaders(missingHeaders.join(", ")))
+        return
+      }
+
+      if (previewRows.some((row) => row.errors.length > 0)) {
+        setError(text.csvFixRows)
+        return
+      }
+
+      setError("")
+      setSuccess(text.csvReady(previewRows.length))
+    } catch (err) {
+      console.error(err)
+      resetCsvImportState()
+      setError(err instanceof Error ? err.message : text.csvReadError)
+    } finally {
+      event.target.value = ""
+    }
+  }
+
+  async function handleImportCsv() {
+    const validRows = csvPreviewRows.filter((row) => row.payload && row.errors.length === 0)
+    if (csvMissingHeaders.length > 0) {
+      setError(text.csvMissingHeaders(csvMissingHeaders.join(", ")))
+      return
+    }
+    if (validRows.length === 0) {
+      setError(text.csvNoValidRows)
+      return
+    }
+
+    try {
+      setCsvImporting(true)
+      setError("")
+      setSuccess("")
+
+      let createdCount = 0
+      const failedRows: Array<{ rowNumber: number; message: string }> = []
+
+      for (const row of validRows) {
+        try {
+          await createProduct(row.payload as CreateProductRequest)
+          createdCount += 1
+        } catch (err) {
+          console.error(err)
+          failedRows.push({
+            rowNumber: row.rowNumber,
+            message: err instanceof Error ? err.message : text.csvImportRowFailed,
+          })
+        }
+      }
+
+      setCsvImportResult({ createdCount, failedRows })
+      if (failedRows.length === 0) {
+        setSuccess(text.csvImportSuccess(createdCount))
+        resetCsvImportState()
+      } else {
+        setError(text.csvImportPartial(createdCount, failedRows.length))
+      }
+
+      await loadProducts()
+    } finally {
+      setCsvImporting(false)
+    }
   }
 
   function handleEdit(product: ProductResponse) {
@@ -364,6 +650,125 @@ export default function ProductsPage() {
 
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
+
+      <div className="card">
+        <div className="scanner-header">
+          <div>
+            <h3>{text.csvImportTitle}</h3>
+            <p>{text.csvImportHelp}</p>
+          </div>
+
+          <button type="button" className="secondary-button" onClick={handleDownloadCsvTemplate}>
+            {text.csvTemplateDownload}
+          </button>
+        </div>
+
+        <div className="csv-import-meta">
+          <div>
+            <strong>{text.csvRequiredColumns}</strong>
+            <p>{csvRequiredHeaders.join(", ")}</p>
+          </div>
+
+          <div>
+            <strong>{text.csvOptionalColumns}</strong>
+            <p>{csvOptionalHeaders.join(", ")}</p>
+          </div>
+        </div>
+
+        <div className="csv-import-actions">
+          <label className="csv-file-picker">
+            <span>{text.csvChooseFile}</span>
+            <input type="file" accept=".csv,text/csv" onChange={handleCsvFileChange} />
+          </label>
+
+          {csvFileName && <span>{text.csvSelectedFile(csvFileName)}</span>}
+
+          <button
+            type="button"
+            onClick={handleImportCsv}
+            disabled={
+              csvImporting ||
+              csvPreviewRows.length === 0 ||
+              csvMissingHeaders.length > 0 ||
+              csvPreviewRows.some((row) => row.errors.length > 0)
+            }
+          >
+            {csvImporting ? text.csvImporting : text.csvImportButton}
+          </button>
+        </div>
+
+        {csvPreviewRows.length > 0 && (
+          <div className="csv-preview-table">
+            <h4>{text.csvPreviewTitle}</h4>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.csvRowNumber}</th>
+                  <th>{text.name}</th>
+                  <th>{text.category}</th>
+                  <th>{text.unit}</th>
+                  <th>{text.unitPrice}</th>
+                  <th>{text.minimumStock}</th>
+                  <th>{text.status}</th>
+                  <th>{text.csvErrors}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvPreviewRows.map((row) => (
+                  <tr key={row.rowNumber}>
+                    <td>{row.rowNumber}</td>
+                    <td>{row.rawValues.name || "-"}</td>
+                    <td>{row.rawValues.category || "-"}</td>
+                    <td>{row.rawValues.unit || "-"}</td>
+                    <td>{row.rawValues.unitPrice || "-"}</td>
+                    <td>{row.rawValues.minimumStock || "0"}</td>
+                    <td>{row.errors.length === 0 ? text.csvRowReady : text.csvRowInvalid}</td>
+                    <td>
+                      {row.errors.length === 0 ? (
+                        "-"
+                      ) : (
+                        <ul className="csv-error-list">
+                          {row.errors.map((rowError) => (
+                            <li key={rowError}>{rowError}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {csvImportResult && (
+          <div className="csv-import-meta">
+            <div>
+              <strong>{text.csvCreatedCount}</strong>
+              <p>{csvImportResult.createdCount}</p>
+            </div>
+
+            <div>
+              <strong>{text.csvFailedCount}</strong>
+              <p>{csvImportResult.failedRows.length}</p>
+            </div>
+          </div>
+        )}
+
+        {csvImportResult && csvImportResult.failedRows.length > 0 && (
+          <div className="card error nested-card">
+            <strong>{text.csvFailedRowsTitle}</strong>
+            <ul className="csv-error-list">
+              {csvImportResult.failedRows.map((row) => (
+                <li key={`${row.rowNumber}-${row.message}`}>
+                  {text.csvFailedRow(row.rowNumber, row.message)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h3>{isEditMode ? text.editTitle : text.newTitle}</h3>

@@ -488,6 +488,53 @@ td {
   border-radius: 14px;
 }
 
+.csv-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.csv-file-picker {
+  display: inline-flex !important;
+  flex-direction: column;
+  gap: 6px !important;
+}
+
+.csv-import-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.csv-import-meta div {
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f9fafc;
+  border: 1px solid rgba(4, 73, 117, 0.08);
+}
+
+.csv-import-meta p {
+  margin: 6px 0 0;
+}
+
+.csv-preview-table {
+  margin-top: 18px;
+}
+
+.csv-preview-table h4 {
+  margin-bottom: 12px;
+}
+
+.csv-error-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
 .product-filters label,
 .dashboard-filters label {
   display: flex;
