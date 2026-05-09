@@ -713,19 +713,17 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
 
           <label className="full-width">
             {text.timeZone}
-            <input
-              type="text"
-              list="public-signup-time-zone-options"
+            <select
               value={form.timeZoneId}
-              placeholder={text.timeZonePlaceholder}
               onChange={(e) => updateForm("timeZoneId", e.target.value)}
               disabled={Boolean(pendingVerification)}
-            />
-            <datalist id="public-signup-time-zone-options">
+            >
               {timeZoneOptions.map((timeZoneId) => (
-                <option key={timeZoneId} value={timeZoneId} />
+                <option key={timeZoneId} value={timeZoneId}>
+                  {timeZoneId}
+                </option>
               ))}
-            </datalist>
+            </select>
             <div className="timezone-preview">
               <strong>{text.currentTime}:</strong>{" "}
               {currentTimePreview || text.invalidTimeZone}

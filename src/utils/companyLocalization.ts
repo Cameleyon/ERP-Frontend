@@ -1,19 +1,46 @@
 export const DEFAULT_COMPANY_TIME_ZONE = "America/Port-au-Prince"
 
-const FALLBACK_TIME_ZONES = [
+const FALLBACK_TIME_ZONES: string[] = [
+  "UTC",
   "America/Port-au-Prince",
   "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Phoenix",
+  "America/Los_Angeles",
   "America/Toronto",
+  "America/Vancouver",
   "America/Mexico_City",
+  "America/Guatemala",
   "America/Panama",
   "America/Santo_Domingo",
   "America/Bogota",
-  "America/Los_Angeles",
-  "UTC",
+  "America/Lima",
+  "America/Caracas",
+  "America/Santiago",
+  "America/Sao_Paulo",
+  "America/Argentina/Buenos_Aires",
+  "Europe/Berlin",
+  "Europe/Brussels",
   "Europe/Paris",
   "Europe/Madrid",
   "Europe/London",
-] as const
+  "Europe/Rome",
+  "Europe/Lisbon",
+  "Europe/Zurich",
+  "Africa/Casablanca",
+  "Africa/Abidjan",
+  "Africa/Johannesburg",
+  "Asia/Dubai",
+  "Asia/Riyadh",
+  "Asia/Kolkata",
+  "Asia/Bangkok",
+  "Asia/Singapore",
+  "Asia/Hong_Kong",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+]
 
 const FALLBACK_COUNTRIES = [
   "Canada",
@@ -36,18 +63,15 @@ export function getBrowserTimeZone() {
 }
 
 export function getTimeZoneOptions() {
-  const supportedValuesOf = Intl.supportedValuesOf as
-    | ((key: "timeZone") => string[])
-    | undefined
+  const browserTimeZone = getBrowserTimeZone()
 
-  if (typeof supportedValuesOf === "function") {
-    const values = supportedValuesOf("timeZone")
-    if (values.length > 0) {
-      return values
-    }
+  const options = [...FALLBACK_TIME_ZONES].filter(isValidTimeZone)
+
+  if (browserTimeZone && isValidTimeZone(browserTimeZone) && !options.includes(browserTimeZone)) {
+    options.unshift(browserTimeZone)
   }
 
-  return [...FALLBACK_TIME_ZONES]
+  return options
 }
 
 export function getCountryOptions() {
