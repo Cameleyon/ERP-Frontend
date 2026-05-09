@@ -151,6 +151,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [currencySelection, setCurrencySelection] = useState("")
+  const [customCurrencyCode, setCustomCurrencyCode] = useState("")
   const [pendingVerification, setPendingVerification] = useState<PendingVerificationState | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
@@ -374,15 +376,6 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     [language]
   )
 
-  const selectedCurrencyOption = useMemo(
-    () => (CURRENCY_OPTIONS.includes(form.currencyCode as (typeof CURRENCY_OPTIONS)[number])
-      ? form.currencyCode
-      : form.currencyCode.trim()
-        ? CURRENCY_OTHER
-        : ""),
-    [form.currencyCode]
-  )
-
   const timeZoneOptions = useMemo(() => getTimeZoneOptions(), [])
   const countryOptions = useMemo(() => getCountryOptions(), [])
 
@@ -448,6 +441,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
     setVerificationCode("")
     setVerificationError("")
     setForm(emptyForm)
+    setCurrencySelection("")
+    setCustomCurrencyCode("")
     setSuccess("")
     setError(message)
   }
@@ -589,6 +584,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
 
       setSuccess(text.success(response.signup.message, response.signup.adminEmail))
       setForm(emptyForm)
+      setCurrencySelection("")
+      setCustomCurrencyCode("")
     } catch (err) {
       console.error(err)
       setVerificationError(err instanceof Error ? err.message : text.signupFailed)
@@ -683,10 +680,15 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           <label>
             {text.currency}
             <select
-              value={selectedCurrencyOption}
+              value={currencySelection}
               onChange={(e) => {
                 const value = e.target.value
-                updateForm("currencyCode", value === CURRENCY_OTHER ? "" : value)
+                setCurrencySelection(value)
+                if (value === CURRENCY_OTHER) {
+                  updateForm("currencyCode", customCurrencyCode)
+                  return
+                }
+                updateForm("currencyCode", value)
               }}
               disabled={Boolean(pendingVerification)}
             >
@@ -700,13 +702,17 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
             </select>
           </label>
 
-          {selectedCurrencyOption === CURRENCY_OTHER && (
+          {currencySelection === CURRENCY_OTHER && (
             <label>
               {text.otherCurrency}
               <input
                 type="text"
-                value={form.currencyCode}
-                onChange={(e) => updateForm("currencyCode", e.target.value.toUpperCase())}
+                value={customCurrencyCode}
+                onChange={(e) => {
+                  const value = e.target.value.toUpperCase()
+                  setCustomCurrencyCode(value)
+                  updateForm("currencyCode", value)
+                }}
                 placeholder={text.otherCurrencyPlaceholder}
                 disabled={Boolean(pendingVerification)}
               />
