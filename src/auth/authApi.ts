@@ -11,6 +11,9 @@ export type AuthenticatedUserResponse = {
   companySidebarColor: string | null
   companyPrimaryColor: string | null
   companyLogoUrl: string | null
+  termsAccepted: boolean
+  termsAcceptedAt: string | null
+  termsAcceptedVersion: string | null
 }
 
 export type LoginRequest = {

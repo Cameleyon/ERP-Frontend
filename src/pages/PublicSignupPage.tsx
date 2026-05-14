@@ -40,6 +40,7 @@ type FormState = {
   adminPassword: string
   planCode: string
   billingCycle: "MONTHLY" | "YEARLY"
+  termsAccepted: boolean
 }
 
 type PendingVerificationState = {
@@ -68,6 +69,7 @@ const emptyForm: FormState = {
   adminPassword: "",
   planCode: "",
   billingCycle: "MONTHLY",
+  termsAccepted: false,
 }
 
 const BUSINESS_TYPE_OTHER = "OTHER"
@@ -154,6 +156,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
   const [currencySelection, setCurrencySelection] = useState("")
   const [customCurrencyCode, setCustomCurrencyCode] = useState("")
   const [pendingVerification, setPendingVerification] = useState<PendingVerificationState | null>(null)
+  const [showTerms, setShowTerms] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
 
@@ -169,6 +172,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         businessTypeRequired: "Le type d'activite est requis",
         currencyRequired: "La devise est requise",
         verificationCodeRequired: "Le code de verification est requis",
+        termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer",
         redirecting: "Redirection vers le paiement Stripe...",
         signupFailed: "L'inscription a echoue",
         verificationStartSuccess: (email: string) => `Un code a ete envoye a ${email}.`,
@@ -206,6 +210,19 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         billingCycle: "Cycle de facturation",
         monthly: "Mensuel",
         yearly: "Annuel",
+        termsAcceptPrefix: "J'ai lu et j'accepte les",
+        termsLink: "conditions d'utilisation",
+        termsTitle: "Conditions d'utilisation CAMELEYON ERP",
+        termsClose: "Fermer",
+        termsParagraphs: [
+          "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise a gerer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses operations.",
+          "L'entreprise confirme que les informations fournies lors de l'inscription sont exactes et que l'administrateur principal est responsable de la gestion des utilisateurs, des acces et des donnees de l'entreprise.",
+          "L'utilisation de la solution peut dependre d'un abonnement payant. Tout mois commence est du. CAMELEYON se reserve le droit de revoir le prix de l'abonnement au besoin, avec information prealable lorsque necessaire.",
+          "L'entreprise demeure responsable des donnees qu'elle saisit dans la solution. CAMELEYON met en place des mesures raisonnables pour proteger la plateforme, mais l'entreprise doit aussi proteger ses identifiants et l'acces a ses comptes.",
+          "Certaines fonctionnalites, comme l'envoi d'emails, les paiements automatiques, les rapports ou les integrations externes, peuvent dependre de services tiers et de leur disponibilite.",
+          "CAMELEYON peut limiter, suspendre ou bloquer l'acces en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte a la securite ou de violation des presentes conditions.",
+          "En creant son compte, l'entreprise accepte ces conditions et comprend qu'elles peuvent etre mises a jour au besoin pour tenir compte de l'evolution du service.",
+        ],
         submit: "Verifier l'email admin",
         submitting: "Envoi du code...",
         verificationTitle: "Confirmer l'email admin",
@@ -229,6 +246,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           businessTypeRequired: "El tipo de negocio es obligatorio",
           currencyRequired: "La moneda es obligatoria",
           verificationCodeRequired: "El codigo de verificacion es obligatorio",
+          termsRequired: "Debe aceptar los terminos de uso para continuar",
           redirecting: "Redirigiendo al pago de Stripe...",
           signupFailed: "El registro fallo",
           verificationStartSuccess: (email: string) => `Se envio un codigo a ${email}.`,
@@ -266,6 +284,19 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           billingCycle: "Ciclo de facturacion",
           monthly: "Mensual",
           yearly: "Anual",
+          termsAcceptPrefix: "He leido y acepto los",
+          termsLink: "terminos de uso",
+          termsTitle: "Terminos de uso de CAMELEYON ERP",
+          termsClose: "Cerrar",
+          termsParagraphs: [
+            "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
+            "La empresa confirma que la informacion enviada durante el registro es correcta y que el administrador principal es responsable de gestionar usuarios, accesos y datos de la empresa.",
+            "El uso de la solucion puede depender de una suscripcion paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripcion cuando sea necesario, con aviso previo cuando corresponda.",
+            "La empresa sigue siendo responsable de los datos que introduce en la solucion. CAMELEYON aplica medidas razonables para proteger la plataforma, pero la empresa tambien debe proteger sus credenciales y el acceso a sus cuentas.",
+            "Algunas funciones, como envio de correos, pagos automaticos, informes o integraciones externas, pueden depender de servicios de terceros y de su disponibilidad.",
+            "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos terminos.",
+            "Al crear su cuenta, la empresa acepta estos terminos y entiende que pueden actualizarse cuando sea necesario para reflejar la evolucion del servicio.",
+          ],
           submit: "Verificar correo del administrador",
           submitting: "Enviando codigo...",
           verificationTitle: "Confirmar correo del administrador",
@@ -288,6 +319,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           businessTypeRequired: "Business type is required",
           currencyRequired: "Currency is required",
           verificationCodeRequired: "Verification code is required",
+          termsRequired: "You must accept the terms of use to continue",
           redirecting: "Redirecting to Stripe payment...",
           signupFailed: "Signup failed",
           verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
@@ -325,6 +357,19 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           billingCycle: "Billing cycle",
           monthly: "Monthly",
           yearly: "Yearly",
+          termsAcceptPrefix: "I have read and accept the",
+          termsLink: "terms of use",
+          termsTitle: "CAMELEYON ERP Terms of Use",
+          termsClose: "Close",
+          termsParagraphs: [
+            "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
+            "The company confirms that the information submitted during signup is accurate and that the main administrator is responsible for managing users, access, and company data.",
+            "Use of the solution may depend on a paid subscription. Any month that has started is due. CAMELEYON reserves the right to review subscription pricing when needed, with prior notice when required.",
+            "The company remains responsible for the data it enters into the solution. CAMELEYON applies reasonable measures to protect the platform, but the company must also protect credentials and account access.",
+            "Some features, such as email delivery, automatic payments, reports, or external integrations, may depend on third-party services and their availability.",
+            "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
+            "By creating an account, the company accepts these terms and understands that they may be updated when needed to reflect the evolution of the service.",
+          ],
           submit: "Verify admin email",
           submitting: "Sending code...",
           verificationTitle: "Confirm admin email",
@@ -482,6 +527,10 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       setError(text.currencyRequired)
       return
     }
+    if (!form.termsAccepted) {
+      setError(text.termsRequired)
+      return
+    }
 
     try {
       setSaving(true)
@@ -515,6 +564,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         adminPassword: form.adminPassword,
         planCode: form.planCode,
         billingCycle: form.billingCycle,
+        termsAccepted: form.termsAccepted,
       }
 
       const response = await signupCompany(payload)
@@ -863,6 +913,22 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
             </select>
           </label>
 
+          <label className="full-width terms-acceptance">
+            <input
+              type="checkbox"
+              checked={form.termsAccepted}
+              onChange={(e) => updateForm("termsAccepted", e.target.checked)}
+              disabled={Boolean(pendingVerification)}
+            />
+            <span>
+              {text.termsAcceptPrefix}{" "}
+              <button type="button" className="link-button" onClick={() => setShowTerms(true)}>
+                {text.termsLink}
+              </button>
+              .
+            </span>
+          </label>
+
           <div className="form-actions full-width">
             <button type="submit" disabled={saving || loadingPlans || Boolean(pendingVerification)}>
               {saving ? text.submitting : text.submit}
@@ -910,6 +976,37 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showTerms && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(4, 73, 117, 0.18)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            zIndex: 30,
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="card terms-dialog" style={{ width: "min(760px, 100%)", margin: 0 }}>
+            <h2>{text.termsTitle}</h2>
+            <div className="terms-dialog-body">
+              {text.termsParagraphs.map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+            <div className="form-actions">
+              <button type="button" onClick={() => setShowTerms(false)}>
+                {text.termsClose}
+              </button>
+            </div>
           </div>
         </div>
       )}

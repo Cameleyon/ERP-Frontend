@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { AuthProvider, useAuth } from "./auth/AuthContext"
+import { acceptCompanyTerms } from "./api/companyTermsApi"
 import AppLayout from "./components/layout/AppLayout"
 import { LanguageProvider, useI18n } from "./i18n/I18nContext"
 import DashboardPage from "./pages/DashboardPage"
@@ -24,10 +25,12 @@ const PLATFORM_APP_URL =
   "https://erp.platform.cameleyondynamics.com"
 
 function AppContent() {
-  const { isAuthenticated, isLoading, user } = useAuth()
-  const { copy } = useI18n()
+  const { isAuthenticated, isLoading, logoutUser, refreshUser, user } = useAuth()
+  const { copy, language } = useI18n()
   const [page, setPage] = useState<Page>("dashboard")
   const [publicPage, setPublicPage] = useState<PublicPage>("landing")
+  const [acceptingTerms, setAcceptingTerms] = useState(false)
+  const [termsError, setTermsError] = useState("")
 
   useEffect(() => {
     const isPlatformOwner = user?.role === "SUPER_ADMIN"
@@ -74,6 +77,51 @@ function AppContent() {
   }
 
   const isAdmin = user?.role === "ADMIN"
+  const termsText = getTermsGateText(language)
+
+  async function handleAcceptTerms() {
+    try {
+      setAcceptingTerms(true)
+      setTermsError("")
+      await acceptCompanyTerms()
+      await refreshUser()
+    } catch (err) {
+      console.error(err)
+      setTermsError(err instanceof Error ? err.message : termsText.acceptError)
+    } finally {
+      setAcceptingTerms(false)
+    }
+  }
+
+  if (user?.companyId && user.termsAccepted === false) {
+    return (
+      <div className="public-page">
+        <div className="card terms-required-card">
+          <h1>{isAdmin ? termsText.adminTitle : termsText.blockedTitle}</h1>
+          <p>{isAdmin ? termsText.adminIntro : termsText.blockedIntro}</p>
+
+          <div className="terms-dialog-body terms-required-copy">
+            {termsText.paragraphs.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
+          </div>
+
+          {termsError && <div className="card error">{termsError}</div>}
+
+          <div className="form-actions">
+            {isAdmin && (
+              <button type="button" onClick={handleAcceptTerms} disabled={acceptingTerms}>
+                {acceptingTerms ? termsText.accepting : termsText.acceptButton}
+              </button>
+            )}
+            <button type="button" className="secondary-button" onClick={logoutUser}>
+              {copy.common.logout}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const safePage =
       !isAdmin &&
@@ -99,6 +147,60 @@ function AppContent() {
         {safePage === "profile" && <ProfilePage />}
       </AppLayout>
   )
+}
+
+function getTermsGateText(language: "fr" | "en" | "es") {
+  if (language === "en") {
+    return {
+      adminTitle: "Terms of use required",
+      blockedTitle: "Access temporarily blocked",
+      adminIntro: "Before your company can continue using CAMELEYON ERP, an admin must accept the updated terms of use.",
+      blockedIntro: "Your company account is waiting for an admin to accept the terms of use. Please contact an administrator.",
+      acceptButton: "I accept and continue",
+      accepting: "Accepting...",
+      acceptError: "Failed to accept the terms of use",
+      paragraphs: [
+        "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
+        "The company confirms that its information is accurate and that the main administrator is responsible for users, access, and company data.",
+        "Use of the solution may depend on a paid subscription. Any month that has started is due. CAMELEYON reserves the right to review subscription pricing when needed, with prior notice when required.",
+        "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
+      ],
+    }
+  }
+
+  if (language === "es") {
+    return {
+      adminTitle: "Terminos de uso requeridos",
+      blockedTitle: "Acceso temporalmente bloqueado",
+      adminIntro: "Antes de que su empresa pueda continuar usando CAMELEYON ERP, un administrador debe aceptar los terminos de uso actualizados.",
+      blockedIntro: "La cuenta de su empresa esta esperando que un administrador acepte los terminos de uso. Contacte a un administrador.",
+      acceptButton: "Acepto y continuar",
+      accepting: "Aceptando...",
+      acceptError: "No se pudieron aceptar los terminos de uso",
+      paragraphs: [
+        "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
+        "La empresa confirma que su informacion es correcta y que el administrador principal es responsable de usuarios, accesos y datos de la empresa.",
+        "El uso de la solucion puede depender de una suscripcion paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripcion cuando sea necesario, con aviso previo cuando corresponda.",
+        "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos terminos.",
+      ],
+    }
+  }
+
+  return {
+    adminTitle: "Conditions d'utilisation requises",
+    blockedTitle: "Acces temporairement bloque",
+    adminIntro: "Avant que votre entreprise puisse continuer a utiliser CAMELEYON ERP, un admin doit accepter les conditions d'utilisation mises a jour.",
+    blockedIntro: "Le compte de votre entreprise attend qu'un admin accepte les conditions d'utilisation. Veuillez contacter un administrateur.",
+    acceptButton: "J'accepte et je continue",
+    accepting: "Acceptation...",
+    acceptError: "Impossible d'accepter les conditions d'utilisation",
+    paragraphs: [
+      "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise a gerer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses operations.",
+      "L'entreprise confirme que ses informations sont exactes et que l'administrateur principal est responsable des utilisateurs, des acces et des donnees de l'entreprise.",
+      "L'utilisation de la solution peut dependre d'un abonnement payant. Tout mois commence est du. CAMELEYON se reserve le droit de revoir le prix de l'abonnement au besoin, avec information prealable lorsque necessaire.",
+      "CAMELEYON peut limiter, suspendre ou bloquer l'acces en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte a la securite ou de violation des presentes conditions.",
+    ],
+  }
 }
 
 export default function App() {

@@ -40,6 +40,7 @@ export type PublicSignupRequest = {
     planCode: string
     billingCycle: "MONTHLY" | "YEARLY"
     partnerCode?: string
+    termsAccepted: boolean
 }
 
 export type PublicSignupResponse = {
