@@ -138,7 +138,22 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div>
-        <h1>{text.title}</h1>
+        <div className="page-title-row">
+          <h1>{text.title}</h1>
+
+          {locations.length > 0 && (
+            <label className="page-title-site-filter">
+              <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                <option value="">{copy.dashboardFilters.allLocations}</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
         <DashboardFilters
           preset={preset}
           startDate={startDate}
@@ -147,9 +162,6 @@ export default function DashboardPage() {
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onApply={handleApply}
-          locations={locations}
-          locationId={locationId}
-          onLocationChange={setLocationId}
         />
         <div className="card error">{error}</div>
       </div>
@@ -158,7 +170,22 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1>{text.title}</h1>
+      <div className="page-title-row">
+        <h1>{text.title}</h1>
+
+        {locations.length > 0 && (
+          <label className="page-title-site-filter">
+            <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              <option value="">{copy.dashboardFilters.allLocations}</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       <DashboardFilters
         preset={preset}
@@ -168,9 +195,6 @@ export default function DashboardPage() {
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onApply={handleApply}
-        locations={locations}
-        locationId={locationId}
-        onLocationChange={setLocationId}
       />
 
       {summary && (

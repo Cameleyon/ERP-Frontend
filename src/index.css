@@ -152,12 +152,6 @@ td {
 .page-title-site-filter {
   align-items: center;
   display: inline-flex;
-  gap: 10px;
-}
-
-.page-title-site-filter span {
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 .page-title-site-filter select {

@@ -1,5 +1,4 @@
 import { useI18n } from "../../i18n/I18nContext"
-import type { CompanyLocationResponse } from "../../api/companyLocationsApi"
 
 type Preset = "today" | "this-week" | "this-month" | "custom"
 
@@ -11,9 +10,6 @@ type Props = {
   onStartDateChange: (value: string) => void
   onEndDateChange: (value: string) => void
   onApply: () => void
-  locations?: CompanyLocationResponse[]
-  locationId?: string
-  onLocationChange?: (value: string) => void
 }
 
 export default function DashboardFilters({
@@ -24,9 +20,6 @@ export default function DashboardFilters({
   onStartDateChange,
   onEndDateChange,
   onApply,
-  locations = [],
-  locationId = "",
-  onLocationChange,
 }: Props) {
   const { copy } = useI18n()
   const text = copy.dashboardFilters
@@ -52,20 +45,6 @@ export default function DashboardFilters({
         <span>{text.endDate}</span>
         <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} />
       </label>
-
-      {locations.length > 0 && onLocationChange && (
-        <label>
-          <span>{text.location ?? "Site"}</span>
-          <select value={locationId} onChange={(e) => onLocationChange(e.target.value)}>
-            <option value="">{text.allLocations ?? "All sites"}</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
 
       <div className="dashboard-filter-actions">
         <button type="button" onClick={onApply}>{text.apply}</button>

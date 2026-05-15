@@ -324,7 +324,6 @@ export default function SalesHistoryPage() {
 
         {locations.length > 0 && (
           <label className="page-title-site-filter">
-            <span>{text.location}</span>
             <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
