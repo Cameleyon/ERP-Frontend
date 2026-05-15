@@ -9,7 +9,6 @@ import CustomersPage from "./pages/CustomersPage"
 import NewSalePage from "./pages/NewSalePage"
 import SalesHistoryPage from "./pages/SalesHistoryPage"
 import InventoryPage from "./pages/InventoryPage"
-import InventoryReceiptPage from "./pages/InventoryReceiptPage"
 import ProductsPage from "./pages/ProductsPage"
 import CostRubricsPage from "./pages/CostRubricsPage"
 import UnitsPage from "./pages/UnitsPage"
@@ -175,7 +174,6 @@ function AppContent() {
   const safePage =
       !isAdmin &&
       (page === "inventory" ||
-          page === "inventory-receipt" ||
           page === "cost-rubrics" ||
           page === "units" ||
           page === "products")
@@ -192,7 +190,6 @@ function AppContent() {
         {safePage === "new-sale" && <NewSalePage />}
         {safePage === "sales-history" && <SalesHistoryPage />}
         {safePage === "inventory" && isAdmin && <InventoryPage />}
-        {safePage === "inventory-receipt" && isAdmin && <InventoryReceiptPage />}
         {safePage === "profile" && <ProfilePage />}
       </AppLayout>
   )

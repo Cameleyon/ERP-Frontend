@@ -107,13 +107,6 @@ export default function Sidebar({
                 </button>
 
                 <button
-                  className={`sidebar-button ${page === "inventory-receipt" ? "active" : ""}`}
-                  onClick={() => onNavigate("inventory-receipt")}
-                >
-                  {copy.sidebar.inventoryReceipt}
-                </button>
-
-                <button
                   className={`sidebar-button ${page === "products" ? "active" : ""}`}
                   onClick={() => onNavigate("products")}
                 >

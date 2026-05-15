@@ -17,6 +17,8 @@ export type InventoryAdjustmentResponse = {
   adjustmentType: string
   quantity: number
   stockAfter: number
+  totalCostAmount: number | null
+  unitCost: number | null
   reason: string
   createdAt: string
 }
@@ -33,6 +35,23 @@ export async function createInventoryAdjustment(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function getRecentInventoryWithdrawals(locationId: number): Promise<InventoryAdjustmentResponse[]> {
+  const token = localStorage.getItem("camelyon_token")
+
+  const response = await fetch(`${API_BASE_URL}/inventory/adjustments/withdrawals?locationId=${locationId}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   })
 
   if (!response.ok) {

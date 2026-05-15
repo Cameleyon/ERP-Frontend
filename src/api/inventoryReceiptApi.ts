@@ -58,3 +58,20 @@ export async function createInventoryReceipt(
 
   return response.json()
 }
+
+export async function getRecentInventoryReceipts(locationId: number): Promise<InventoryReceiptResponse[]> {
+  const token = localStorage.getItem(TOKEN_KEY)
+
+  const response = await fetch(`${API_BASE_URL}/inventory/receipts/recent?locationId=${locationId}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}

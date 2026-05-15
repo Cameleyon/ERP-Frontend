@@ -7,5 +7,4 @@ export type Page =
   | "new-sale"
   | "sales-history"
   | "inventory"
-  | "inventory-receipt"
   | "profile"
