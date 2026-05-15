@@ -515,11 +515,15 @@ function ActiveReceiptTable({
                       </button>
                     </div>
                   ) : (
-                    <div className="table-actions">
-                      <button type="button" onClick={() => onStartWithdrawal(row)}>
+                    <div className="inventory-receipt-actions">
+                      <button type="button" className="compact-action-button" onClick={() => onStartWithdrawal(row)}>
                         {text.withdraw}
                       </button>
-                      <button type="button" className="secondary-button" onClick={() => onStartEdit(row)}>
+                      <button
+                        type="button"
+                        className="secondary-button compact-action-button"
+                        onClick={() => onStartEdit(row)}
+                      >
                         {text.edit}
                       </button>
                     </div>
