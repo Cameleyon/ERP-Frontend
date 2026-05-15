@@ -23,6 +23,9 @@ export type CompanySubscriptionResponse = {
     additionalUserCount: number
     additionalUserFeePerCycleUsd: string | null
     additionalUserTotalFeeUsd: string | null
+    additionalLocationCount: number
+    additionalLocationFeePerCycleUsd: string | null
+    additionalLocationTotalFeeUsd: string | null
     notes: string | null
 }
 

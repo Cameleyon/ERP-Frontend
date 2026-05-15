@@ -84,6 +84,7 @@ type CompanyLocationFormState = {
   postalCode: string
   country: string
   timeZoneId: string
+  feeConsentAccepted: boolean
 }
 
 type EditableUserField = "firstName" | "lastName" | "email" | "password" | null
@@ -134,6 +135,7 @@ const emptyCompanyLocationForm: CompanyLocationFormState = {
   postalCode: "",
   country: "",
   timeZoneId: getBrowserTimeZone(),
+  feeConsentAccepted: false,
 }
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -248,6 +250,10 @@ export default function ProfilePage() {
         usersListTitle: "Utilisateurs de l'entreprise",
         locationsSectionTitle: "Sites",
         locationsSectionSubtitle: "Ajoutez les sites geres par cette entreprise.",
+        additionalLocationWarningTitle: "Impact tarifaire",
+        additionalLocationWarningMessage: "Chaque nouveau site ajoute 9,99 USD au prochain cycle de facturation.",
+        additionalLocationConsentLabel: "Je comprends et j'accepte l'augmentation de 9,99 USD pour ce nouveau site.",
+        additionalLocationConsentRequired: "Votre consentement est requis avant de creer un nouveau site.",
         locationName: "Nom du site",
         addLocationTitle: "Ajouter un site",
         addLocationButton: "Ajouter le site",
@@ -301,6 +307,9 @@ export default function ProfilePage() {
         additionalUsers: "Utilisateurs supplementaires",
         additionalUserFee: "Frais par utilisateur supplementaire",
         additionalUserTotal: "Supplement total par cycle",
+        additionalLocations: "Sites supplementaires",
+        additionalLocationFee: "Frais par site supplementaire",
+        additionalLocationTotal: "Supplement sites par cycle",
         notes: "Notes",
         yes: "Oui",
         no: "Non",
@@ -370,6 +379,10 @@ export default function ProfilePage() {
         usersListTitle: "Company users",
         locationsSectionTitle: "Sites",
         locationsSectionSubtitle: "Add the sites managed by this company.",
+        additionalLocationWarningTitle: "Fee impact",
+        additionalLocationWarningMessage: "Each new site adds 9.99 USD to the next billing cycle.",
+        additionalLocationConsentLabel: "I understand and accept the 9.99 USD increase for this new site.",
+        additionalLocationConsentRequired: "Your consent is required before creating a new site.",
         locationName: "Site name",
         addLocationTitle: "Add a site",
         addLocationButton: "Add site",
@@ -423,6 +436,9 @@ export default function ProfilePage() {
         additionalUsers: "Additional users",
         additionalUserFee: "Fee per additional user",
         additionalUserTotal: "Total extra per cycle",
+        additionalLocations: "Additional sites",
+        additionalLocationFee: "Fee per additional site",
+        additionalLocationTotal: "Site extra per cycle",
         notes: "Notes",
         yes: "Yes",
         no: "No",
@@ -685,6 +701,11 @@ export default function ProfilePage() {
       return
     }
 
+    if (!companyLocationForm.feeConsentAccepted) {
+      setError(text.additionalLocationConsentRequired)
+      return
+    }
+
     try {
       setCompanyUsersSaving(true)
       setError("")
@@ -700,6 +721,7 @@ export default function ProfilePage() {
         postalCode: companyLocationForm.postalCode.trim() || null,
         country: companyLocationForm.country.trim() || null,
         timeZoneId: companyLocationForm.timeZoneId.trim() || null,
+        feeConsentAccepted: companyLocationForm.feeConsentAccepted,
         address: composeStructuredAddress({
           addressLine1: companyLocationForm.addressLine1,
           city: companyLocationForm.city,
@@ -710,6 +732,8 @@ export default function ProfilePage() {
 
       setCompanyLocations((prev) => [...prev, createdLocation])
       setCompanyLocationForm(emptyCompanyLocationForm)
+      const refreshedSubscription = await getCompanySubscription()
+      setSubscription(refreshedSubscription)
       setSuccess(text.locationsCreateSuccess)
     } catch (err) {
       console.error(err)
@@ -1110,6 +1134,11 @@ export default function ProfilePage() {
             <h3>{text.locationsSectionTitle}</h3>
             <p>{text.locationsSectionSubtitle}</p>
 
+            <div className="company-user-warning">
+              <strong>{text.additionalLocationWarningTitle}</strong>
+              <span>{text.additionalLocationWarningMessage}</span>
+            </div>
+
             <form onSubmit={handleCreateCompanyLocation} className="product-form-grid">
               <h4 className="full-width" style={{ margin: 0 }}>{text.addLocationTitle}</h4>
 
@@ -1205,6 +1234,15 @@ export default function ProfilePage() {
                 </select>
               </label>
 
+              <label className="checkbox-field full-width company-user-consent">
+                <input
+                  type="checkbox"
+                  checked={companyLocationForm.feeConsentAccepted}
+                  onChange={(event) => updateCompanyLocationForm("feeConsentAccepted", event.target.checked)}
+                />
+                <span>{text.additionalLocationConsentLabel}</span>
+              </label>
+
               <div className="form-actions full-width">
                 <button type="submit" disabled={companyUsersSaving}>
                   {text.addLocationButton}
@@ -1220,6 +1258,9 @@ export default function ProfilePage() {
                   <th>{text.address}</th>
                   <th>{text.timeZone}</th>
                   <th>{text.status}</th>
+                  <th>{text.consent}</th>
+                  <th>{text.consentDate}</th>
+                  <th>{text.fee}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1230,6 +1271,9 @@ export default function ProfilePage() {
                     <td>{location.address || location.addressLine1 || "-"}</td>
                     <td>{location.timeZoneId || "-"}</td>
                     <td>{location.active ? text.active : text.inactive}</td>
+                    <td>{location.feeConsentAccepted ? text.yes : text.no}</td>
+                    <td>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</td>
+                    <td>{location.feeAmountUsd ? `${location.feeAmountUsd} USD` : text.notTracked}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1572,6 +1616,19 @@ export default function ProfilePage() {
                   <strong>{text.additionalUserTotal}:</strong>{" "}
                   {subscription.additionalUserTotalFeeUsd
                     ? `${subscription.additionalUserTotalFeeUsd} USD`
+                    : "-"}
+                </p>
+                <p><strong>{text.additionalLocations}:</strong> {subscription.additionalLocationCount ?? 0}</p>
+                <p>
+                  <strong>{text.additionalLocationFee}:</strong>{" "}
+                  {subscription.additionalLocationFeePerCycleUsd
+                    ? `${subscription.additionalLocationFeePerCycleUsd} USD`
+                    : "-"}
+                </p>
+                <p>
+                  <strong>{text.additionalLocationTotal}:</strong>{" "}
+                  {subscription.additionalLocationTotalFeeUsd
+                    ? `${subscription.additionalLocationTotalFeeUsd} USD`
                     : "-"}
                 </p>
                 <p className="full-width"><strong>{text.notes}:</strong> {cleanSubscriptionNotes(subscription.notes)}</p>

@@ -15,6 +15,10 @@ export type CompanyLocationResponse = {
   timeZoneId: string | null
   primaryLocation: boolean
   active: boolean
+  createdByUserId: number | null
+  feeConsentAccepted: boolean
+  feeConsentAcceptedAt: string | null
+  feeAmountUsd: string | null
 }
 
 export type CreateCompanyLocationRequest = {
@@ -28,6 +32,7 @@ export type CreateCompanyLocationRequest = {
   postalCode?: string | null
   country?: string | null
   timeZoneId?: string | null
+  feeConsentAccepted: boolean
 }
 
 export function getAccessibleCompanyLocations() {
