@@ -267,15 +267,12 @@ export default function InventoryReceiptPage() {
 
   return (
     <div>
-      <h1>{text.title}</h1>
+      <div className="page-title-row">
+        <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
-      {success && <div className="card success">{success}</div>}
-
-      {locations.length > 0 && (
-        <div className="card site-filter-card">
-          <label>
-            {text.location}
+        {locations.length > 0 && (
+          <label className="page-title-site-filter">
+            <span>{text.location}</span>
             <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -284,8 +281,11 @@ export default function InventoryReceiptPage() {
               ))}
             </select>
           </label>
-        </div>
-      )}
+        )}
+      </div>
+
+      {error && <div className="card error">{error}</div>}
+      {success && <div className="card success">{success}</div>}
 
       <div className="card">
         <h3>{text.lookupTitle}</h3>

@@ -137,6 +137,33 @@ td {
   margin-top: 0;
 }
 
+.page-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.page-title-row h1 {
+  margin: 0;
+}
+
+.page-title-site-filter {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.page-title-site-filter span {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.page-title-site-filter select {
+  min-width: 190px;
+}
+
 .card {
   background: var(--surface-color);
   border-radius: 18px;

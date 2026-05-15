@@ -319,7 +319,22 @@ export default function SalesHistoryPage() {
 
   return (
     <div>
-      <h1>{text.title}</h1>
+      <div className="page-title-row">
+        <h1>{text.title}</h1>
+
+        {locations.length > 0 && (
+          <label className="page-title-site-filter">
+            <span>{text.location}</span>
+            <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
@@ -396,19 +411,6 @@ export default function SalesHistoryPage() {
               onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
             />
           </label>
-
-          {locations.length > 0 && (
-            <label>
-              {text.location}
-              <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
 
           <div className="product-filter-actions">
             <button type="submit" disabled={loading}>

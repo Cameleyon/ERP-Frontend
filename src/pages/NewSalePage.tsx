@@ -326,14 +326,11 @@ export default function NewSalePage() {
 
   return (
     <div>
-      <h1>{text.title}</h1>
+      <div className="page-title-row">
+        <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
-      {success && <div className="card success">{success}</div>}
-
-      {locations.length > 0 && (
-        <div className="card site-filter-card">
-          <label className="sale-location-field">
+        {locations.length > 0 && (
+          <label className="page-title-site-filter">
             <span>{text.location ?? "Site"}</span>
             <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
               {locations.map((location) => (
@@ -343,8 +340,11 @@ export default function NewSalePage() {
               ))}
             </select>
           </label>
-        </div>
-      )}
+        )}
+      </div>
+
+      {error && <div className="card error">{error}</div>}
+      {success && <div className="card success">{success}</div>}
 
       <BarcodeScanner onDetected={handleDetectedBarcode} />
 
