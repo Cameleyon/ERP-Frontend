@@ -74,7 +74,7 @@ export default function InventoryReceiptPage() {
         product: "Produit",
         remainingQuantity: "Quantité restante",
         receivedAt: "Reçu le",
-        location: "Localisation",
+        location: "Succursale",
       }
     : {
         loadRubricsError: "Failed to load cost rubrics",
@@ -112,7 +112,7 @@ export default function InventoryReceiptPage() {
         product: "Product",
         remainingQuantity: "Remaining quantity",
         receivedAt: "Received at",
-        location: "Location",
+        location: "Branch",
       }
 
   useEffect(() => {

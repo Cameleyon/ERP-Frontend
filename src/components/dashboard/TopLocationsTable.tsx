@@ -10,24 +10,24 @@ export default function TopLocationsTable({ rows }: Props) {
   const { language } = useI18n()
   const text = language === "fr"
     ? {
-        title: "Top 5 localisations",
-        empty: "Aucune vente par localisation pour cette periode.",
-        location: "Localisation",
+        title: "Top 5 succursales",
+        empty: "Aucune vente par succursale pour cette periode.",
+        location: "Succursale",
         sales: "Ventes",
         transactions: "Transactions",
       }
     : language === "es"
       ? {
-          title: "Top 5 ubicaciones",
-          empty: "No hay ventas por ubicacion para este periodo.",
-          location: "Ubicacion",
+          title: "Top 5 sucursales",
+          empty: "No hay ventas por sucursal para este periodo.",
+          location: "Sucursal",
           sales: "Ventas",
           transactions: "Transacciones",
         }
       : {
-          title: "Top 5 locations",
-          empty: "No location sales for this period.",
-          location: "Location",
+          title: "Top 5 branches",
+          empty: "No branch sales for this period.",
+          location: "Branch",
           sales: "Sales",
           transactions: "Transactions",
         }

@@ -181,7 +181,7 @@ export default function InventoryPage() {
           <div className="inventory-form-grid">
             {locations.length > 1 && (
               <label>
-                {text.location ?? "Location"}
+                {text.location ?? "Branch"}
                 <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
                   {locations.map((location) => (
                     <option key={location.id} value={location.id}>
@@ -235,7 +235,7 @@ export default function InventoryPage() {
         <div className="card">
           <h3>{text.lastAdjustment}</h3>
           <p><strong>{text.product}:</strong> {lastAdjustment.productName}</p>
-          <p><strong>{text.location ?? "Location"}:</strong> {lastAdjustment.locationName || "-"}</p>
+          <p><strong>{text.location ?? "Branch"}:</strong> {lastAdjustment.locationName || "-"}</p>
           <p><strong>{text.type}:</strong> {lastAdjustment.adjustmentType}</p>
           <p>
             <strong>{text.quantity}:</strong> {formatNumber(lastAdjustment.quantity)}{unitLabel}

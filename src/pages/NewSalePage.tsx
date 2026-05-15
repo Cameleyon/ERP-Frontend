@@ -390,7 +390,7 @@ export default function NewSalePage() {
 
         {locations.length > 1 && (
           <label className="sale-location-field">
-            <span>{text.location ?? "Location"}</span>
+            <span>{text.location ?? "Branch"}</span>
             <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
