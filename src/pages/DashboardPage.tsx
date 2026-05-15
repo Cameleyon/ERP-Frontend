@@ -4,15 +4,19 @@ import {
   getLowStockProducts,
   getSalesTrend,
   getSummary,
+  getTopLocations,
   getTopProducts,
   type DashboardSummaryResponse,
   type LowStockProductResponse,
   type SalesTrendPointResponse,
+  type TopLocationResponse,
   type TopProductResponse,
 } from "../api/dashboardApi"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import SummaryCard from "../components/dashboard/SummaryCard"
 import SalesTrendChart from "../components/dashboard/SalesTrendChart"
 import TopProductsTable from "../components/dashboard/TopProductsTable"
+import TopLocationsTable from "../components/dashboard/TopLocationsTable"
 import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
 import { formatCurrency, formatNumber } from "../utils/format"
@@ -61,28 +65,37 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
   const [trend, setTrend] = useState<SalesTrendPointResponse[]>([])
   const [topProducts, setTopProducts] = useState<TopProductResponse[]>([])
+  const [topLocations, setTopLocations] = useState<TopLocationResponse[]>([])
   const [lowStock, setLowStock] = useState<LowStockProductResponse[]>([])
+  const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
+  const [locationId, setLocationId] = useState("")
 
   const [preset, setPreset] = useState<Preset>("this-month")
   const [startDate, setStartDate] = useState(getDateRangeFromPreset("this-month").startDate)
   const [endDate, setEndDate] = useState(getDateRangeFromPreset("this-month").endDate)
 
-  async function loadDashboard(rangeStart: string, rangeEnd: string) {
+  async function loadDashboard(rangeStart: string, rangeEnd: string, nextLocationId = locationId) {
     try {
       setLoading(true)
       setError("")
 
-      const [summaryData, trendData, topProductsData, lowStockData] =
+      const locationFilter = nextLocationId ? Number(nextLocationId) : null
+
+      const [locationsData, summaryData, trendData, topProductsData, topLocationsData, lowStockData] =
         await Promise.all([
-          getSummary(rangeStart, rangeEnd),
-          getSalesTrend(rangeStart, rangeEnd),
-          getTopProducts(rangeStart, rangeEnd, 5),
+          getAccessibleCompanyLocations(),
+          getSummary(rangeStart, rangeEnd, locationFilter),
+          getSalesTrend(rangeStart, rangeEnd, locationFilter),
+          getTopProducts(rangeStart, rangeEnd, 5, locationFilter),
+          getTopLocations(rangeStart, rangeEnd, 5),
           getLowStockProducts(),
         ])
 
+      setLocations(locationsData)
       setSummary(summaryData)
       setTrend(trendData)
       setTopProducts(topProductsData)
+      setTopLocations(topLocationsData)
       setLowStock(lowStockData)
     } catch (err) {
       console.error(err)
@@ -94,7 +107,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const range = getDateRangeFromPreset("this-month")
-    void loadDashboard(range.startDate, range.endDate)
+    void loadDashboard(range.startDate, range.endDate, "")
   }, [])
 
   function handlePresetChange(nextPreset: Preset) {
@@ -134,6 +147,9 @@ export default function DashboardPage() {
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onApply={handleApply}
+          locations={locations}
+          locationId={locationId}
+          onLocationChange={setLocationId}
         />
         <div className="card error">{error}</div>
       </div>
@@ -152,6 +168,9 @@ export default function DashboardPage() {
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onApply={handleApply}
+        locations={locations}
+        locationId={locationId}
+        onLocationChange={setLocationId}
       />
 
       {summary && (
@@ -172,6 +191,7 @@ export default function DashboardPage() {
 
       <div className="dashboard-bottom-grid">
         <TopProductsTable rows={topProducts} />
+        {locations.length > 1 && <TopLocationsTable rows={topLocations} />}
         <LowStockTable rows={lowStock} />
       </div>
     </div>

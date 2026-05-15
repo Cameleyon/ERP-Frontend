@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../api/config"
+import type { CompanyLocationResponse } from "../api/companyLocationsApi"
 
 export type AuthenticatedUserResponse = {
   id: number
@@ -14,6 +15,8 @@ export type AuthenticatedUserResponse = {
   termsAccepted: boolean
   termsAcceptedAt: string | null
   termsAcceptedVersion: string | null
+  locationRestricted: boolean
+  locations: CompanyLocationResponse[]
 }
 
 export type LoginRequest = {

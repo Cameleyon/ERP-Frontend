@@ -26,6 +26,13 @@ export type TopProductResponse = {
   totalSalesAmount: number
 }
 
+export type TopLocationResponse = {
+  locationId: number
+  locationName: string
+  totalSales: number
+  transactionCount: number
+}
+
 export type LowStockProductResponse = {
   productId: number
   sku: string
@@ -35,21 +42,31 @@ export type LowStockProductResponse = {
   shortage: number
 }
 
-export function getSummary(startDate: string, endDate: string) {
+function locationQuery(locationId?: number | null) {
+  return locationId ? `&locationId=${locationId}` : ""
+}
+
+export function getSummary(startDate: string, endDate: string, locationId?: number | null) {
   return apiGet<DashboardSummaryResponse>(
-    `/dashboard/summary?startDate=${startDate}&endDate=${endDate}`
+    `/dashboard/summary?startDate=${startDate}&endDate=${endDate}${locationQuery(locationId)}`
   )
 }
 
-export function getSalesTrend(startDate: string, endDate: string) {
+export function getSalesTrend(startDate: string, endDate: string, locationId?: number | null) {
   return apiGet<SalesTrendPointResponse[]>(
-    `/dashboard/sales-trend?startDate=${startDate}&endDate=${endDate}`
+    `/dashboard/sales-trend?startDate=${startDate}&endDate=${endDate}${locationQuery(locationId)}`
   )
 }
 
-export function getTopProducts(startDate: string, endDate: string, limit = 5) {
+export function getTopProducts(startDate: string, endDate: string, limit = 5, locationId?: number | null) {
   return apiGet<TopProductResponse[]>(
-    `/dashboard/top-products?startDate=${startDate}&endDate=${endDate}&limit=${limit}`
+    `/dashboard/top-products?startDate=${startDate}&endDate=${endDate}&limit=${limit}${locationQuery(locationId)}`
+  )
+}
+
+export function getTopLocations(startDate: string, endDate: string, limit = 5) {
+  return apiGet<TopLocationResponse[]>(
+    `/dashboard/top-locations?startDate=${startDate}&endDate=${endDate}&limit=${limit}`
   )
 }
 

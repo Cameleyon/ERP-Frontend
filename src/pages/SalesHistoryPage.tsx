@@ -383,6 +383,7 @@ export default function SalesHistoryPage() {
               <tr>
                 <th>{text.saleNumber}</th>
                 <th>{text.date}</th>
+                <th>{text.location}</th>
                 <th>{text.customer}</th>
                 <th>{text.payment}</th>
                 <th>{text.total}</th>
@@ -393,13 +394,14 @@ export default function SalesHistoryPage() {
             <tbody>
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>{text.emptySales}</td>
+                  <td colSpan={8}>{text.emptySales}</td>
                 </tr>
               ) : (
                 sales.map((sale) => (
                   <tr key={sale.id}>
                     <td>{sale.saleNumber}</td>
                     <td>{formatDateTime(sale.soldAt)}</td>
+                    <td>{sale.locationName || "-"}</td>
                     <td>{sale.customerName || "-"}</td>
                     <td>{sale.paymentMethod || "-"}</td>
                     <td>{formatCurrency(sale.totalAmount)}</td>
@@ -458,6 +460,7 @@ export default function SalesHistoryPage() {
             <div className="detail-grid">
               <p><strong>{text.saleNumber}:</strong> {selectedSale.saleNumber}</p>
               <p><strong>{text.date}:</strong> {formatDateTime(selectedSale.soldAt)}</p>
+              <p><strong>{text.location}:</strong> {selectedSale.locationName || "-"}</p>
               <p><strong>{text.customer}:</strong> {selectedSale.customerName || "-"}</p>
               <p><strong>{text.payment}:</strong> {selectedSale.paymentMethod || "-"}</p>
               <p><strong>{text.paymentReference}:</strong> {selectedSale.paymentReference || "-"}</p>

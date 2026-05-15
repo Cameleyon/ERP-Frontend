@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import {
   createInventoryAdjustment,
   type InventoryAdjustmentResponse,
@@ -19,6 +20,8 @@ export default function InventoryPage() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [adjustmentLoading, setAdjustmentLoading] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
+  const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
+  const [locationId, setLocationId] = useState("")
 
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [adjustmentType, setAdjustmentType] = useState("ADD")
@@ -28,6 +31,22 @@ export default function InventoryPage() {
 
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  useEffect(() => {
+    async function loadLocations() {
+      try {
+        const data = await getAccessibleCompanyLocations()
+        const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
+        setLocations(activeLocations)
+        setLocationId(activeLocations[0]?.id ? String(activeLocations[0].id) : "")
+      } catch (err) {
+        console.error(err)
+        setError(err instanceof Error ? err.message : "Failed to load locations")
+      }
+    }
+
+    void loadLocations()
+  }, [])
 
   async function handleLookup() {
     if (!productCode.trim()) {
@@ -69,6 +88,7 @@ export default function InventoryPage() {
       setLastAdjustment(null)
 
       const response = await createInventoryAdjustment({
+        locationId: locationId ? Number(locationId) : null,
         productId: selectedProduct.id,
         adjustmentType,
         quantity,
@@ -159,6 +179,19 @@ export default function InventoryPage() {
           </p>
 
           <div className="inventory-form-grid">
+            {locations.length > 1 && (
+              <label>
+                {text.location ?? "Location"}
+                <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <label>
               {text.adjustmentType}
               <select
@@ -202,6 +235,7 @@ export default function InventoryPage() {
         <div className="card">
           <h3>{text.lastAdjustment}</h3>
           <p><strong>{text.product}:</strong> {lastAdjustment.productName}</p>
+          <p><strong>{text.location ?? "Location"}:</strong> {lastAdjustment.locationName || "-"}</p>
           <p><strong>{text.type}:</strong> {lastAdjustment.adjustmentType}</p>
           <p>
             <strong>{text.quantity}:</strong> {formatNumber(lastAdjustment.quantity)}{unitLabel}

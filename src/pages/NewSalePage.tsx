@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import { createSale, getSaleDetail, type SaleDetailResponse } from "../api/salesApi"
 import BarcodeLookup from "../components/sales/BarcodeLookup"
@@ -40,11 +41,14 @@ export default function NewSalePage() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [saleLoading, setSaleLoading] = useState(false)
   const [customersLoading, setCustomersLoading] = useState(true)
+  const [locationsLoading, setLocationsLoading] = useState(true)
 
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
+  const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
+  const [locationId, setLocationId] = useState("")
   const [selectedCustomerId, setSelectedCustomerId] = useState("WALK_IN")
   const [customerSearch, setCustomerSearch] = useState("")
   const [customerSuggestionsOpen, setCustomerSuggestionsOpen] = useState(false)
@@ -60,7 +64,23 @@ export default function NewSalePage() {
 
   useEffect(() => {
     void loadCustomers()
+    void loadLocations()
   }, [])
+
+  async function loadLocations() {
+    try {
+      setLocationsLoading(true)
+      const data = await getAccessibleCompanyLocations()
+      const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
+      setLocations(activeLocations)
+      setLocationId(activeLocations[0]?.id ? String(activeLocations[0].id) : "")
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Failed to load locations")
+    } finally {
+      setLocationsLoading(false)
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -194,6 +214,7 @@ export default function NewSalePage() {
           : customers.find((customer) => String(customer.id) === selectedCustomerId)?.name || text.walkInCustomer
 
       const response = await createSale({
+        locationId: locationId ? Number(locationId) : null,
         customerId: selectedCustomerId === "WALK_IN" ? null : Number(selectedCustomerId),
         customerName,
         paymentMethod,
@@ -220,6 +241,7 @@ export default function NewSalePage() {
       setPaymentReference("")
       setPaymentAuthorizationCode("")
       setPaymentConfirmedManually(false)
+      setLocationId(locations[0]?.id ? String(locations[0].id) : "")
       setLastSaleInvoice(saleDetail)
 
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -365,6 +387,19 @@ export default function NewSalePage() {
 
       <div className="card">
         <h3>{text.customer}</h3>
+
+        {locations.length > 1 && (
+          <label className="sale-location-field">
+            <span>{text.location ?? "Location"}</span>
+            <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div className="sale-customer-payment-row">
           <div className="sale-customer-search-block">

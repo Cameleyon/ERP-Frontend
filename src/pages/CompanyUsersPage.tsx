@@ -201,6 +201,7 @@ export default function CompanyUsersPage() {
         email: form.email.trim(),
         password: form.password,
         role: form.role,
+        locationIds: [],
         feeConsentAccepted: form.feeConsentAccepted,
       })
 

@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "./config"
 
 export type CreateInventoryAdjustmentRequest = {
+  locationId?: number | null
   productId: number
   adjustmentType: string
   quantity: number
@@ -9,6 +10,8 @@ export type CreateInventoryAdjustmentRequest = {
 
 export type InventoryAdjustmentResponse = {
   id: number
+  locationId: number | null
+  locationName: string | null
   productId: number
   productName: string
   adjustmentType: string

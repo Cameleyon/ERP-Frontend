@@ -17,6 +17,7 @@ export type CreateSaleItemRequest = {
 }
 
 export type CreateSaleRequest = {
+  locationId?: number | null
   customerId?: number | null
   customerName: string
   paymentMethod: string
@@ -31,6 +32,8 @@ export type CreateSaleResponse = {
   id: number
   saleNumber: string
   soldAt: string
+  locationId: number | null
+  locationName: string | null
   customerId: number | null
   customerName: string
   customerEmail: string | null
@@ -52,6 +55,8 @@ export type SaleResponse = {
   id: number
   saleNumber: string
   soldAt: string
+  locationId: number | null
+  locationName: string | null
   customerId: number | null
   customerName: string
   customerEmail: string | null
@@ -84,6 +89,8 @@ export type SaleDetailResponse = {
   id: number
   saleNumber: string
   soldAt: string
+  locationId: number | null
+  locationName: string | null
   customerId: number | null
   customerName: string
   customerEmail: string | null
@@ -110,6 +117,7 @@ export type SaleCancellationRequestResponse = {
   saleId: number
   saleNumber: string
   soldAt: string
+  locationName: string | null
   customerName: string | null
   paymentMethod: string | null
   totalAmount: number

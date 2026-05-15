@@ -1,4 +1,5 @@
 import { apiGet, apiPatch, apiPost } from "./client"
+import type { CompanyLocationResponse } from "./companyLocationsApi"
 
 export type CompanyUserResponse = {
   id: number
@@ -12,6 +13,8 @@ export type CompanyUserResponse = {
   feeConsentAccepted: boolean
   feeConsentAcceptedAt: string | null
   feeAmountUsd: string | null
+  locationRestricted: boolean
+  locations: CompanyLocationResponse[]
 }
 
 export type CreateCompanyUserRequest = {
@@ -21,6 +24,7 @@ export type CreateCompanyUserRequest = {
   password: string
   role: "ADMIN" | "CASHIER"
   feeConsentAccepted: boolean
+  locationIds: number[]
 }
 
 export function getCompanyUsers() {

@@ -646,6 +646,19 @@ td {
   line-height: 1.5;
 }
 
+.company-user-location-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 10px;
+}
+
+.sale-location-field {
+  display: block;
+  max-width: 360px;
+  margin-bottom: 18px;
+}
+
 .chart-container {
   width: 100%;
   height: 320px;

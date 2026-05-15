@@ -8,6 +8,7 @@ export type CreateInventoryReceiptCostLineRequest = {
 }
 
 export type CreateInventoryReceiptRequest = {
+  locationId?: number | null
   productId: number
   receivedQuantity: number
   notes: string
@@ -23,6 +24,8 @@ export type InventoryReceiptCostLineResponse = {
 
 export type InventoryReceiptResponse = {
   id: number
+  locationId: number | null
+  locationName: string | null
   productId: number
   productName: string
   receivedQuantity: number

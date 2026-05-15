@@ -25,6 +25,11 @@ import { useI18n } from "../i18n/I18nContext"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
+  createCompanyLocation,
+  getAllCompanyLocations,
+  type CompanyLocationResponse,
+} from "../api/companyLocationsApi"
+import {
   composeStructuredAddress,
   formatCurrentTimeInTimeZone,
   getBrowserTimeZone,
@@ -66,6 +71,19 @@ type CompanyUserCreateFormState = {
   password: string
   role: "ADMIN" | "CASHIER"
   feeConsentAccepted: boolean
+  locationIds: string[]
+}
+
+type CompanyLocationFormState = {
+  name: string
+  businessType: string
+  phone: string
+  email: string
+  addressLine1: string
+  city: string
+  postalCode: string
+  country: string
+  timeZoneId: string
 }
 
 type EditableUserField = "firstName" | "lastName" | "email" | "password" | null
@@ -103,6 +121,19 @@ const emptyCompanyUserCreateForm: CompanyUserCreateFormState = {
   password: "",
   role: "CASHIER",
   feeConsentAccepted: false,
+  locationIds: [],
+}
+
+const emptyCompanyLocationForm: CompanyLocationFormState = {
+  name: "",
+  businessType: "",
+  phone: "",
+  email: "",
+  addressLine1: "",
+  city: "",
+  postalCode: "",
+  country: "",
+  timeZoneId: getBrowserTimeZone(),
 }
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
@@ -154,6 +185,8 @@ export default function ProfilePage() {
   const [userForm, setUserForm] = useState<UserProfileFormState>(emptyUserProfileForm)
   const [companyUsers, setCompanyUsers] = useState<CompanyUserResponse[]>([])
   const [companyUserCreateForm, setCompanyUserCreateForm] = useState<CompanyUserCreateFormState>(emptyCompanyUserCreateForm)
+  const [companyLocations, setCompanyLocations] = useState<CompanyLocationResponse[]>([])
+  const [companyLocationForm, setCompanyLocationForm] = useState<CompanyLocationFormState>(emptyCompanyLocationForm)
   const [editingUserField, setEditingUserField] = useState<EditableUserField>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -213,6 +246,16 @@ export default function ProfilePage() {
         additionalUserConsentRequired: "Votre consentement est requis avant de creer un utilisateur supplementaire.",
         usersRequired: "Tous les champs de creation d'utilisateur sont requis",
         usersListTitle: "Utilisateurs de l'entreprise",
+        locationsSectionTitle: "Localisations",
+        locationsSectionSubtitle: "Ajoutez les succursales ou sites geres par cette entreprise.",
+        locationName: "Nom de la localisation",
+        addLocationTitle: "Ajouter une localisation",
+        addLocationButton: "Ajouter la localisation",
+        locationsCreateSuccess: "Localisation creee avec succes",
+        locationsCreateError: "Echec de la creation de la localisation",
+        locationsLoadError: "Echec du chargement des localisations",
+        assignedLocations: "Localisations assignees",
+        allLocationsAccess: "Toutes",
         addUserTitle: "Ajouter un utilisateur",
         addUserButton: "Ajouter l'utilisateur",
         addUserSubmitting: "Ajout...",
@@ -325,6 +368,16 @@ export default function ProfilePage() {
         additionalUserConsentRequired: "Your consent is required before creating an additional user.",
         usersRequired: "All user creation fields are required",
         usersListTitle: "Company users",
+        locationsSectionTitle: "Locations",
+        locationsSectionSubtitle: "Add the branches or sites managed by this company.",
+        locationName: "Location name",
+        addLocationTitle: "Add a location",
+        addLocationButton: "Add location",
+        locationsCreateSuccess: "Location created successfully",
+        locationsCreateError: "Failed to create location",
+        locationsLoadError: "Failed to load locations",
+        assignedLocations: "Assigned locations",
+        allLocationsAccess: "All",
         addUserTitle: "Add user",
         addUserButton: "Add user",
         addUserSubmitting: "Adding...",
@@ -450,21 +503,25 @@ export default function ProfilePage() {
         setSubscription(null)
         setPaymentMethod(null)
         setCompanyUsers([])
+        setCompanyLocations([])
         setForm(emptyForm)
         setCompanyUserCreateForm(emptyCompanyUserCreateForm)
+        setCompanyLocationForm(emptyCompanyLocationForm)
         setIsEditing(false)
         return
       }
 
-      const [profileData, subscriptionData, companyUsersData] = await Promise.all([
+      const [profileData, subscriptionData, companyUsersData, companyLocationsData] = await Promise.all([
         getCompanyProfile(),
         getCompanySubscription(),
         getCompanyUsers(),
+        getAllCompanyLocations(),
       ])
 
       setProfile(profileData)
       setSubscription(subscriptionData)
       setCompanyUsers(companyUsersData)
+      setCompanyLocations(companyLocationsData)
       setForm(buildFormState(profileData))
       setIsEditing(false)
 
@@ -503,6 +560,27 @@ export default function ProfilePage() {
     value: CompanyUserCreateFormState[K]
   ) {
     setCompanyUserCreateForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function updateCompanyLocationForm<K extends keyof CompanyLocationFormState>(
+    key: K,
+    value: CompanyLocationFormState[K]
+  ) {
+    setCompanyLocationForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function toggleCompanyUserLocation(locationId: number, checked: boolean) {
+    setCompanyUserCreateForm((prev) => {
+      const value = String(locationId)
+      const nextLocationIds = checked
+        ? [...prev.locationIds, value]
+        : prev.locationIds.filter((id) => id !== value)
+
+      return {
+        ...prev,
+        locationIds: Array.from(new Set(nextLocationIds)),
+      }
+    })
   }
 
   function handleStartUserEdit(field: EditableUserField) {
@@ -579,6 +657,7 @@ export default function ProfilePage() {
         password: companyUserCreateForm.password,
         role: companyUserCreateForm.role,
         feeConsentAccepted: companyUserCreateForm.feeConsentAccepted,
+        locationIds: companyUserCreateForm.locationIds.map(Number),
       })
 
       setCompanyUsers((prev) => [...prev, createdUser].sort((a, b) => {
@@ -593,6 +672,48 @@ export default function ProfilePage() {
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.usersCreateError)
+    } finally {
+      setCompanyUsersSaving(false)
+    }
+  }
+
+  async function handleCreateCompanyLocation(event: React.FormEvent) {
+    event.preventDefault()
+
+    if (!companyLocationForm.name.trim()) {
+      setError(text.locationName)
+      return
+    }
+
+    try {
+      setCompanyUsersSaving(true)
+      setError("")
+      setSuccess("")
+
+      const createdLocation = await createCompanyLocation({
+        name: companyLocationForm.name.trim(),
+        businessType: companyLocationForm.businessType.trim() || null,
+        phone: companyLocationForm.phone.trim() || null,
+        email: companyLocationForm.email.trim() || null,
+        addressLine1: companyLocationForm.addressLine1.trim() || null,
+        city: companyLocationForm.city.trim() || null,
+        postalCode: companyLocationForm.postalCode.trim() || null,
+        country: companyLocationForm.country.trim() || null,
+        timeZoneId: companyLocationForm.timeZoneId.trim() || null,
+        address: composeStructuredAddress({
+          addressLine1: companyLocationForm.addressLine1,
+          city: companyLocationForm.city,
+          postalCode: companyLocationForm.postalCode,
+          country: companyLocationForm.country,
+        }),
+      })
+
+      setCompanyLocations((prev) => [...prev, createdLocation])
+      setCompanyLocationForm(emptyCompanyLocationForm)
+      setSuccess(text.locationsCreateSuccess)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.locationsCreateError)
     } finally {
       setCompanyUsersSaving(false)
     }
@@ -986,6 +1107,136 @@ export default function ProfilePage() {
           {isAdmin && (
             <>
           <div className="card">
+            <h3>{text.locationsSectionTitle}</h3>
+            <p>{text.locationsSectionSubtitle}</p>
+
+            <form onSubmit={handleCreateCompanyLocation} className="product-form-grid">
+              <h4 className="full-width" style={{ margin: 0 }}>{text.addLocationTitle}</h4>
+
+              <label>
+                {text.locationName}
+                <input
+                  type="text"
+                  value={companyLocationForm.name}
+                  onChange={(event) => updateCompanyLocationForm("name", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.businessType}
+                <input
+                  type="text"
+                  value={companyLocationForm.businessType}
+                  onChange={(event) => updateCompanyLocationForm("businessType", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.phone}
+                <input
+                  type="text"
+                  value={companyLocationForm.phone}
+                  onChange={(event) => updateCompanyLocationForm("phone", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.email}
+                <input
+                  type="email"
+                  value={companyLocationForm.email}
+                  onChange={(event) => updateCompanyLocationForm("email", event.target.value)}
+                />
+              </label>
+
+              <label className="full-width">
+                {text.address}
+                <input
+                  type="text"
+                  value={companyLocationForm.addressLine1}
+                  onChange={(event) => updateCompanyLocationForm("addressLine1", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.city}
+                <input
+                  type="text"
+                  value={companyLocationForm.city}
+                  onChange={(event) => updateCompanyLocationForm("city", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.postalCode}
+                <input
+                  type="text"
+                  value={companyLocationForm.postalCode}
+                  onChange={(event) => updateCompanyLocationForm("postalCode", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.country}
+                <select
+                  value={companyLocationForm.country}
+                  onChange={(event) => updateCompanyLocationForm("country", event.target.value)}
+                >
+                  <option value="">-</option>
+                  {countryOptions.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                {text.timeZone}
+                <select
+                  value={companyLocationForm.timeZoneId}
+                  onChange={(event) => updateCompanyLocationForm("timeZoneId", event.target.value)}
+                >
+                  {timeZoneOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="form-actions full-width">
+                <button type="submit" disabled={companyUsersSaving}>
+                  {text.addLocationButton}
+                </button>
+              </div>
+            </form>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.locationName}</th>
+                  <th>{text.businessType}</th>
+                  <th>{text.address}</th>
+                  <th>{text.timeZone}</th>
+                  <th>{text.status}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companyLocations.map((location) => (
+                  <tr key={location.id}>
+                    <td>{location.name}</td>
+                    <td>{location.businessType || "-"}</td>
+                    <td>{location.address || location.addressLine1 || "-"}</td>
+                    <td>{location.timeZoneId || "-"}</td>
+                    <td>{location.active ? text.active : text.inactive}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="card">
             <h3>{text.usersSectionTitle}</h3>
             <p>{text.usersSectionSubtitle}</p>
 
@@ -1044,6 +1295,25 @@ export default function ProfilePage() {
                 </select>
               </label>
 
+              {companyLocations.length > 0 && (
+                <div className="full-width">
+                  <strong>{text.assignedLocations}</strong>
+                  <p style={{ marginTop: 6 }}>{text.allLocationsAccess}: {companyUserCreateForm.locationIds.length === 0 ? text.yes : text.no}</p>
+                  <div className="company-user-location-list">
+                    {companyLocations.map((location) => (
+                      <label key={location.id} className="checkbox-field">
+                        <input
+                          type="checkbox"
+                          checked={companyUserCreateForm.locationIds.includes(String(location.id))}
+                          onChange={(event) => toggleCompanyUserLocation(location.id, event.target.checked)}
+                        />
+                        <span>{location.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <label className="checkbox-field full-width company-user-consent">
                 <input
                   type="checkbox"
@@ -1069,6 +1339,7 @@ export default function ProfilePage() {
                     <th>{text.lastName}</th>
                     <th>{text.email}</th>
                     <th>{text.role}</th>
+                    <th>{text.assignedLocations}</th>
                     <th>{text.status}</th>
                     <th>{text.consent}</th>
                     <th>{text.consentDate}</th>
@@ -1079,7 +1350,7 @@ export default function ProfilePage() {
                 <tbody>
                   {companyUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={9}>{text.noUsers}</td>
+                      <td colSpan={10}>{text.noUsers}</td>
                     </tr>
                   ) : (
                     companyUsers.map((companyUser) => (
@@ -1088,6 +1359,11 @@ export default function ProfilePage() {
                         <td>{companyUser.lastName}</td>
                         <td>{companyUser.email}</td>
                         <td>{getCompanyUserRoleLabel(companyUser.role)}</td>
+                        <td>
+                          {companyUser.locationRestricted
+                            ? companyUser.locations.map((location) => location.name).join(", ")
+                            : text.allLocationsAccess}
+                        </td>
                         <td>{companyUser.active ? text.active : text.inactive}</td>
                         <td>{companyUser.feeConsentAccepted ? text.yes : text.no}</td>
                         <td>{formatCompanyUserConsentDate(companyUser.feeConsentAcceptedAt)}</td>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import {
   getCostRubrics,
   type CompanyCostRubricResponse,
@@ -22,6 +23,8 @@ export default function InventoryReceiptPage() {
   const [saveLoading, setSaveLoading] = useState(false)
   const [rubricsLoading, setRubricsLoading] = useState(true)
   const [showScanner, setShowScanner] = useState(false)
+  const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
+  const [locationId, setLocationId] = useState("")
 
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
@@ -71,6 +74,7 @@ export default function InventoryReceiptPage() {
         product: "Produit",
         remainingQuantity: "Quantité restante",
         receivedAt: "Reçu le",
+        location: "Localisation",
       }
     : {
         loadRubricsError: "Failed to load cost rubrics",
@@ -108,6 +112,7 @@ export default function InventoryReceiptPage() {
         product: "Product",
         remainingQuantity: "Remaining quantity",
         receivedAt: "Received at",
+        location: "Location",
       }
 
   useEffect(() => {
@@ -132,7 +137,20 @@ export default function InventoryReceiptPage() {
     }
 
     loadRubrics()
+    void loadLocations()
   }, [])
+
+  async function loadLocations() {
+    try {
+      const data = await getAccessibleCompanyLocations()
+      const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
+      setLocations(activeLocations)
+      setLocationId(activeLocations[0]?.id ? String(activeLocations[0].id) : "")
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Failed to load locations")
+    }
+  }
 
   const totalCost = useMemo(() => {
     return rubrics.reduce((sum, rubric) => {
@@ -191,6 +209,7 @@ export default function InventoryReceiptPage() {
       setLastReceipt(null)
 
       const response = await createInventoryReceipt({
+        locationId: locationId ? Number(locationId) : null,
         productId: selectedProduct.id,
         receivedQuantity,
         notes,
@@ -300,6 +319,19 @@ export default function InventoryReceiptPage() {
           </p>
 
           <div className="inventory-form-grid">
+            {locations.length > 1 && (
+              <label>
+                {text.location}
+                <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <label>
               {text.receivedQuantity} {selectedProduct.unitCode ? `(${selectedProduct.unitCode})` : ""}
               <input
@@ -362,6 +394,7 @@ export default function InventoryReceiptPage() {
         <div className="card">
           <h3>{text.lastReceipt}</h3>
           <p><strong>{text.receiptId}:</strong> {lastReceipt.id}</p>
+          <p><strong>{text.location}:</strong> {lastReceipt.locationName || "-"}</p>
           <p><strong>{text.product}:</strong> {lastReceipt.productName}</p>
           <p>
             <strong>{text.receivedQuantity}:</strong> {formatNumber(lastReceipt.receivedQuantity)}
