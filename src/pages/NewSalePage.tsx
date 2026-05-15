@@ -10,6 +10,7 @@ import BarcodeScanner from "../components/sales/BarcodeScanner"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { useAuth } from "../auth/AuthContext"
 import { formatCurrency, formatNumber } from "../utils/format"
+import { getDefaultLocationId } from "../utils/locations"
 
 type CartItem = {
   productId: number
@@ -73,7 +74,7 @@ export default function NewSalePage() {
       const data = await getAccessibleCompanyLocations()
       const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
       setLocations(activeLocations)
-      setLocationId(activeLocations[0]?.id ? String(activeLocations[0].id) : "")
+      setLocationId(getDefaultLocationId(activeLocations))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "Failed to load locations")
@@ -241,7 +242,7 @@ export default function NewSalePage() {
       setPaymentReference("")
       setPaymentAuthorizationCode("")
       setPaymentConfirmedManually(false)
-      setLocationId(locations[0]?.id ? String(locations[0].id) : "")
+      setLocationId(getDefaultLocationId(locations))
       setLastSaleInvoice(saleDetail)
 
       window.scrollTo({ top: 0, behavior: "smooth" })
@@ -330,7 +331,7 @@ export default function NewSalePage() {
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
-      {locations.length > 1 && (
+      {locations.length > 0 && (
         <div className="card site-filter-card">
           <label className="sale-location-field">
             <span>{text.location ?? "Site"}</span>

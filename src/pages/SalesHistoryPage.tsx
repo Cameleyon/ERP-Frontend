@@ -16,6 +16,7 @@ import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../
 import StatusBadge from "../components/common/StatusBadge"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
+import { getDefaultLocationId } from "../utils/locations"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 
@@ -90,14 +91,14 @@ export default function SalesHistoryPage() {
     return ""
   }, [dateRange.endDate, dateRange.startDate, text.rangeError, text.rangeMissing, text.rangeOrderError])
 
-  async function loadSales() {
+  async function loadSales(selectedLocationId = locationId) {
     try {
       setLoading(true)
       setError("")
       const data = await getSales({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        locationId: locationId ? Number(locationId) : null,
+        locationId: selectedLocationId ? Number(selectedLocationId) : null,
       })
       setSales(Array.isArray(data) ? data : [])
     } catch (err) {
@@ -108,14 +109,14 @@ export default function SalesHistoryPage() {
     }
   }
 
-  async function loadCancellationApprovalFeature() {
+  async function loadCancellationApprovalFeature(selectedLocationId = locationId) {
     try {
       const subscription = await getCompanySubscription()
       const enabled = subscription.planCode?.toUpperCase() === "STANDARD"
       setCancellationApprovalEnabled(enabled)
 
       if (enabled && isAdmin) {
-        await loadCancellationRequests()
+        await loadCancellationRequests(selectedLocationId)
       } else {
         setCancellationRequests([])
       }
@@ -126,14 +127,14 @@ export default function SalesHistoryPage() {
     }
   }
 
-  async function loadCancellationRequests() {
+  async function loadCancellationRequests(selectedLocationId = locationId) {
     if (!isAdmin) {
       return
     }
 
     try {
       setCancellationRequestsLoading(true)
-      const data = await getPendingSaleCancellationRequests(locationId ? Number(locationId) : null)
+      const data = await getPendingSaleCancellationRequests(selectedLocationId ? Number(selectedLocationId) : null)
       setCancellationRequests(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error("loadCancellationRequests error:", err)
@@ -270,8 +271,9 @@ export default function SalesHistoryPage() {
 
   function handleResetFilter() {
     const defaultRange = createDefaultRange()
+    const defaultLocationId = getDefaultLocationId(locations)
     setDateRange(defaultRange)
-    setLocationId("")
+    setLocationId(defaultLocationId)
     setError("")
     setSuccess("")
     setSelectedSale(null)
@@ -281,11 +283,11 @@ export default function SalesHistoryPage() {
         setLoading(true)
         const data = await getSales({
           ...defaultRange,
-          locationId: null,
+          locationId: defaultLocationId ? Number(defaultLocationId) : null,
         })
         setSales(Array.isArray(data) ? data : [])
         if (isAdmin && cancellationApprovalEnabled) {
-          await loadCancellationRequests()
+          await loadCancellationRequests(defaultLocationId)
         }
       } catch (err) {
         console.error("reset loadSales error:", err)
@@ -298,15 +300,20 @@ export default function SalesHistoryPage() {
 
   useEffect(() => {
     void (async () => {
+      let defaultLocationId = ""
+
       try {
         const data = await getAccessibleCompanyLocations()
-        setLocations(Array.isArray(data) ? data.filter((location) => location.active) : [])
+        const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
+        defaultLocationId = getDefaultLocationId(activeLocations)
+        setLocations(activeLocations)
+        setLocationId(defaultLocationId)
       } catch (err) {
         console.error("loadLocations error:", err)
       }
 
-      await loadSales()
-      await loadCancellationApprovalFeature()
+      await loadSales(defaultLocationId)
+      await loadCancellationApprovalFeature(defaultLocationId)
     })()
   }, [])
 
@@ -390,11 +397,10 @@ export default function SalesHistoryPage() {
             />
           </label>
 
-          {locations.length > 1 && (
+          {locations.length > 0 && (
             <label>
               {text.location}
               <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-                <option value="">{text.allSites}</option>
                 {locations.map((location) => (
                   <option key={location.id} value={location.id}>
                     {location.name}

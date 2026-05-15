@@ -13,6 +13,7 @@ import BarcodeScanner from "../components/sales/BarcodeScanner"
 import { useI18n } from "../i18n/I18nContext"
 import { getLocalizedCostRubricName } from "../utils/costRubrics"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
+import { getDefaultLocationId } from "../utils/locations"
 
 type CostAmountMap = Record<number, string>
 
@@ -145,7 +146,7 @@ export default function InventoryReceiptPage() {
       const data = await getAccessibleCompanyLocations()
       const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
       setLocations(activeLocations)
-      setLocationId(activeLocations[0]?.id ? String(activeLocations[0].id) : "")
+      setLocationId(getDefaultLocationId(activeLocations))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : "Failed to load locations")
@@ -271,7 +272,7 @@ export default function InventoryReceiptPage() {
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
-      {locations.length > 1 && (
+      {locations.length > 0 && (
         <div className="card site-filter-card">
           <label>
             {text.location}
