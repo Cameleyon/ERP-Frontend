@@ -59,7 +59,7 @@ export default function InventoryPage() {
       setLookupLoading(true)
       setError("")
       setSuccess("")
-      const product = await getProductByCode(productCode.trim())
+      const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
       setSelectedProduct(product)
       setLastAdjustment(null)
     } catch (err) {

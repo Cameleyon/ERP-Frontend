@@ -25,6 +25,7 @@ export type ProductPriceTier = {
   unitPrice: number
 }
 
-export function getProductByCode(code: string) {
-  return apiGet<ProductLookupResponse>(`/products/barcode/${encodeURIComponent(code)}`)
+export function getProductByCode(code: string, locationId?: number | null) {
+  const query = locationId ? `?locationId=${locationId}` : ""
+  return apiGet<ProductLookupResponse>(`/products/barcode/${encodeURIComponent(code)}${query}`)
 }

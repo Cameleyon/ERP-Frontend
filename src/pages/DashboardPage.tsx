@@ -4,19 +4,16 @@ import {
   getLowStockProducts,
   getSalesTrend,
   getSummary,
-  getTopLocations,
   getTopProducts,
   type DashboardSummaryResponse,
   type LowStockProductResponse,
   type SalesTrendPointResponse,
-  type TopLocationResponse,
   type TopProductResponse,
 } from "../api/dashboardApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import SummaryCard from "../components/dashboard/SummaryCard"
 import SalesTrendChart from "../components/dashboard/SalesTrendChart"
 import TopProductsTable from "../components/dashboard/TopProductsTable"
-import TopLocationsTable from "../components/dashboard/TopLocationsTable"
 import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
 import { formatCurrency, formatNumber } from "../utils/format"
@@ -65,7 +62,6 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
   const [trend, setTrend] = useState<SalesTrendPointResponse[]>([])
   const [topProducts, setTopProducts] = useState<TopProductResponse[]>([])
-  const [topLocations, setTopLocations] = useState<TopLocationResponse[]>([])
   const [lowStock, setLowStock] = useState<LowStockProductResponse[]>([])
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
@@ -81,21 +77,19 @@ export default function DashboardPage() {
 
       const locationFilter = nextLocationId ? Number(nextLocationId) : null
 
-      const [locationsData, summaryData, trendData, topProductsData, topLocationsData, lowStockData] =
+      const [locationsData, summaryData, trendData, topProductsData, lowStockData] =
         await Promise.all([
           getAccessibleCompanyLocations(),
           getSummary(rangeStart, rangeEnd, locationFilter),
           getSalesTrend(rangeStart, rangeEnd, locationFilter),
           getTopProducts(rangeStart, rangeEnd, 5, locationFilter),
-          getTopLocations(rangeStart, rangeEnd, 5),
-          getLowStockProducts(),
+          getLowStockProducts(locationFilter),
         ])
 
       setLocations(locationsData)
       setSummary(summaryData)
       setTrend(trendData)
       setTopProducts(topProductsData)
-      setTopLocations(topLocationsData)
       setLowStock(lowStockData)
     } catch (err) {
       console.error(err)
@@ -215,7 +209,6 @@ export default function DashboardPage() {
 
       <div className="dashboard-bottom-grid">
         <TopProductsTable rows={topProducts} />
-        {locations.length > 1 && <TopLocationsTable rows={topLocations} />}
         <LowStockTable rows={lowStock} />
       </div>
     </div>

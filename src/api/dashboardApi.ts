@@ -26,13 +26,6 @@ export type TopProductResponse = {
   totalSalesAmount: number
 }
 
-export type TopLocationResponse = {
-  locationId: number
-  locationName: string
-  totalSales: number
-  transactionCount: number
-}
-
 export type LowStockProductResponse = {
   productId: number
   sku: string
@@ -64,14 +57,8 @@ export function getTopProducts(startDate: string, endDate: string, limit = 5, lo
   )
 }
 
-export function getTopLocations(startDate: string, endDate: string, limit = 5) {
-  return apiGet<TopLocationResponse[]>(
-    `/dashboard/top-locations?startDate=${startDate}&endDate=${endDate}&limit=${limit}`
-  )
-}
-
-export function getLowStockProducts() {
+export function getLowStockProducts(locationId?: number | null) {
   return apiGet<LowStockProductResponse[]>(
-    `/dashboard/low-stock`
+    `/dashboard/low-stock?${locationId ? `locationId=${locationId}` : ""}`
   )
 }

@@ -115,7 +115,7 @@ export default function NewSalePage() {
       setError("")
       setSuccess("")
 
-      const product = await getProductByCode(productCode.trim())
+      const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
       setSelectedProduct(product)
       setQuantity(1)
     } catch (err) {
