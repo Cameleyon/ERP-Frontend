@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
-import {
-  createInventoryAdjustment,
-  getRecentInventoryWithdrawals,
-  type InventoryAdjustmentResponse,
-} from "../api/inventoryApi"
+import { getRecentInventoryWithdrawals, type InventoryAdjustmentResponse } from "../api/inventoryApi"
 import {
   createInventoryReceipt,
+  createInventoryReceiptWithdrawal,
+  getActiveInventoryReceipts,
   getRecentInventoryReceipts,
+  updateInventoryReceiptQuantity,
   type InventoryReceiptResponse,
 } from "../api/inventoryReceiptApi"
 import { getCostRubrics, type CompanyCostRubricResponse } from "../api/costRubricApi"
@@ -20,7 +19,6 @@ import { getLocalizedCostRubricName } from "../utils/costRubrics"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
 
-type InventoryAction = "RECEIPT" | "WITHDRAWAL"
 type CostAmountMap = Record<number, string>
 type InventoryPageCopy = (typeof messages)[keyof typeof messages]["inventoryPage"]
 
@@ -29,7 +27,6 @@ export default function InventoryPage() {
   const { copy, language } = useI18n()
   const text = copy.inventoryPage
 
-  const [action, setAction] = useState<InventoryAction>("RECEIPT")
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -38,15 +35,18 @@ export default function InventoryPage() {
   const [locationId, setLocationId] = useState("")
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
   const [quantity, setQuantity] = useState(1)
-  const [reason, setReason] = useState("")
   const [notes, setNotes] = useState("")
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
   const [rubricsLoading, setRubricsLoading] = useState(true)
   const [costAmounts, setCostAmounts] = useState<CostAmountMap>({})
-  const [lastWithdrawal, setLastWithdrawal] = useState<InventoryAdjustmentResponse | null>(null)
-  const [lastReceipt, setLastReceipt] = useState<InventoryReceiptResponse | null>(null)
   const [recentWithdrawals, setRecentWithdrawals] = useState<InventoryAdjustmentResponse[]>([])
   const [recentReceipts, setRecentReceipts] = useState<InventoryReceiptResponse[]>([])
+  const [activeReceipts, setActiveReceipts] = useState<InventoryReceiptResponse[]>([])
+  const [withdrawalReceiptId, setWithdrawalReceiptId] = useState<number | null>(null)
+  const [withdrawalQuantity, setWithdrawalQuantity] = useState(1)
+  const [withdrawalReason, setWithdrawalReason] = useState("")
+  const [editingReceiptId, setEditingReceiptId] = useState<number | null>(null)
+  const [editedReceiptQuantity, setEditedReceiptQuantity] = useState(1)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -81,19 +81,21 @@ export default function InventoryPage() {
   }, [])
 
   async function loadHistory(nextLocationId: number) {
-    const [withdrawals, receipts] = await Promise.all([
+    const [withdrawals, receipts, openReceipts] = await Promise.all([
       getRecentInventoryWithdrawals(nextLocationId),
       getRecentInventoryReceipts(nextLocationId),
+      getActiveInventoryReceipts(nextLocationId),
     ])
     setRecentWithdrawals(withdrawals)
     setRecentReceipts(receipts)
+    setActiveReceipts(openReceipts)
   }
 
   async function handleLocationChange(nextLocationId: string) {
     setLocationId(nextLocationId)
     setSelectedProduct(null)
-    setLastWithdrawal(null)
-    setLastReceipt(null)
+    setWithdrawalReceiptId(null)
+    setEditingReceiptId(null)
 
     if (!nextLocationId) return
 
@@ -118,50 +120,12 @@ export default function InventoryPage() {
       setSuccess("")
       const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
       setSelectedProduct(product)
-      setLastWithdrawal(null)
-      setLastReceipt(null)
     } catch (err) {
       console.error(err)
       setSelectedProduct(null)
       setError(err instanceof Error ? err.message : text.lookupError)
     } finally {
       setLookupLoading(false)
-    }
-  }
-
-  async function handleWithdrawal() {
-    if (!selectedProduct) {
-      setError(text.noProduct)
-      return
-    }
-    if (quantity <= 0) {
-      setError(text.quantityPositive)
-      return
-    }
-
-    try {
-      setSaveLoading(true)
-      setError("")
-      setSuccess("")
-      const response = await createInventoryAdjustment({
-        locationId: locationId ? Number(locationId) : null,
-        productId: selectedProduct.id,
-        adjustmentType: "REMOVE",
-        quantity,
-        reason,
-      })
-
-      setLastWithdrawal(response)
-      setSuccess(text.withdrawalSuccess(response.productName))
-      setSelectedProduct({ ...selectedProduct, currentStock: response.stockAfter })
-      setQuantity(1)
-      setReason("")
-      if (locationId) await loadHistory(Number(locationId))
-    } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.withdrawalError)
-    } finally {
-      setSaveLoading(false)
     }
   }
 
@@ -194,7 +158,6 @@ export default function InventoryPage() {
         })),
       })
 
-      setLastReceipt(response)
       setSuccess(text.receiptSuccess(response.id))
       setSelectedProduct({ ...selectedProduct, currentStock: selectedProduct.currentStock + response.receivedQuantity })
       setQuantity(1)
@@ -209,6 +172,59 @@ export default function InventoryPage() {
     }
   }
 
+  async function handleReceiptWithdrawal(receipt: InventoryReceiptResponse) {
+    if (withdrawalQuantity <= 0) {
+      setError(text.quantityPositive)
+      return
+    }
+
+    try {
+      setSaveLoading(true)
+      setError("")
+      setSuccess("")
+      const response = await createInventoryReceiptWithdrawal(receipt.id, {
+        quantity: withdrawalQuantity,
+        reason: withdrawalReason,
+      })
+
+      setSuccess(text.withdrawalSuccess(response.productName))
+      setWithdrawalReceiptId(null)
+      setWithdrawalQuantity(1)
+      setWithdrawalReason("")
+      if (locationId) await loadHistory(Number(locationId))
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.withdrawalError)
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  async function handleReceiptQuantityUpdate(receipt: InventoryReceiptResponse) {
+    if (editedReceiptQuantity <= 0) {
+      setError(text.quantityPositive)
+      return
+    }
+
+    try {
+      setSaveLoading(true)
+      setError("")
+      setSuccess("")
+      const response = await updateInventoryReceiptQuantity(receipt.id, {
+        receivedQuantity: editedReceiptQuantity,
+      })
+
+      setSuccess(text.receiptUpdated(response.id))
+      setEditingReceiptId(null)
+      if (locationId) await loadHistory(Number(locationId))
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : text.receiptUpdateError)
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
   function handleDetectedBarcode(value: string) {
     setProductCode(value)
     setShowScanner(false)
@@ -218,6 +234,19 @@ export default function InventoryPage() {
 
   function updateCostAmount(rubricId: number, value: string) {
     setCostAmounts((prev) => ({ ...prev, [rubricId]: value }))
+  }
+
+  function startWithdrawal(receipt: InventoryReceiptResponse) {
+    setWithdrawalReceiptId(receipt.id)
+    setWithdrawalQuantity(1)
+    setWithdrawalReason("")
+    setEditingReceiptId(null)
+  }
+
+  function startEdit(receipt: InventoryReceiptResponse) {
+    setEditingReceiptId(receipt.id)
+    setEditedReceiptQuantity(receipt.receivedQuantity)
+    setWithdrawalReceiptId(null)
   }
 
   const totalCost = useMemo(
@@ -253,27 +282,7 @@ export default function InventoryPage() {
       {success && <div className="card success">{success}</div>}
 
       <div className="card">
-        <h3>{text.actionTitle}</h3>
-        <div className="sale-payment-choice-buttons">
-          <button
-            type="button"
-            className={`secondary-button ${action === "RECEIPT" ? "active-choice" : ""}`}
-            onClick={() => setAction("RECEIPT")}
-          >
-            {text.receiptAction}
-          </button>
-          <button
-            type="button"
-            className={`secondary-button ${action === "WITHDRAWAL" ? "active-choice" : ""}`}
-            onClick={() => setAction("WITHDRAWAL")}
-          >
-            {text.withdrawalAction}
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>{text.lookupTitle}</h3>
+        <h3>{text.inventoryForm}</h3>
         <div className="card nested-card scanner-toggle-card">
           <div className="scanner-header">
             <h3>{text.scannerTitle}</h3>
@@ -298,11 +307,10 @@ export default function InventoryPage() {
             {lookupLoading ? text.lookupLoading : text.lookup}
           </button>
         </div>
-      </div>
 
-      {selectedProduct && (
-        <div className="card">
-          <h3>{text.selectedProduct}</h3>
+        {selectedProduct && (
+          <>
+          <h3>{text.createReceipt}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>SKU:</strong> {selectedProduct.sku}</p>
           <p><strong>{text.unit}:</strong> {selectedProduct.unitName || selectedProduct.unitCode || "-"}</p>
@@ -311,7 +319,7 @@ export default function InventoryPage() {
 
           <div className="inventory-form-grid">
             <label>
-              {action === "RECEIPT" ? text.receivedQuantity : text.quantity}{unitLabel ? ` (${selectedProduct.unitCode})` : ""}
+              {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitCode})` : ""}
               <input
                 type="number"
                 min={0.0001}
@@ -321,73 +329,74 @@ export default function InventoryPage() {
               />
             </label>
 
-            {action === "WITHDRAWAL" ? (
-              <label className="full-width">
-                {text.reason}
-                <input
-                  type="text"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder={text.reasonPlaceholder}
-                />
-              </label>
-            ) : (
-              <label className="full-width">
-                {text.notes}
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder={text.notesPlaceholder}
-                />
-              </label>
-            )}
+            <label className="full-width">
+              {text.notes}
+              <input
+                type="text"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder={text.notesPlaceholder}
+              />
+            </label>
           </div>
 
-          {action === "RECEIPT" && (
-            <div className="card nested-card">
-              <h3>{text.costRubrics}</h3>
-              {rubricsLoading ? (
-                <p>{text.rubricsLoading}</p>
-              ) : rubrics.length === 0 ? (
-                <p>{text.rubricsEmpty}</p>
-              ) : (
-                <div className="inventory-form-grid">
-                  {rubrics.map((rubric) => (
-                    <label key={rubric.id}>
-                      {getLocalizedCostRubricName(rubric.code, rubric.name, language)}
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.0001"
-                        value={costAmounts[rubric.id] ?? "0"}
-                        onChange={(event) => updateCostAmount(rubric.id, event.target.value)}
-                      />
-                    </label>
-                  ))}
-                </div>
-              )}
-              <div className="receipt-summary">
-                <p><strong>{text.totalCost}:</strong> {formatCurrency(totalCost)}</p>
-                <p><strong>{text.unitCost}:</strong> {formatCurrency(unitCost)}</p>
+          <div className="card nested-card">
+            <h3>{text.costRubrics}</h3>
+            {rubricsLoading ? (
+              <p>{text.rubricsLoading}</p>
+            ) : rubrics.length === 0 ? (
+              <p>{text.rubricsEmpty}</p>
+            ) : (
+              <div className="inventory-form-grid">
+                {rubrics.map((rubric) => (
+                  <label key={rubric.id}>
+                    {getLocalizedCostRubricName(rubric.code, rubric.name, language)}
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.0001"
+                      value={costAmounts[rubric.id] ?? "0"}
+                      onChange={(event) => updateCostAmount(rubric.id, event.target.value)}
+                    />
+                  </label>
+                ))}
               </div>
+            )}
+            <div className="receipt-summary">
+              <p><strong>{text.totalCost}:</strong> {formatCurrency(totalCost)}</p>
+              <p><strong>{text.unitCost}:</strong> {formatCurrency(unitCost)}</p>
             </div>
-          )}
+          </div>
 
-          <button onClick={action === "RECEIPT" ? handleReceipt : handleWithdrawal} disabled={saveLoading}>
-            {saveLoading ? text.submitting : action === "RECEIPT" ? text.createReceipt : text.createWithdrawal}
+          <button onClick={handleReceipt} disabled={saveLoading}>
+            {saveLoading ? text.submitting : text.createReceipt}
           </button>
-        </div>
-      )}
+          </>
+        )}
 
-      {action === "WITHDRAWAL" && lastWithdrawal && <WithdrawalDetail row={lastWithdrawal} text={text} />}
-      {action === "RECEIPT" && lastReceipt && <ReceiptDetail row={lastReceipt} text={text} unitLabel={unitLabel} />}
+        <ActiveReceiptTable
+          rows={activeReceipts}
+          text={text}
+          withdrawalReceiptId={withdrawalReceiptId}
+          withdrawalQuantity={withdrawalQuantity}
+          withdrawalReason={withdrawalReason}
+          editingReceiptId={editingReceiptId}
+          editedReceiptQuantity={editedReceiptQuantity}
+          saveLoading={saveLoading}
+          onStartWithdrawal={startWithdrawal}
+          onCancelWithdrawal={() => setWithdrawalReceiptId(null)}
+          onWithdrawalQuantityChange={setWithdrawalQuantity}
+          onWithdrawalReasonChange={setWithdrawalReason}
+          onSubmitWithdrawal={handleReceiptWithdrawal}
+          onStartEdit={startEdit}
+          onCancelEdit={() => setEditingReceiptId(null)}
+          onEditedQuantityChange={setEditedReceiptQuantity}
+          onSubmitEdit={handleReceiptQuantityUpdate}
+        />
+      </div>
 
-      {action === "WITHDRAWAL" ? (
-        <WithdrawalHistory rows={recentWithdrawals} text={text} />
-      ) : (
-        <ReceiptHistory rows={recentReceipts} text={text} />
-      )}
+      <WithdrawalHistory rows={recentWithdrawals} text={text} />
+      <ReceiptHistory rows={recentReceipts} text={text} />
     </div>
   )
 }
@@ -400,42 +409,127 @@ function createInitialCostAmounts(rubrics: CompanyCostRubricResponse[]) {
   return initial
 }
 
-function WithdrawalDetail({
-  row,
+function ActiveReceiptTable({
+  rows,
   text,
+  withdrawalReceiptId,
+  withdrawalQuantity,
+  withdrawalReason,
+  editingReceiptId,
+  editedReceiptQuantity,
+  saveLoading,
+  onStartWithdrawal,
+  onCancelWithdrawal,
+  onWithdrawalQuantityChange,
+  onWithdrawalReasonChange,
+  onSubmitWithdrawal,
+  onStartEdit,
+  onCancelEdit,
+  onEditedQuantityChange,
+  onSubmitEdit,
 }: {
-  row: InventoryAdjustmentResponse
+  rows: InventoryReceiptResponse[]
   text: InventoryPageCopy
+  withdrawalReceiptId: number | null
+  withdrawalQuantity: number
+  withdrawalReason: string
+  editingReceiptId: number | null
+  editedReceiptQuantity: number
+  saveLoading: boolean
+  onStartWithdrawal: (receipt: InventoryReceiptResponse) => void
+  onCancelWithdrawal: () => void
+  onWithdrawalQuantityChange: (quantity: number) => void
+  onWithdrawalReasonChange: (reason: string) => void
+  onSubmitWithdrawal: (receipt: InventoryReceiptResponse) => Promise<void>
+  onStartEdit: (receipt: InventoryReceiptResponse) => void
+  onCancelEdit: () => void
+  onEditedQuantityChange: (quantity: number) => void
+  onSubmitEdit: (receipt: InventoryReceiptResponse) => Promise<void>
 }) {
   return (
-    <div className="card">
-      <h3>{text.lastWithdrawal}</h3>
-      <p><strong>{text.product}:</strong> {row.productName}</p>
-      <p><strong>{text.quantity}:</strong> {formatNumber(row.quantity)}</p>
-      <p><strong>{text.totalCost}:</strong> {formatCurrency(row.totalCostAmount ?? 0)}</p>
-      <p><strong>{text.reason}:</strong> {row.reason || "-"}</p>
-      <p><strong>{text.createdAt}:</strong> {formatDateTime(row.createdAt)}</p>
-    </div>
-  )
-}
-
-function ReceiptDetail({
-  row,
-  text,
-  unitLabel,
-}: {
-  row: InventoryReceiptResponse
-  text: InventoryPageCopy
-  unitLabel: string
-}) {
-  return (
-    <div className="card">
-      <h3>{text.lastReceipt}</h3>
-      <p><strong>{text.product}:</strong> {row.productName}</p>
-      <p><strong>{text.receivedQuantity}:</strong> {formatNumber(row.receivedQuantity)}{unitLabel}</p>
-      <p><strong>{text.remainingQuantity}:</strong> {formatNumber(row.remainingQuantity)}{unitLabel}</p>
-      <p><strong>{text.totalCost}:</strong> {formatCurrency(row.totalCostAmount)}</p>
-      <p><strong>{text.receivedAt}:</strong> {formatDateTime(row.receivedAt)}</p>
+    <div className="nested-card inventory-open-receipts">
+      <h3>{text.activeReceipts}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>{text.product}</th>
+            <th>{text.receivedQuantity}</th>
+            <th>{text.remainingQuantity}</th>
+            <th>{text.totalCost}</th>
+            <th>{text.createdAt}</th>
+            <th>{text.updatedAt}</th>
+            <th>{text.lastAction}</th>
+            <th>{text.actions}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr><td colSpan={8}>{text.noActiveReceipts}</td></tr>
+          ) : (
+            rows.map((row) => (
+              <tr key={row.id}>
+                <td>{row.productName}</td>
+                <td>{formatNumber(row.receivedQuantity)}</td>
+                <td>{formatNumber(row.remainingQuantity)}</td>
+                <td>{formatCurrency(row.totalCostAmount)}</td>
+                <td>{formatDateTime(row.createdAt)}</td>
+                <td>{row.updatedAt ? formatDateTime(row.updatedAt) : "-"}</td>
+                <td>{formatReceiptAction(row.lastAction, text)}</td>
+                <td>
+                  {withdrawalReceiptId === row.id ? (
+                    <div className="inventory-inline-actions">
+                      <input
+                        type="number"
+                        min={0.0001}
+                        step="0.0001"
+                        value={withdrawalQuantity}
+                        onChange={(event) => onWithdrawalQuantityChange(Number(event.target.value))}
+                      />
+                      <input
+                        type="text"
+                        value={withdrawalReason}
+                        onChange={(event) => onWithdrawalReasonChange(event.target.value)}
+                        placeholder={text.reasonPlaceholder}
+                      />
+                      <button type="button" onClick={() => void onSubmitWithdrawal(row)} disabled={saveLoading}>
+                        {text.confirm}
+                      </button>
+                      <button type="button" className="secondary-button" onClick={onCancelWithdrawal}>
+                        {text.cancel}
+                      </button>
+                    </div>
+                  ) : editingReceiptId === row.id ? (
+                    <div className="inventory-inline-actions">
+                      <input
+                        type="number"
+                        min={0.0001}
+                        step="0.0001"
+                        value={editedReceiptQuantity}
+                        onChange={(event) => onEditedQuantityChange(Number(event.target.value))}
+                      />
+                      <button type="button" onClick={() => void onSubmitEdit(row)} disabled={saveLoading}>
+                        {text.save}
+                      </button>
+                      <button type="button" className="secondary-button" onClick={onCancelEdit}>
+                        {text.cancel}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="table-actions">
+                      <button type="button" onClick={() => onStartWithdrawal(row)}>
+                        {text.withdraw}
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => onStartEdit(row)}>
+                        {text.edit}
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -497,12 +591,14 @@ function ReceiptHistory({
             <th>{text.receivedQuantity}</th>
             <th>{text.remainingQuantity}</th>
             <th>{text.totalCost}</th>
-            <th>{text.receivedAt}</th>
+            <th>{text.createdAt}</th>
+            <th>{text.updatedAt}</th>
+            <th>{text.lastAction}</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={5}>{text.noRecentReceipts}</td></tr>
+            <tr><td colSpan={7}>{text.noRecentReceipts}</td></tr>
           ) : (
             rows.map((row) => (
               <tr key={row.id}>
@@ -510,7 +606,9 @@ function ReceiptHistory({
                 <td>{formatNumber(row.receivedQuantity)}</td>
                 <td>{formatNumber(row.remainingQuantity)}</td>
                 <td>{formatCurrency(row.totalCostAmount)}</td>
-                <td>{formatDateTime(row.receivedAt)}</td>
+                <td>{formatDateTime(row.createdAt)}</td>
+                <td>{row.updatedAt ? formatDateTime(row.updatedAt) : "-"}</td>
+                <td>{formatReceiptAction(row.lastAction, text)}</td>
               </tr>
             ))
           )}
@@ -518,4 +616,16 @@ function ReceiptHistory({
       </table>
     </div>
   )
+}
+
+function formatReceiptAction(action: InventoryReceiptResponse["lastAction"], text: InventoryPageCopy) {
+  switch (action) {
+    case "WITHDRAWAL":
+      return text.withdrawalActionLabel
+    case "MODIFICATION":
+      return text.modificationActionLabel
+    case "CREATION":
+    default:
+      return text.creationActionLabel
+  }
 }

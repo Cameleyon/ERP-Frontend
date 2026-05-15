@@ -246,6 +246,21 @@ td {
   flex-wrap: wrap;
 }
 
+.inventory-inline-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.inventory-inline-actions input {
+  min-width: 120px;
+}
+
+.inventory-open-receipts {
+  margin-top: 20px;
+}
+
 .filters,
 .sale-form-row,
 .dashboard-filters {

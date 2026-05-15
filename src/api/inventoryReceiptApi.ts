@@ -34,7 +34,19 @@ export type InventoryReceiptResponse = {
   unitCost: number
   notes: string
   receivedAt: string
+  createdAt: string
+  updatedAt: string | null
+  lastAction: "CREATION" | "WITHDRAWAL" | "MODIFICATION"
   costLines: InventoryReceiptCostLineResponse[]
+}
+
+export type CreateInventoryReceiptWithdrawalRequest = {
+  quantity: number
+  reason: string
+}
+
+export type UpdateInventoryReceiptQuantityRequest = {
+  receivedQuantity: number
 }
 
 export async function createInventoryReceipt(
@@ -66,6 +78,69 @@ export async function getRecentInventoryReceipts(locationId: number): Promise<In
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function getActiveInventoryReceipts(locationId: number): Promise<InventoryReceiptResponse[]> {
+  const token = localStorage.getItem(TOKEN_KEY)
+
+  const response = await fetch(`${API_BASE_URL}/inventory/receipts/active?locationId=${locationId}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function createInventoryReceiptWithdrawal(
+  receiptId: number,
+  payload: CreateInventoryReceiptWithdrawalRequest,
+): Promise<import("./inventoryApi").InventoryAdjustmentResponse> {
+  const token = localStorage.getItem(TOKEN_KEY)
+
+  const response = await fetch(`${API_BASE_URL}/inventory/receipts/${receiptId}/withdrawals`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function updateInventoryReceiptQuantity(
+  receiptId: number,
+  payload: UpdateInventoryReceiptQuantityRequest,
+): Promise<InventoryReceiptResponse> {
+  const token = localStorage.getItem(TOKEN_KEY)
+
+  const response = await fetch(`${API_BASE_URL}/inventory/receipts/${receiptId}/quantity`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
   })
 
   if (!response.ok) {
