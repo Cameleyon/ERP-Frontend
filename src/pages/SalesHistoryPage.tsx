@@ -444,7 +444,7 @@ export default function SalesHistoryPage() {
                     <td>{sale.customerName || "-"}</td>
                     <td>{sale.paymentMethod || "-"}</td>
                     <td>{formatCurrency(sale.totalAmount)}</td>
-                    <td>
+                    <td className="sales-history-actions-cell">
                       <StatusBadge value={sale.status} />
                     </td>
                     <td>

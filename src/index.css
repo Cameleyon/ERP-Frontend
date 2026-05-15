@@ -193,14 +193,23 @@ td {
 
 .sales-history-actions {
   align-items: center;
+  display: inline-flex;
   flex-wrap: nowrap;
+  gap: 6px;
+  min-width: max-content;
 }
 
 .compact-action-button {
   border-radius: 10px;
-  font-size: 0.9rem;
+  flex: 0 0 auto;
+  font-size: 0.78rem;
   line-height: 1.1;
-  padding: 7px 11px;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.sales-history-actions-cell {
+  width: 1%;
 }
 
 .filters,
