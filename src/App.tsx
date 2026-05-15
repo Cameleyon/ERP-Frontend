@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { AuthProvider, useAuth } from "./auth/AuthContext"
+import { COMPANY_TERMS_REQUIRED_EVENT } from "./api/client"
 import { acceptCompanyTerms } from "./api/companyTermsApi"
 import AppLayout from "./components/layout/AppLayout"
 import { LanguageProvider, useI18n } from "./i18n/I18nContext"
@@ -31,6 +32,8 @@ function AppContent() {
   const [publicPage, setPublicPage] = useState<PublicPage>("landing")
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [termsError, setTermsError] = useState("")
+  const [termsRequired, setTermsRequired] = useState(false)
+  const [showTermsDetails, setShowTermsDetails] = useState(false)
 
   useEffect(() => {
     const isPlatformOwner = user?.role === "SUPER_ADMIN"
@@ -39,6 +42,31 @@ function AppContent() {
 
     document.documentElement.style.setProperty("--primary-color", primaryColor)
     document.documentElement.style.setProperty("--sidebar-color", sidebarColor)
+  }, [user])
+
+  useEffect(() => {
+    function handleTermsRequired() {
+      setTermsRequired(true)
+      setTermsError("")
+    }
+
+    window.addEventListener(COMPANY_TERMS_REQUIRED_EVENT, handleTermsRequired)
+
+    return () => {
+      window.removeEventListener(COMPANY_TERMS_REQUIRED_EVENT, handleTermsRequired)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user?.companyId) {
+      setTermsRequired(false)
+      setShowTermsDetails(false)
+      return
+    }
+
+    if (user.termsAccepted === false) {
+      setTermsRequired(true)
+    }
   }, [user])
 
   if (isLoading) {
@@ -85,6 +113,8 @@ function AppContent() {
       setTermsError("")
       await acceptCompanyTerms()
       await refreshUser()
+      setTermsRequired(false)
+      setShowTermsDetails(false)
     } catch (err) {
       console.error(err)
       setTermsError(err instanceof Error ? err.message : termsText.acceptError)
@@ -93,18 +123,19 @@ function AppContent() {
     }
   }
 
-  if (user?.companyId && user.termsAccepted === false) {
+  if (user?.companyId && (termsRequired || user.termsAccepted !== true)) {
     return (
       <div className="public-page">
         <div className="card terms-required-card">
           <h1>{isAdmin ? termsText.adminTitle : termsText.blockedTitle}</h1>
           <p>{isAdmin ? termsText.adminIntro : termsText.blockedIntro}</p>
 
-          <div className="terms-dialog-body terms-required-copy">
-            {termsText.paragraphs.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
+          <p className="terms-required-copy">
+            {termsText.readPrompt}{" "}
+            <button type="button" className="link-button" onClick={() => setShowTermsDetails(true)}>
+              {termsText.termsLink}
+            </button>
+          </p>
 
           {termsError && <div className="card error">{termsError}</div>}
 
@@ -119,6 +150,24 @@ function AppContent() {
             </button>
           </div>
         </div>
+
+        {showTermsDetails && (
+          <div className="terms-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="card terms-dialog">
+              <h2>{termsText.termsTitle}</h2>
+              <div className="terms-dialog-body">
+                {termsText.paragraphs.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))}
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setShowTermsDetails(false)}>
+                  {termsText.closeTerms}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -159,6 +208,10 @@ function getTermsGateText(language: "fr" | "en" | "es") {
       acceptButton: "I accept and continue",
       accepting: "Accepting...",
       acceptError: "Failed to accept the terms of use",
+      readPrompt: "Please review the terms of use before continuing.",
+      termsLink: "View terms of use",
+      termsTitle: "CAMELEYON ERP Terms of Use",
+      closeTerms: "Close",
       paragraphs: [
         "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
         "The company confirms that its information is accurate and that the main administrator is responsible for users, access, and company data.",
@@ -177,6 +230,10 @@ function getTermsGateText(language: "fr" | "en" | "es") {
       acceptButton: "Acepto y continuar",
       accepting: "Aceptando...",
       acceptError: "No se pudieron aceptar los terminos de uso",
+      readPrompt: "Revise los terminos de uso antes de continuar.",
+      termsLink: "Ver terminos de uso",
+      termsTitle: "Terminos de uso de CAMELEYON ERP",
+      closeTerms: "Cerrar",
       paragraphs: [
         "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
         "La empresa confirma que su informacion es correcta y que el administrador principal es responsable de usuarios, accesos y datos de la empresa.",
@@ -194,6 +251,10 @@ function getTermsGateText(language: "fr" | "en" | "es") {
     acceptButton: "J'accepte et je continue",
     accepting: "Acceptation...",
     acceptError: "Impossible d'accepter les conditions d'utilisation",
+    readPrompt: "Veuillez consulter les conditions d'utilisation avant de continuer.",
+    termsLink: "Voir les conditions d'utilisation",
+    termsTitle: "Conditions d'utilisation CAMELEYON ERP",
+    closeTerms: "Fermer",
     paragraphs: [
       "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise a gerer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses operations.",
       "L'entreprise confirme que ses informations sont exactes et que l'administrateur principal est responsable des utilisateurs, des acces et des donnees de l'entreprise.",

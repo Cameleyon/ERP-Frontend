@@ -1,6 +1,9 @@
 import { API_BASE_URL } from "./config"
 
 const TOKEN_KEY = "camelyon_token"
+export const COMPANY_TERMS_REQUIRED_MESSAGE =
+  "Company terms of use must be accepted by an admin before using the application"
+export const COMPANY_TERMS_REQUIRED_EVENT = "cameleyon:company-terms-required"
 
 function getAuthHeaders(includeJsonContentType = false) {
   const token = localStorage.getItem(TOKEN_KEY)
@@ -25,6 +28,9 @@ async function parseResponseBody<T>(response: Response): Promise<T> {
       try {
         const parsed = JSON.parse(text) as { message?: string }
         if (parsed.message) {
+          if (parsed.message === COMPANY_TERMS_REQUIRED_MESSAGE && typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent(COMPANY_TERMS_REQUIRED_EVENT))
+          }
           throw new Error(parsed.message)
         }
       } catch (error) {

@@ -509,6 +509,23 @@ td {
   max-height: min(82vh, 720px);
 }
 
+.terms-modal-backdrop {
+  align-items: center;
+  background: rgba(4, 73, 117, 0.18);
+  backdrop-filter: blur(4px);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 50;
+}
+
+.terms-modal-backdrop .terms-dialog {
+  margin: 0;
+  width: min(760px, 100%);
+}
+
 .terms-dialog-body {
   display: grid;
   gap: 12px;
