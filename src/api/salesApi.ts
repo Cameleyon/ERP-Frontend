@@ -141,6 +141,7 @@ export type SendSaleInvoiceEmailResponse = {
 export type SalesFilters = {
   startDate?: string
   endDate?: string
+  locationId?: number | null
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -169,6 +170,9 @@ export async function getSales(filters?: SalesFilters): Promise<SaleResponse[]> 
   }
   if (filters?.endDate) {
     params.set("endDate", filters.endDate)
+  }
+  if (filters?.locationId) {
+    params.set("locationId", String(filters.locationId))
   }
 
   const queryString = params.toString()
@@ -227,8 +231,17 @@ export async function requestSaleCancellationApproval(
   return handleResponse<SaleCancellationRequestResponse>(response)
 }
 
-export async function getPendingSaleCancellationRequests(): Promise<SaleCancellationRequestResponse[]> {
-  const response = await fetch(`${API_BASE_URL}/sales/cancellation-requests`, {
+export async function getPendingSaleCancellationRequests(locationId?: number | null): Promise<SaleCancellationRequestResponse[]> {
+  const params = new URLSearchParams()
+  if (locationId) {
+    params.set("locationId", String(locationId))
+  }
+  const queryString = params.toString()
+  const url = queryString
+    ? `${API_BASE_URL}/sales/cancellation-requests?${queryString}`
+    : `${API_BASE_URL}/sales/cancellation-requests`
+
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       ...(localStorage.getItem(TOKEN_KEY)

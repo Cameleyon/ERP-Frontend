@@ -12,6 +12,7 @@ import {
   type SaleResponse,
 } from "../api/salesApi"
 import { getCompanySubscription } from "../api/companySubscriptionApi"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import StatusBadge from "../components/common/StatusBadge"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
@@ -57,6 +58,8 @@ export default function SalesHistoryPage() {
   const [success, setSuccess] = useState("")
   const [cancellationRequests, setCancellationRequests] = useState<SaleCancellationRequestResponse[]>([])
   const [cancellationApprovalEnabled, setCancellationApprovalEnabled] = useState(false)
+  const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
+  const [locationId, setLocationId] = useState("")
   const [dateRange, setDateRange] = useState(createDefaultRange)
   const isAdmin = user?.role === "ADMIN"
   const isCashier = user?.role === "CASHIER"
@@ -94,6 +97,7 @@ export default function SalesHistoryPage() {
       const data = await getSales({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        locationId: locationId ? Number(locationId) : null,
       })
       setSales(Array.isArray(data) ? data : [])
     } catch (err) {
@@ -129,7 +133,7 @@ export default function SalesHistoryPage() {
 
     try {
       setCancellationRequestsLoading(true)
-      const data = await getPendingSaleCancellationRequests()
+      const data = await getPendingSaleCancellationRequests(locationId ? Number(locationId) : null)
       setCancellationRequests(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error("loadCancellationRequests error:", err)
@@ -256,12 +260,18 @@ export default function SalesHistoryPage() {
       return
     }
 
-    void loadSales()
+    void (async () => {
+      await loadSales()
+      if (isAdmin && cancellationApprovalEnabled) {
+        await loadCancellationRequests()
+      }
+    })()
   }
 
   function handleResetFilter() {
     const defaultRange = createDefaultRange()
     setDateRange(defaultRange)
+    setLocationId("")
     setError("")
     setSuccess("")
     setSelectedSale(null)
@@ -269,8 +279,14 @@ export default function SalesHistoryPage() {
     void (async () => {
       try {
         setLoading(true)
-        const data = await getSales(defaultRange)
+        const data = await getSales({
+          ...defaultRange,
+          locationId: null,
+        })
         setSales(Array.isArray(data) ? data : [])
+        if (isAdmin && cancellationApprovalEnabled) {
+          await loadCancellationRequests()
+        }
       } catch (err) {
         console.error("reset loadSales error:", err)
         setError(err instanceof Error ? err.message : text.loadSalesError)
@@ -281,8 +297,17 @@ export default function SalesHistoryPage() {
   }
 
   useEffect(() => {
-    void loadSales()
-    void loadCancellationApprovalFeature()
+    void (async () => {
+      try {
+        const data = await getAccessibleCompanyLocations()
+        setLocations(Array.isArray(data) ? data.filter((location) => location.active) : [])
+      } catch (err) {
+        console.error("loadLocations error:", err)
+      }
+
+      await loadSales()
+      await loadCancellationApprovalFeature()
+    })()
   }, [])
 
   return (
@@ -364,6 +389,20 @@ export default function SalesHistoryPage() {
               onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
             />
           </label>
+
+          {locations.length > 1 && (
+            <label>
+              {text.location}
+              <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                <option value="">{text.allSites}</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="product-filter-actions">
             <button type="submit" disabled={loading}>

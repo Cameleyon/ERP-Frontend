@@ -55,9 +55,9 @@ export default function DashboardFilters({
 
       {locations.length > 0 && onLocationChange && (
         <label>
-          <span>{text.location ?? "Branch"}</span>
+          <span>{text.location ?? "Site"}</span>
           <select value={locationId} onChange={(e) => onLocationChange(e.target.value)}>
-            <option value="">{text.allLocations ?? "All branches"}</option>
+            <option value="">{text.allLocations ?? "All sites"}</option>
             {locations.map((location) => (
               <option key={location.id} value={location.id}>
                 {location.name}

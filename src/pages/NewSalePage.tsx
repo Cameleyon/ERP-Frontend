@@ -330,6 +330,21 @@ export default function NewSalePage() {
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
+      {locations.length > 1 && (
+        <div className="card site-filter-card">
+          <label className="sale-location-field">
+            <span>{text.location ?? "Site"}</span>
+            <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       <BarcodeScanner onDetected={handleDetectedBarcode} />
 
       <BarcodeLookup
@@ -387,19 +402,6 @@ export default function NewSalePage() {
 
       <div className="card">
         <h3>{text.customer}</h3>
-
-        {locations.length > 1 && (
-          <label className="sale-location-field">
-            <span>{text.location ?? "Branch"}</span>
-            <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
 
         <div className="sale-customer-payment-row">
           <div className="sale-customer-search-block">

@@ -74,7 +74,7 @@ export default function InventoryReceiptPage() {
         product: "Produit",
         remainingQuantity: "Quantité restante",
         receivedAt: "Reçu le",
-        location: "Succursale",
+        location: "Site",
       }
     : {
         loadRubricsError: "Failed to load cost rubrics",
@@ -112,7 +112,7 @@ export default function InventoryReceiptPage() {
         product: "Product",
         remainingQuantity: "Remaining quantity",
         receivedAt: "Received at",
-        location: "Branch",
+        location: "Site",
       }
 
   useEffect(() => {
@@ -271,6 +271,21 @@ export default function InventoryReceiptPage() {
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
+      {locations.length > 1 && (
+        <div className="card site-filter-card">
+          <label>
+            {text.location}
+            <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       <div className="card">
         <h3>{text.lookupTitle}</h3>
         <div className="card nested-card scanner-toggle-card">
@@ -319,19 +334,6 @@ export default function InventoryReceiptPage() {
           </p>
 
           <div className="inventory-form-grid">
-            {locations.length > 1 && (
-              <label>
-                {text.location}
-                <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-                  {locations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
             <label>
               {text.receivedQuantity} {selectedProduct.unitCode ? `(${selectedProduct.unitCode})` : ""}
               <input
