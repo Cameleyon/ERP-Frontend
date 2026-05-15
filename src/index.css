@@ -191,6 +191,18 @@ td {
   padding: 8px 12px;
 }
 
+.sales-history-actions {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.compact-action-button {
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.1;
+  padding: 7px 11px;
+}
+
 .filters,
 .sale-form-row,
 .product-filters,

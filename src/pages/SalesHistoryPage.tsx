@@ -448,14 +448,14 @@ export default function SalesHistoryPage() {
                       <StatusBadge value={sale.status} />
                     </td>
                     <td>
-                      <div className="table-actions">
-                        <button onClick={() => handleViewDetails(sale.id)}>
+                      <div className="table-actions sales-history-actions">
+                        <button className="compact-action-button" onClick={() => handleViewDetails(sale.id)}>
                           {text.viewDetails}
                         </button>
 
                         {isAdmin && sale.status === "COMPLETED" && (
                           <button
-                            className="danger-button"
+                            className="danger-button compact-action-button"
                             onClick={() => handleCancelSale(sale.id)}
                           >
                             {text.cancel}
