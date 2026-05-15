@@ -43,6 +43,7 @@ export default function NewSalePage() {
   const [saleLoading, setSaleLoading] = useState(false)
   const [customersLoading, setCustomersLoading] = useState(true)
   const [locationsLoading, setLocationsLoading] = useState(true)
+  const [showScanner, setShowScanner] = useState(false)
 
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -264,6 +265,7 @@ export default function NewSalePage() {
 
   function handleDetectedBarcode(value: string) {
     setProductCode(value)
+    setShowScanner(false)
     setError("")
     setSuccess("")
   }
@@ -345,7 +347,24 @@ export default function NewSalePage() {
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
-      <BarcodeScanner onDetected={handleDetectedBarcode} />
+      <div className="card nested-card scanner-toggle-card">
+        <div className="scanner-header">
+          <h3>{text.scannerTitle}</h3>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => setShowScanner((prev) => !prev)}
+          >
+            {showScanner ? text.closeScanner : text.openScanner}
+          </button>
+        </div>
+
+        {showScanner && (
+          <div className="scanner-container">
+            <BarcodeScanner onDetected={handleDetectedBarcode} />
+          </div>
+        )}
+      </div>
 
       <BarcodeLookup
         productCode={productCode}
