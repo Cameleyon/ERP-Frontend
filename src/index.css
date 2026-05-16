@@ -294,7 +294,7 @@ td {
   align-items: center;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(4, 73, 117, 0.16);
-  color: var(--text);
+  color: var(--text-color);
   display: inline-flex;
   height: 34px;
   justify-content: center;
@@ -303,8 +303,8 @@ td {
 }
 
 .table-page-button.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--primary-color);
+  border-color: var(--primary-color);
   color: #fff;
 }
 
