@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
-import { getRecentInventoryWithdrawals, type InventoryAdjustmentResponse } from "../api/inventoryApi"
 import {
   createInventoryReceipt,
   createInventoryReceiptWithdrawal,
   getActiveInventoryReceipts,
-  getRecentInventoryReceipts,
   updateInventoryReceiptQuantity,
   type InventoryReceiptResponse,
 } from "../api/inventoryReceiptApi"
@@ -39,8 +37,6 @@ export default function InventoryPage() {
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
   const [rubricsLoading, setRubricsLoading] = useState(true)
   const [costAmounts, setCostAmounts] = useState<CostAmountMap>({})
-  const [recentWithdrawals, setRecentWithdrawals] = useState<InventoryAdjustmentResponse[]>([])
-  const [recentReceipts, setRecentReceipts] = useState<InventoryReceiptResponse[]>([])
   const [activeReceipts, setActiveReceipts] = useState<InventoryReceiptResponse[]>([])
   const [withdrawalReceiptId, setWithdrawalReceiptId] = useState<number | null>(null)
   const [withdrawalQuantity, setWithdrawalQuantity] = useState(1)
@@ -67,7 +63,7 @@ export default function InventoryPage() {
         setCostAmounts(createInitialCostAmounts(activeRubrics))
 
         if (defaultLocationId) {
-          await loadHistory(Number(defaultLocationId))
+          await loadOpenReceipts(Number(defaultLocationId))
         }
       } catch (err) {
         console.error(err)
@@ -80,14 +76,8 @@ export default function InventoryPage() {
     void loadInitialData()
   }, [])
 
-  async function loadHistory(nextLocationId: number) {
-    const [withdrawals, receipts, openReceipts] = await Promise.all([
-      getRecentInventoryWithdrawals(nextLocationId),
-      getRecentInventoryReceipts(nextLocationId),
-      getActiveInventoryReceipts(nextLocationId),
-    ])
-    setRecentWithdrawals(withdrawals)
-    setRecentReceipts(receipts)
+  async function loadOpenReceipts(nextLocationId: number) {
+    const openReceipts = await getActiveInventoryReceipts(nextLocationId)
     setActiveReceipts(openReceipts)
   }
 
@@ -101,7 +91,7 @@ export default function InventoryPage() {
 
     try {
       setError("")
-      await loadHistory(Number(nextLocationId))
+      await loadOpenReceipts(Number(nextLocationId))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.historyLoadError)
@@ -163,7 +153,7 @@ export default function InventoryPage() {
       setQuantity(1)
       setNotes("")
       setCostAmounts(createInitialCostAmounts(rubrics))
-      if (locationId) await loadHistory(Number(locationId))
+      if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.receiptError)
@@ -191,7 +181,7 @@ export default function InventoryPage() {
       setWithdrawalReceiptId(null)
       setWithdrawalQuantity(1)
       setWithdrawalReason("")
-      if (locationId) await loadHistory(Number(locationId))
+      if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.withdrawalError)
@@ -216,7 +206,7 @@ export default function InventoryPage() {
 
       setSuccess(text.receiptUpdated(response.id))
       setEditingReceiptId(null)
-      if (locationId) await loadHistory(Number(locationId))
+      if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.receiptUpdateError)
@@ -395,8 +385,6 @@ export default function InventoryPage() {
         />
       </div>
 
-      <WithdrawalHistory rows={recentWithdrawals} text={text} />
-      <ReceiptHistory rows={recentReceipts} text={text} />
     </div>
   )
 }
@@ -459,7 +447,7 @@ function ActiveReceiptTable({
             <th>{text.createdAt}</th>
             <th>{text.updatedAt}</th>
             <th>{text.lastAction}</th>
-            <th>{text.actions}</th>
+            <th aria-label={text.actions} />
           </tr>
         </thead>
         <tbody>
@@ -529,90 +517,6 @@ function ActiveReceiptTable({
                     </div>
                   )}
                 </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function WithdrawalHistory({
-  rows,
-  text,
-}: {
-  rows: InventoryAdjustmentResponse[]
-  text: InventoryPageCopy
-}) {
-  return (
-    <div className="card">
-      <h3>{text.recentWithdrawals}</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>{text.product}</th>
-            <th>{text.quantity}</th>
-            <th>{text.totalCost}</th>
-            <th>{text.reason}</th>
-            <th>{text.createdAt}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr><td colSpan={5}>{text.noRecentWithdrawals}</td></tr>
-          ) : (
-            rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.productName}</td>
-                <td>{formatNumber(row.quantity)}</td>
-                <td>{formatCurrency(row.totalCostAmount ?? 0)}</td>
-                <td>{row.reason || "-"}</td>
-                <td>{formatDateTime(row.createdAt)}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function ReceiptHistory({
-  rows,
-  text,
-}: {
-  rows: InventoryReceiptResponse[]
-  text: InventoryPageCopy
-}) {
-  return (
-    <div className="card">
-      <h3>{text.recentReceipts}</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>{text.product}</th>
-            <th>{text.receivedQuantity}</th>
-            <th>{text.remainingQuantity}</th>
-            <th>{text.totalCost}</th>
-            <th>{text.createdAt}</th>
-            <th>{text.updatedAt}</th>
-            <th>{text.lastAction}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr><td colSpan={7}>{text.noRecentReceipts}</td></tr>
-          ) : (
-            rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.productName}</td>
-                <td>{formatNumber(row.receivedQuantity)}</td>
-                <td>{formatNumber(row.remainingQuantity)}</td>
-                <td>{formatCurrency(row.totalCostAmount)}</td>
-                <td>{formatDateTime(row.createdAt)}</td>
-                <td>{row.updatedAt ? formatDateTime(row.updatedAt) : "-"}</td>
-                <td>{formatReceiptAction(row.lastAction, text)}</td>
               </tr>
             ))
           )}
