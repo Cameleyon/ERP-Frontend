@@ -2,7 +2,6 @@ export type Page =
   | "dashboard"
   | "customers"
   | "products"
-  | "units"
   | "cost-rubrics"
   | "new-sale"
   | "sales-history"

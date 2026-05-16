@@ -6,7 +6,6 @@ import {
   type CreateProductRequest,
   type ProductResponse,
 } from "../api/productManagementApi"
-import { getUnits, type UnitResponse } from "../api/unitApi"
 import { useI18n } from "../i18n/I18nContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
@@ -21,7 +20,7 @@ type ProductFormState = {
   unitPrice: string
   minimumStock: string
   active: boolean
-  unitId: string
+  unitName: string
   priceTiers: PriceTierFormState[]
 }
 
@@ -39,7 +38,7 @@ const emptyForm: ProductFormState = {
   unitPrice: "",
   minimumStock: "0",
   active: true,
-  unitId: "",
+  unitName: "",
   priceTiers: [],
 }
 
@@ -81,10 +80,8 @@ export default function ProductsPage() {
   const { language, copy } = useI18n()
   const text = copy.productsPage
   const [products, setProducts] = useState<ProductResponse[]>([])
-  const [units, setUnits] = useState<UnitResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [unitsLoading, setUnitsLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
@@ -109,7 +106,6 @@ export default function ProductsPage() {
 
   useEffect(() => {
     void loadProducts()
-    void loadUnits()
   }, [])
 
   useEffect(() => {
@@ -146,19 +142,6 @@ export default function ProductsPage() {
     }
   }
 
-  async function loadUnits() {
-    try {
-      setUnitsLoading(true)
-      const data = await getUnits()
-      setUnits(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.loadUnitsError)
-    } finally {
-      setUnitsLoading(false)
-    }
-  }
-
   const categories = useMemo(() => {
     const values = products
       .map((product) => product.category?.trim())
@@ -188,16 +171,13 @@ export default function ProductsPage() {
     })
   }, [products, searchTerm, selectedCategory])
 
-  const unitLookup = useMemo(() => {
-    const lookup = new Map<string, UnitResponse>()
+  const unitSuggestions = useMemo(() => {
+    const values = products
+      .map((product) => product.unitName || product.unitCode)
+      .filter((value): value is string => !!value?.trim())
 
-    units.forEach((unit) => {
-      lookup.set(unit.code.trim().toLowerCase(), unit)
-      lookup.set(unit.name.trim().toLowerCase(), unit)
-    })
-
-    return lookup
-  }, [units])
+    return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right))
+  }, [products])
 
   const csvRequiredHeaders = useMemo(
     () => [...PRODUCT_CSV_REQUIRED_HEADERS],
@@ -286,7 +266,6 @@ export default function ProductsPage() {
       .filter((row) => Object.values(row.rawValues).some((value) => value !== ""))
       .map(({ rowNumber, rawValues }) => {
         const errors: string[] = []
-        const matchedUnit = rawValues.unit ? unitLookup.get(rawValues.unit.toLowerCase()) : undefined
         const parsedUnitPrice = Number(rawValues.unitPrice)
         const parsedMinimumStock = rawValues.minimumStock ? Number(rawValues.minimumStock) : 0
         const parsedActive = parseBooleanLike(rawValues.active)
@@ -299,8 +278,6 @@ export default function ProductsPage() {
         }
         if (!rawValues.unit) {
           errors.push(text.csvRowUnitRequired)
-        } else if (!matchedUnit) {
-          errors.push(text.csvRowUnitUnknown(rawValues.unit))
         }
         if (!rawValues.unitPrice) {
           errors.push(text.csvRowUnitPriceRequired)
@@ -314,7 +291,7 @@ export default function ProductsPage() {
           errors.push(text.csvRowActiveInvalid)
         }
 
-        const payload: CreateProductRequest | undefined = errors.length > 0 || !matchedUnit
+        const payload: CreateProductRequest | undefined = errors.length > 0
           ? undefined
           : {
               barcode: rawValues.barcode,
@@ -324,7 +301,7 @@ export default function ProductsPage() {
               unitPrice: parsedUnitPrice,
               minimumStock: parsedMinimumStock,
               active: parsedActive ?? true,
-              unitId: matchedUnit.id,
+              unitName: rawValues.unit.trim(),
               priceTiers: [],
             }
 
@@ -342,7 +319,7 @@ export default function ProductsPage() {
   function handleDownloadCsvTemplate() {
     const lines = [
       [...csvRequiredHeaders, ...csvOptionalHeaders].join(","),
-      "Soda 3,Boisson,UNIT,2.00,Soft drink,1234567890123,5,true",
+      "Soda 3,Boisson,piece,2.00,Soft drink,1234567890123,5,true",
     ]
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" })
@@ -457,7 +434,7 @@ export default function ProductsPage() {
       unitPrice: String(product.unitPrice),
       minimumStock: String(product.minimumStock),
       active: product.active,
-      unitId: product.unitId ? String(product.unitId) : "",
+      unitName: product.unitName || product.unitCode || "",
       priceTiers: (product.priceTiers ?? []).map((tier) => ({
         label: tier.label ?? "",
         minQuantity: String(tier.minQuantity),
@@ -598,7 +575,7 @@ export default function ProductsPage() {
       setError(text.unitPriceRequired)
       return
     }
-    if (!form.unitId) {
+    if (!form.unitName.trim()) {
       setError(text.unitRequired)
       return
     }
@@ -618,7 +595,7 @@ export default function ProductsPage() {
         unitPrice: Number(form.unitPrice),
         minimumStock: Number(form.minimumStock || "0"),
         active: form.active,
-        unitId: Number(form.unitId),
+        unitName: form.unitName.trim(),
         priceTiers,
       }
 
@@ -852,18 +829,18 @@ export default function ProductsPage() {
 
           <label>
             {text.unit}
-            <select
-              value={form.unitId}
-              onChange={(e) => updateForm("unitId", e.target.value)}
-              disabled={unitsLoading}
-            >
-              <option value="">{text.selectUnit}</option>
-              {units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name} ({unit.code})
-                </option>
+            <input
+              type="text"
+              list="product-unit-options"
+              value={form.unitName}
+              onChange={(e) => updateForm("unitName", e.target.value)}
+              placeholder={text.unitPlaceholder}
+            />
+            <datalist id="product-unit-options">
+              {unitSuggestions.map((unit) => (
+                <option key={unit} value={unit} />
               ))}
-            </select>
+            </datalist>
           </label>
 
           <label>
@@ -970,7 +947,7 @@ export default function ProductsPage() {
           </label>
 
           <div className="form-actions full-width">
-            <button type="submit" disabled={saving || unitsLoading}>
+            <button type="submit" disabled={saving}>
               {saving
                 ? isEditMode
                   ? text.updating

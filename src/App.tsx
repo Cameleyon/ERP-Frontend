@@ -11,7 +11,6 @@ import SalesHistoryPage from "./pages/SalesHistoryPage"
 import InventoryPage from "./pages/InventoryPage"
 import ProductsPage from "./pages/ProductsPage"
 import CostRubricsPage from "./pages/CostRubricsPage"
-import UnitsPage from "./pages/UnitsPage"
 import LoginPage from "./pages/LoginPage"
 import type { Page } from "./types/navigation"
 import PublicLandingPage from "./pages/PublicLandingPage"
@@ -175,7 +174,6 @@ function AppContent() {
       !isAdmin &&
       (page === "inventory" ||
           page === "cost-rubrics" ||
-          page === "units" ||
           page === "products")
           ? "dashboard"
           : page
@@ -185,7 +183,6 @@ function AppContent() {
         {safePage === "dashboard" && <DashboardPage />}
         {safePage === "customers" && <CustomersPage />}
         {safePage === "products" && isAdmin && <ProductsPage />}
-        {safePage === "units" && isAdmin && <UnitsPage />}
         {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage />}
         {safePage === "new-sale" && <NewSalePage />}
         {safePage === "sales-history" && <SalesHistoryPage />}

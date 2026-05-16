@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   createCostRubric,
   deleteCostRubric,
@@ -7,19 +7,14 @@ import {
   type CompanyCostRubricResponse,
 } from "../api/costRubricManagementApi"
 import { useI18n } from "../i18n/I18nContext"
-import {
-  DEFAULT_COST_RUBRIC_OPTIONS,
-  getLocalizedCostRubricName,
-} from "../utils/costRubrics"
+import { getLocalizedCostRubricName } from "../utils/costRubrics"
 
 type FormState = {
-  code: string
   name: string
   displayOrder: string
 }
 
 const emptyForm: FormState = {
-  code: "",
   name: "",
   displayOrder: "0",
 }
@@ -32,28 +27,22 @@ export default function CostRubricsPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
-  const [presetSelection, setPresetSelection] = useState("")
 
   const text = language === "fr"
     ? {
         title: "Rubriques de cout",
         loadError: "Echec du chargement des rubriques de cout",
-        codeRequired: "Le code est requis",
         nameRequired: "Le nom est requis",
         createSuccess: "La rubrique de cout a ete creee avec succes",
         createError: "Echec de la creation de la rubrique de cout",
         deactivateSuccess: "La rubrique de cout a ete desactivee avec succes",
         activateSuccess: "La rubrique de cout a ete activee avec succes",
         statusError: "Echec de la mise a jour du statut de la rubrique de cout",
-        deleteConfirm: (code: string) => `Supprimer definitivement la rubrique de cout ${code} ?`,
+        deleteConfirm: (name: string) => `Supprimer definitivement la rubrique de cout ${name} ?`,
         deleteSuccess: "La rubrique de cout a ete supprimee definitivement",
         deleteError: "Echec de la suppression de la rubrique de cout",
         newTitle: "Nouvelle rubrique de cout",
-        choosePreset: "Choisir une rubrique",
-        otherPreset: "Autre",
-        code: "Code",
         name: "Nom",
-        customName: "Nom personnalise",
         customNamePlaceholder: "Saisir le nom de la rubrique",
         displayOrder: "Ordre d'affichage",
         create: "Creer la rubrique de cout",
@@ -74,22 +63,17 @@ export default function CostRubricsPage() {
     : {
         title: "Cost rubrics",
         loadError: "Failed to load cost rubrics",
-        codeRequired: "Code is required",
         nameRequired: "Name is required",
         createSuccess: "Cost rubric created successfully",
         createError: "Failed to create the cost rubric",
         deactivateSuccess: "Cost rubric deactivated successfully",
         activateSuccess: "Cost rubric activated successfully",
         statusError: "Failed to update cost rubric status",
-        deleteConfirm: (code: string) => `Permanently delete cost rubric ${code}?`,
+        deleteConfirm: (name: string) => `Permanently delete cost rubric ${name}?`,
         deleteSuccess: "Cost rubric permanently deleted",
         deleteError: "Failed to delete the cost rubric",
         newTitle: "New cost rubric",
-        choosePreset: "Choose a rubric",
-        otherPreset: "Other",
-        code: "Code",
         name: "Name",
-        customName: "Custom name",
         customNamePlaceholder: "Enter the rubric name",
         displayOrder: "Display order",
         create: "Create cost rubric",
@@ -108,23 +92,9 @@ export default function CostRubricsPage() {
         delete: "Delete",
       }
 
-  const availablePresetRubrics = useMemo(() => {
-    const existingCodes = new Set(rubrics.map((rubric) => rubric.code))
-    return DEFAULT_COST_RUBRIC_OPTIONS.filter((option) => !existingCodes.has(option.code))
-  }, [rubrics])
-
   useEffect(() => {
     loadRubrics()
   }, [])
-
-  function getPresetLabel(code: string) {
-    const matchedOption = DEFAULT_COST_RUBRIC_OPTIONS.find((option) => option.code === code)
-    if (!matchedOption) {
-      return code
-    }
-
-    return language === "fr" ? matchedOption.fr : matchedOption.en
-  }
 
   async function loadRubrics() {
     try {
@@ -147,42 +117,8 @@ export default function CostRubricsPage() {
     }))
   }
 
-  function handlePresetSelectionChange(value: string) {
-    setPresetSelection(value)
-
-    if (!value) {
-      setForm(emptyForm)
-      return
-    }
-
-    if (value === "OTHER") {
-      setForm({
-        code: "",
-        name: "",
-        displayOrder: "0",
-      })
-      return
-    }
-
-    const matchedOption = availablePresetRubrics.find((option) => option.code === value)
-    if (!matchedOption) {
-      return
-    }
-
-    setForm({
-      code: matchedOption.code,
-      name: language === "fr" ? matchedOption.fr : matchedOption.en,
-      displayOrder: String(matchedOption.displayOrder),
-    })
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
-    if (!form.code.trim()) {
-      setError(text.codeRequired)
-      return
-    }
 
     if (!form.name.trim()) {
       setError(text.nameRequired)
@@ -195,14 +131,12 @@ export default function CostRubricsPage() {
       setSuccess("")
 
       await createCostRubric({
-        code: form.code.trim().toUpperCase(),
         name: form.name.trim(),
         displayOrder: Number(form.displayOrder || "0"),
       })
 
       setSuccess(text.createSuccess)
       setForm(emptyForm)
-      setPresetSelection("")
       await loadRubrics()
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
@@ -232,7 +166,7 @@ export default function CostRubricsPage() {
   async function handleDeleteRubric(rubric: CompanyCostRubricResponse) {
     if (rubric.system) return
 
-    const confirmed = window.confirm(text.deleteConfirm(rubric.code))
+    const confirmed = window.confirm(text.deleteConfirm(getLocalizedCostRubricName(rubric.code, rubric.name, language)))
     if (!confirmed) return
 
     try {
@@ -262,39 +196,11 @@ export default function CostRubricsPage() {
         <form onSubmit={handleSubmit} className="product-form-grid">
           <label>
             {text.name}
-            <select
-              value={presetSelection}
-              onChange={(e) => handlePresetSelectionChange(e.target.value)}
-            >
-              <option value="">{text.choosePreset}</option>
-              {availablePresetRubrics.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {getPresetLabel(option.code)}
-                </option>
-              ))}
-              <option value="OTHER">{text.otherPreset}</option>
-            </select>
-          </label>
-
-          <label>
-            {text.code}
-            <input
-              type="text"
-              value={form.code}
-              onChange={(e) => updateForm("code", e.target.value)}
-              placeholder="COST_OF_GOODS"
-              disabled={presetSelection !== "" && presetSelection !== "OTHER"}
-            />
-          </label>
-
-          <label>
-            {presetSelection === "OTHER" ? text.customName : text.name}
             <input
               type="text"
               value={form.name}
               onChange={(e) => updateForm("name", e.target.value)}
               placeholder={text.customNamePlaceholder}
-              disabled={presetSelection !== "" && presetSelection !== "OTHER"}
             />
           </label>
 
@@ -325,7 +231,6 @@ export default function CostRubricsPage() {
           <table>
             <thead>
               <tr>
-                <th>{text.code}</th>
                 <th>{text.name}</th>
                 <th>{text.displayOrder}</th>
                 <th>{text.type}</th>
@@ -336,12 +241,11 @@ export default function CostRubricsPage() {
             <tbody>
               {rubrics.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>{text.empty}</td>
+                  <td colSpan={5}>{text.empty}</td>
                 </tr>
               ) : (
                 rubrics.map((rubric) => (
                   <tr key={rubric.id}>
-                    <td>{rubric.code}</td>
                     <td>{getLocalizedCostRubricName(rubric.code, rubric.name, language)}</td>
                     <td>{rubric.displayOrder}</td>
                     <td>{rubric.system ? text.system : text.custom}</td>

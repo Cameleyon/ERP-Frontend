@@ -53,7 +53,7 @@ export type CreateProductRequest = {
   unitPrice: number
   minimumStock: number
   active: boolean
-  unitId: number
+  unitName: string
   priceTiers: ProductPriceTierRequest[]
 }
 
@@ -65,7 +65,7 @@ export type UpdateProductRequest = {
   unitPrice: number
   minimumStock: number
   active: boolean
-  unitId: number
+  unitName: string
   priceTiers: ProductPriceTierRequest[]
 }
 

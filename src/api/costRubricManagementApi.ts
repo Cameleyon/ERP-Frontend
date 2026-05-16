@@ -30,7 +30,6 @@ export type CompanyCostRubricResponse = {
 }
 
 export type CreateCompanyCostRubricRequest = {
-  code: string
   name: string
   displayOrder: number
 }

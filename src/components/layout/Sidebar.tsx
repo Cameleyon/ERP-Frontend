@@ -114,13 +114,6 @@ export default function Sidebar({
                 </button>
 
                 <button
-                  className={`sidebar-button ${page === "units" ? "active" : ""}`}
-                  onClick={() => onNavigate("units")}
-                >
-                  {copy.sidebar.units}
-                </button>
-
-                <button
                   className={`sidebar-button ${page === "cost-rubrics" ? "active" : ""}`}
                   onClick={() => onNavigate("cost-rubrics")}
                 >
