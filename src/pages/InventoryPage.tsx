@@ -9,6 +9,7 @@ import {
   type InventoryReceiptResponse,
 } from "../api/inventoryReceiptApi"
 import { getCostRubrics, type CompanyCostRubricResponse } from "../api/costRubricApi"
+import TablePagination from "../components/common/TablePagination"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
@@ -28,7 +29,7 @@ type ReceiptSortKey =
   | "updatedAt"
   | "lastAction"
 type SortDirection = "asc" | "desc"
-const RECEIPTS_PER_PAGE = 20
+const RECEIPTS_PER_PAGE = 12
 
 export default function InventoryPage() {
   useAuth()
@@ -600,42 +601,16 @@ function ActiveReceiptTable({
         </tbody>
       </table>
       {visibleRows.length > RECEIPTS_PER_PAGE && (
-        <nav className="inventory-pagination" aria-label={text.paginationLabel}>
-          <button
-            type="button"
-            className="secondary-button compact-action-button inventory-page-arrow"
-            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-            disabled={currentPage === 1}
-            aria-label={text.previousPage}
-          >
-            {"\u2190"}
-          </button>
-          <div className="inventory-page-list">
-            {Array.from({ length: pageCount }, (_, index) => {
-              const page = index + 1
-              return (
-                <button
-                  key={page}
-                  type="button"
-                  className={`inventory-page-button${page === currentPage ? " active" : ""}`}
-                  onClick={() => setCurrentPage(page)}
-                  aria-current={page === currentPage ? "page" : undefined}
-                >
-                  {page}
-                </button>
-              )
-            })}
-          </div>
-          <button
-            type="button"
-            className="secondary-button compact-action-button inventory-page-arrow"
-            onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
-            disabled={currentPage === pageCount}
-            aria-label={text.nextPage}
-          >
-            {"\u2192"}
-          </button>
-        </nav>
+        <TablePagination
+          currentPage={currentPage}
+          pageCount={pageCount}
+          paginationLabel={text.paginationLabel}
+          firstPageLabel={text.firstPage}
+          previousPageLabel={text.previousPage}
+          nextPageLabel={text.nextPage}
+          lastPageLabel={text.lastPage}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   )

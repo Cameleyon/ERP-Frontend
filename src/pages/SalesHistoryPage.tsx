@@ -14,6 +14,7 @@ import {
 import { getCompanySubscription } from "../api/companySubscriptionApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import StatusBadge from "../components/common/StatusBadge"
+import TablePagination from "../components/common/TablePagination"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
@@ -30,7 +31,7 @@ type SaleItemWithOptionalUnit = {
   unitName?: string | null
 }
 
-const SALES_PER_PAGE = 20
+const SALES_PER_PAGE = 12
 
 function toInputDate(value: Date) {
   return value.toISOString().slice(0, 10)
@@ -512,42 +513,16 @@ export default function SalesHistoryPage() {
           </table>
         )}
         {!loading && sales.length > SALES_PER_PAGE && (
-          <nav className="table-pagination" aria-label={text.paginationLabel}>
-            <button
-              type="button"
-              className="secondary-button compact-action-button table-page-arrow"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              disabled={currentPage === 1}
-              aria-label={text.previousPage}
-            >
-              {"\u2190"}
-            </button>
-            <div className="table-page-list">
-              {Array.from({ length: pageCount }, (_, index) => {
-                const page = index + 1
-                return (
-                  <button
-                    key={page}
-                    type="button"
-                    className={`table-page-button${page === currentPage ? " active" : ""}`}
-                    onClick={() => setCurrentPage(page)}
-                    aria-current={page === currentPage ? "page" : undefined}
-                  >
-                    {page}
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              type="button"
-              className="secondary-button compact-action-button table-page-arrow"
-              onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
-              disabled={currentPage === pageCount}
-              aria-label={text.nextPage}
-            >
-              {"\u2192"}
-            </button>
-          </nav>
+          <TablePagination
+            currentPage={currentPage}
+            pageCount={pageCount}
+            paginationLabel={text.paginationLabel}
+            firstPageLabel={text.firstPage}
+            previousPageLabel={text.previousPage}
+            nextPageLabel={text.nextPage}
+            lastPageLabel={text.lastPage}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 
