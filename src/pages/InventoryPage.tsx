@@ -519,8 +519,22 @@ function ActiveReceiptTable({
         <thead>
           <tr>
             <SortableHeader label={text.product} sortKey="productName" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader label={text.receivedQuantity} sortKey="receivedQuantity" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader label={text.remainingQuantity} sortKey="remainingQuantity" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader
+              label={text.receivedQuantity}
+              sortKey="receivedQuantity"
+              activeKey={sortKey}
+              direction={sortDirection}
+              onSort={handleSort}
+              className="inventory-quantity-header"
+            />
+            <SortableHeader
+              label={text.remainingQuantity}
+              sortKey="remainingQuantity"
+              activeKey={sortKey}
+              direction={sortDirection}
+              onSort={handleSort}
+              className="inventory-quantity-header"
+            />
             <SortableHeader label={text.totalCost} sortKey="totalCostAmount" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
             <SortableHeader label={text.createdAt} sortKey="createdAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
             <SortableHeader label={text.updatedAt} sortKey="updatedAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
@@ -622,15 +636,17 @@ function SortableHeader({
   activeKey,
   direction,
   onSort,
+  className,
 }: {
   label: string
   sortKey: ReceiptSortKey
   activeKey: ReceiptSortKey
   direction: SortDirection
   onSort: (sortKey: ReceiptSortKey) => void
+  className?: string
 }) {
   return (
-    <th>
+    <th className={className}>
       <button type="button" className="table-sort-button" onClick={() => onSort(sortKey)}>
         <span>{label}</span>
         <span aria-hidden="true">{activeKey === sortKey ? (direction === "asc" ? "↑" : "↓") : "↕"}</span>

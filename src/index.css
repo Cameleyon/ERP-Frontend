@@ -272,8 +272,25 @@ td {
   align-items: center;
   display: inline-flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 4px;
   min-width: max-content;
+}
+
+.inventory-quantity-header {
+  max-width: 92px;
+  white-space: normal;
+}
+
+.inventory-quantity-header .table-sort-button {
+  align-items: flex-start;
+  line-height: 1.1;
+  text-align: left;
+  white-space: normal;
+}
+
+.inventory-receipt-actions .compact-action-button {
+  font-size: 0.72rem;
+  padding: 4px 6px;
 }
 
 .table-pagination {
