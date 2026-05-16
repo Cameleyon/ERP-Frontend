@@ -261,12 +261,68 @@ td {
   margin-top: 20px;
 }
 
+.inventory-receipt-filter {
+  display: grid;
+  gap: 6px;
+  max-width: 320px;
+  margin-bottom: 14px;
+}
+
 .inventory-receipt-actions {
   align-items: center;
   display: inline-flex;
   flex-wrap: nowrap;
   gap: 6px;
   min-width: max-content;
+}
+
+.inventory-pagination {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.inventory-page-list {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.inventory-page-button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(4, 73, 117, 0.16);
+  color: var(--text);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 10px;
+}
+
+.inventory-page-button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.inventory-page-arrow {
+  min-width: 38px;
+}
+
+.table-sort-button {
+  align-items: center;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  gap: 6px;
+  padding: 0;
+}
+
+.table-sort-button:hover {
+  opacity: 1;
 }
 
 .filters,

@@ -19,6 +19,16 @@ import { getDefaultLocationId } from "../utils/locations"
 
 type CostAmountMap = Record<number, string>
 type InventoryPageCopy = (typeof messages)[keyof typeof messages]["inventoryPage"]
+type ReceiptSortKey =
+  | "productName"
+  | "receivedQuantity"
+  | "remainingQuantity"
+  | "totalCostAmount"
+  | "createdAt"
+  | "updatedAt"
+  | "lastAction"
+type SortDirection = "asc" | "desc"
+const RECEIPTS_PER_PAGE = 20
 
 export default function InventoryPage() {
   useAuth()
@@ -434,27 +444,79 @@ function ActiveReceiptTable({
   onEditedQuantityChange: (quantity: number) => void
   onSubmitEdit: (receipt: InventoryReceiptResponse) => Promise<void>
 }) {
+  const [filterValue, setFilterValue] = useState("")
+  const [sortKey, setSortKey] = useState<ReceiptSortKey>("createdAt")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const visibleRows = useMemo(() => {
+    const normalizedFilter = filterValue.trim().toLocaleLowerCase()
+    const filteredRows = normalizedFilter
+      ? rows.filter((row) => row.productName.toLocaleLowerCase().includes(normalizedFilter))
+      : rows
+
+    return [...filteredRows].sort((left, right) => {
+      const comparison = compareReceiptRows(left, right, sortKey)
+      return sortDirection === "asc" ? comparison : -comparison
+    })
+  }, [filterValue, rows, sortDirection, sortKey])
+
+  const pageCount = Math.max(1, Math.ceil(visibleRows.length / RECEIPTS_PER_PAGE))
+  const paginatedRows = visibleRows.slice(
+    (currentPage - 1) * RECEIPTS_PER_PAGE,
+    currentPage * RECEIPTS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterValue, rows])
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount)
+    }
+  }, [currentPage, pageCount])
+
+  function handleSort(nextKey: ReceiptSortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"))
+      return
+    }
+
+    setSortKey(nextKey)
+    setSortDirection("asc")
+  }
+
   return (
     <div className="nested-card inventory-open-receipts">
       <h3>{text.activeReceipts}</h3>
+      <label className="inventory-receipt-filter">
+        {text.filter}
+        <input
+          type="text"
+          value={filterValue}
+          onChange={(event) => setFilterValue(event.target.value)}
+          placeholder={text.productFilterPlaceholder}
+        />
+      </label>
       <table>
         <thead>
           <tr>
-            <th>{text.product}</th>
-            <th>{text.receivedQuantity}</th>
-            <th>{text.remainingQuantity}</th>
-            <th>{text.totalCost}</th>
-            <th>{text.createdAt}</th>
-            <th>{text.updatedAt}</th>
-            <th>{text.lastAction}</th>
+            <SortableHeader label={text.product} sortKey="productName" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.receivedQuantity} sortKey="receivedQuantity" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.remainingQuantity} sortKey="remainingQuantity" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.totalCost} sortKey="totalCostAmount" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.createdAt} sortKey="createdAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.updatedAt} sortKey="updatedAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+            <SortableHeader label={text.lastAction} sortKey="lastAction" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
             <th aria-label={text.actions} />
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {visibleRows.length === 0 ? (
             <tr><td colSpan={8}>{text.noActiveReceipts}</td></tr>
           ) : (
-            rows.map((row) => (
+            paginatedRows.map((row) => (
               <tr key={row.id}>
                 <td>{row.productName}</td>
                 <td>{formatNumber(row.receivedQuantity)}</td>
@@ -522,8 +584,91 @@ function ActiveReceiptTable({
           )}
         </tbody>
       </table>
+      {visibleRows.length > RECEIPTS_PER_PAGE && (
+        <nav className="inventory-pagination" aria-label={text.paginationLabel}>
+          <button
+            type="button"
+            className="secondary-button compact-action-button inventory-page-arrow"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage === 1}
+            aria-label={text.previousPage}
+          >
+            {"\u2190"}
+          </button>
+          <div className="inventory-page-list">
+            {Array.from({ length: pageCount }, (_, index) => {
+              const page = index + 1
+              return (
+                <button
+                  key={page}
+                  type="button"
+                  className={`inventory-page-button${page === currentPage ? " active" : ""}`}
+                  onClick={() => setCurrentPage(page)}
+                  aria-current={page === currentPage ? "page" : undefined}
+                >
+                  {page}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="secondary-button compact-action-button inventory-page-arrow"
+            onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+            disabled={currentPage === pageCount}
+            aria-label={text.nextPage}
+          >
+            {"\u2192"}
+          </button>
+        </nav>
+      )}
     </div>
   )
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+}: {
+  label: string
+  sortKey: ReceiptSortKey
+  activeKey: ReceiptSortKey
+  direction: SortDirection
+  onSort: (sortKey: ReceiptSortKey) => void
+}) {
+  return (
+    <th>
+      <button type="button" className="table-sort-button" onClick={() => onSort(sortKey)}>
+        <span>{label}</span>
+        <span aria-hidden="true">{activeKey === sortKey ? (direction === "asc" ? "↑" : "↓") : "↕"}</span>
+      </button>
+    </th>
+  )
+}
+
+function compareReceiptRows(
+  left: InventoryReceiptResponse,
+  right: InventoryReceiptResponse,
+  sortKey: ReceiptSortKey,
+) {
+  switch (sortKey) {
+    case "receivedQuantity":
+    case "remainingQuantity":
+    case "totalCostAmount":
+      return left[sortKey] - right[sortKey]
+    case "createdAt":
+      return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+    case "updatedAt":
+      return new Date(left.updatedAt ?? left.createdAt).getTime() - new Date(right.updatedAt ?? right.createdAt).getTime()
+    case "lastAction":
+      return left.lastAction.localeCompare(right.lastAction)
+    case "productName":
+    default:
+      return left.productName.localeCompare(right.productName)
+  }
 }
 
 function formatReceiptAction(action: InventoryReceiptResponse["lastAction"], text: InventoryPageCopy) {
