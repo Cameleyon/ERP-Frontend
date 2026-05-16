@@ -16,7 +16,7 @@ type CartItem = {
   productId: number
   productName: string
   sku: string
-  unitCode: string | null
+  unitName: string | null
   quantity: number
   unitPrice: number
   lineTotal: number
@@ -176,7 +176,7 @@ export default function NewSalePage() {
           productId: selectedProduct.id,
           productName: selectedProduct.name,
           sku: selectedProduct.sku,
-          unitCode: selectedProduct.unitCode,
+          unitName: selectedProduct.unitName,
           quantity,
           unitPrice: pricing.unitPrice,
           lineTotal: quantity * pricing.unitPrice,
@@ -389,16 +389,16 @@ export default function NewSalePage() {
           )}
           <p>
             <strong>{text.currentStock}:</strong> {formatNumber(selectedProduct.currentStock)}
-            {selectedProduct.unitCode ? ` ${selectedProduct.unitCode}` : ""}
+            {selectedProduct.unitName ? ` ${selectedProduct.unitName}` : ""}
           </p>
           <p>
             <strong>{text.minimumStock}:</strong> {formatNumber(selectedProduct.minimumStock)}
-            {selectedProduct.unitCode ? ` ${selectedProduct.unitCode}` : ""}
+            {selectedProduct.unitName ? ` ${selectedProduct.unitName}` : ""}
           </p>
 
           <div className="sale-form-row">
             <label>
-              {text.quantity} {selectedProduct.unitCode ? `(${selectedProduct.unitCode})` : ""}
+              {text.quantity} {selectedProduct.unitName ? `(${selectedProduct.unitName})` : ""}
               <input
                 type="number"
                 min={1}

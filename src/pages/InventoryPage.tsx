@@ -269,7 +269,7 @@ export default function InventoryPage() {
     [rubrics, costAmounts],
   )
   const unitCost = quantity > 0 ? totalCost / quantity : 0
-  const unitLabel = selectedProduct?.unitCode ? ` ${selectedProduct.unitCode}` : ""
+  const unitLabel = selectedProduct?.unitName ? ` ${selectedProduct.unitName}` : ""
 
   return (
     <div>
@@ -324,13 +324,13 @@ export default function InventoryPage() {
           <h3>{text.createReceipt}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>SKU:</strong> {selectedProduct.sku}</p>
-          <p><strong>{text.unit}:</strong> {selectedProduct.unitName || selectedProduct.unitCode || "-"}</p>
+          <p><strong>{text.unit}:</strong> {selectedProduct.unitName || "-"}</p>
           <p><strong>{text.currentStock}:</strong> {formatNumber(selectedProduct.currentStock)}{unitLabel}</p>
           <p><strong>{text.minimumStock}:</strong> {formatNumber(selectedProduct.minimumStock)}{unitLabel}</p>
 
           <div className="inventory-form-grid">
             <label>
-              {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitCode})` : ""}
+              {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitName})` : ""}
               <input
                 type="number"
                 min={0.0001}

@@ -32,8 +32,6 @@ export type ProductResponse = {
   currentStock: number
   minimumStock: number
   active: boolean
-  unitId: number | null
-  unitCode: string | null
   unitName: string | null
   priceTiers: ProductPriceTier[]
 }

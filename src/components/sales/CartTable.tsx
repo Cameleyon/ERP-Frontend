@@ -5,7 +5,7 @@ type CartItem = {
   productId: number
   productName: string
   sku: string
-  unitCode: string | null
+  unitName: string | null
   quantity: number
   unitPrice: number
   lineTotal: number
@@ -48,7 +48,7 @@ export default function CartTable({ items, onRemove }: Props) {
                 <td>{item.sku}</td>
                 <td>
                   {formatNumber(item.quantity)}
-                  {item.unitCode ? ` ${item.unitCode}` : ""}
+                  {item.unitName ? ` ${item.unitName}` : ""}
                 </td>
                 <td>{formatCurrency(item.unitPrice)}</td>
                 <td>{formatCurrency(item.lineTotal)}</td>

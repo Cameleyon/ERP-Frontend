@@ -27,7 +27,6 @@ type SaleItemWithOptionalUnit = {
   quantity: number
   unitPrice: number
   lineTotal: number
-  unitCode?: string | null
   unitName?: string | null
 }
 
@@ -574,7 +573,7 @@ export default function SalesHistoryPage() {
                       <td>{item.productName || "-"}</td>
                       <td>
                         {formatNumber(item.quantity)}
-                        {item.unitCode ? ` ${item.unitCode}` : ""}
+                        {item.unitName ? ` ${item.unitName}` : ""}
                       </td>
                       <td>{formatCurrency(item.unitPrice)}</td>
                       <td>{formatCurrency(item.lineTotal)}</td>

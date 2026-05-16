@@ -164,7 +164,6 @@ export default function ProductsPage() {
         (product.barcode ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.description ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.category ?? "").toLowerCase().includes(normalizedSearch) ||
-        (product.unitCode ?? "").toLowerCase().includes(normalizedSearch) ||
         (product.unitName ?? "").toLowerCase().includes(normalizedSearch)
 
       return matchesCategory && matchesSearch
@@ -173,7 +172,7 @@ export default function ProductsPage() {
 
   const unitSuggestions = useMemo(() => {
     const values = products
-      .map((product) => product.unitName || product.unitCode)
+      .map((product) => product.unitName)
       .filter((value): value is string => !!value?.trim())
 
     return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right))
@@ -434,7 +433,7 @@ export default function ProductsPage() {
       unitPrice: String(product.unitPrice),
       minimumStock: String(product.minimumStock),
       active: product.active,
-      unitName: product.unitName || product.unitCode || "",
+      unitName: product.unitName || "",
       priceTiers: (product.priceTiers ?? []).map((tier) => ({
         label: tier.label ?? "",
         minQuantity: String(tier.minQuantity),
@@ -1035,18 +1034,18 @@ export default function ProductsPage() {
                     <td>{product.sku}</td>
                     <td>{product.barcode || "-"}</td>
                     <td>{product.category || "-"}</td>
-                    <td>{product.unitCode || "-"}</td>
+                    <td>{product.unitName || "-"}</td>
                     <td>{formatCurrency(product.unitPrice)}</td>
                     <td>
                       {product.costPrice === null ? "-" : formatCurrency(product.costPrice)}
                     </td>
                     <td>
                       {formatNumber(product.currentStock)}
-                      {product.unitCode ? ` ${product.unitCode}` : ""}
+                      {product.unitName ? ` ${product.unitName}` : ""}
                     </td>
                     <td>
                       {formatNumber(product.minimumStock)}
-                      {product.unitCode ? ` ${product.unitCode}` : ""}
+                      {product.unitName ? ` ${product.unitName}` : ""}
                     </td>
                     <td>{product.active ? text.active : text.inactive}</td>
                     <td>
