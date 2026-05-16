@@ -30,6 +30,8 @@ type SaleItemWithOptionalUnit = {
   unitName?: string | null
 }
 
+const SALES_PER_PAGE = 20
+
 function toInputDate(value: Date) {
   return value.toISOString().slice(0, 10)
 }
@@ -62,8 +64,15 @@ export default function SalesHistoryPage() {
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
   const [dateRange, setDateRange] = useState(createDefaultRange)
+  const [currentPage, setCurrentPage] = useState(1)
   const isAdmin = user?.role === "ADMIN"
   const isCashier = user?.role === "CASHIER"
+
+  const pageCount = Math.max(1, Math.ceil(sales.length / SALES_PER_PAGE))
+  const paginatedSales = sales.slice(
+    (currentPage - 1) * SALES_PER_PAGE,
+    currentPage * SALES_PER_PAGE,
+  )
 
   const rangeValidationError = useMemo(() => {
     if (!dateRange.startDate || !dateRange.endDate) {
@@ -317,6 +326,16 @@ export default function SalesHistoryPage() {
     })()
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [sales])
+
+  useEffect(() => {
+    if (currentPage > pageCount) {
+      setCurrentPage(pageCount)
+    }
+  }, [currentPage, pageCount])
+
   return (
     <div>
       <div className="page-title-row">
@@ -443,7 +462,7 @@ export default function SalesHistoryPage() {
                   <td colSpan={8}>{text.emptySales}</td>
                 </tr>
               ) : (
-                sales.map((sale) => (
+                paginatedSales.map((sale) => (
                   <tr key={sale.id}>
                     <td>{sale.saleNumber}</td>
                     <td>{formatDateTime(sale.soldAt)}</td>
@@ -491,6 +510,44 @@ export default function SalesHistoryPage() {
               )}
             </tbody>
           </table>
+        )}
+        {!loading && sales.length > SALES_PER_PAGE && (
+          <nav className="table-pagination" aria-label={text.paginationLabel}>
+            <button
+              type="button"
+              className="secondary-button compact-action-button table-page-arrow"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              aria-label={text.previousPage}
+            >
+              {"\u2190"}
+            </button>
+            <div className="table-page-list">
+              {Array.from({ length: pageCount }, (_, index) => {
+                const page = index + 1
+                return (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`table-page-button${page === currentPage ? " active" : ""}`}
+                    onClick={() => setCurrentPage(page)}
+                    aria-current={page === currentPage ? "page" : undefined}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              type="button"
+              className="secondary-button compact-action-button table-page-arrow"
+              onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+              disabled={currentPage === pageCount}
+              aria-label={text.nextPage}
+            >
+              {"\u2192"}
+            </button>
+          </nav>
         )}
       </div>
 

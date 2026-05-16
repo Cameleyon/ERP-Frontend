@@ -249,6 +249,16 @@ export default function InventoryPage() {
     setWithdrawalReceiptId(null)
   }
 
+  function cancelReceiptCreation() {
+    setSelectedProduct(null)
+    setProductCode("")
+    setQuantity(1)
+    setNotes("")
+    setCostAmounts(createInitialCostAmounts(rubrics))
+    setError("")
+    setSuccess("")
+  }
+
   const totalCost = useMemo(
     () =>
       rubrics.reduce((sum, rubric) => {
@@ -368,9 +378,14 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          <button onClick={handleReceipt} disabled={saveLoading}>
-            {saveLoading ? text.submitting : text.createReceipt}
-          </button>
+          <div className="form-actions">
+            <button onClick={handleReceipt} disabled={saveLoading}>
+              {saveLoading ? text.submitting : text.createReceipt}
+            </button>
+            <button type="button" className="secondary-button" onClick={cancelReceiptCreation}>
+              {text.cancel}
+            </button>
+          </div>
           </>
         )}
 
