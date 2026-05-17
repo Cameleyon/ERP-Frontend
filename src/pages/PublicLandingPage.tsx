@@ -74,50 +74,55 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         navigationEmail: "Contact",
         carouselEyebrow: "Apercu de la plateforme",
         carouselTitle: "Les pages cles de l'application, presentees comme une vitrine.",
-        carouselDescription:
-          "Ce carrousel est pret a recevoir les captures reelles de l'application et le logo CAMELEYON Dynamics en derniere image.",
         carouselSlides: [
           {
             eyebrow: "Tableau de bord",
             title: "Suivez les ventes et les indicateurs",
             description: "Un apercu rapide de l'activite, du stock faible et des produits performants.",
             image: landingDashboard,
+            mediaFit: "cover",
           },
           {
             eyebrow: "Clients",
             title: "Gardez les clients organises",
             description: "Ajoutez les contacts et suivez facilement les informations utiles.",
             image: landingCustomers,
+            mediaFit: "contain",
           },
           {
             eyebrow: "Nouvelle vente",
             title: "Encaissez avec fluidite",
             description: "Recherche produit, client, mode de paiement et facture reunis au meme endroit.",
             image: landingNewSale,
+            mediaFit: "contain",
           },
           {
             eyebrow: "Historique",
             title: "Retrouvez les ventes en quelques secondes",
             description: "Filtrez, consultez les details et gardez une vue claire de l'activite.",
             image: landingSalesHistory,
+            mediaFit: "cover",
           },
           {
             eyebrow: "Inventaire",
             title: "Gardez le stock sous controle",
             description: "Receptions, retraits et quantites restantes restent visibles en un coup d'oeil.",
             image: landingInventory,
+            mediaFit: "contain",
           },
           {
             eyebrow: "Produits",
             title: "Structurez votre catalogue",
             description: "Importez, creez et gerez vos produits depuis un seul espace.",
             image: landingProducts,
+            mediaFit: "cover",
           },
           {
             eyebrow: "CAMELEYON Dynamics",
             title: "Une marque pour accompagner la croissance",
             description: "Le logo viendra conclure le defilement avec une signature claire de la marque.",
             image: cameleyonDynamicsLogo,
+            mediaFit: "logo",
           },
         ],
       }
@@ -167,50 +172,55 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           navigationEmail: "Contacto",
           carouselEyebrow: "Vista de la plataforma",
           carouselTitle: "Las paginas clave de la aplicacion, presentadas como una vitrina.",
-          carouselDescription:
-            "Este carrusel esta listo para recibir capturas reales de la aplicacion y el logo de CAMELEYON Dynamics como ultima imagen.",
           carouselSlides: [
             {
               eyebrow: "Panel",
               title: "Siga ventas e indicadores",
               description: "Una vista rapida de la actividad, el inventario bajo y los productos destacados.",
               image: landingDashboard,
+              mediaFit: "cover",
             },
             {
               eyebrow: "Clientes",
               title: "Mantenga sus clientes organizados",
               description: "Agregue contactos y consulte facilmente la informacion util.",
               image: landingCustomers,
+              mediaFit: "contain",
             },
             {
               eyebrow: "Nueva venta",
               title: "Venda con fluidez",
               description: "Busqueda de producto, cliente, pago y factura reunidos en un mismo lugar.",
               image: landingNewSale,
+              mediaFit: "contain",
             },
             {
               eyebrow: "Historial",
               title: "Encuentre ventas en segundos",
               description: "Filtre, consulte detalles y mantenga una vista clara de la actividad.",
               image: landingSalesHistory,
+              mediaFit: "cover",
             },
             {
               eyebrow: "Inventario",
               title: "Mantenga el stock bajo control",
               description: "Recepciones, retiros y cantidades restantes visibles de un vistazo.",
               image: landingInventory,
+              mediaFit: "contain",
             },
             {
               eyebrow: "Productos",
               title: "Estructure su catalogo",
               description: "Importe, cree y gestione productos desde un solo espacio.",
               image: landingProducts,
+              mediaFit: "cover",
             },
             {
               eyebrow: "CAMELEYON Dynamics",
               title: "Una marca para acompanar el crecimiento",
               description: "El logo cerrara el recorrido con una firma clara de la marca.",
               image: cameleyonDynamicsLogo,
+              mediaFit: "logo",
             },
           ],
         }
@@ -259,50 +269,55 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           navigationEmail: "Contact",
           carouselEyebrow: "Platform preview",
           carouselTitle: "The key app pages, presented like a storefront.",
-          carouselDescription:
-            "This carousel is ready for the real application screenshots and the CAMELEYON Dynamics logo as the final image.",
           carouselSlides: [
             {
               eyebrow: "Dashboard",
               title: "Track sales and indicators",
               description: "A quick view of activity, low stock, and top-performing products.",
               image: landingDashboard,
+              mediaFit: "cover",
             },
             {
               eyebrow: "Customers",
               title: "Keep customers organised",
               description: "Add contacts and keep the useful details easy to reach.",
               image: landingCustomers,
+              mediaFit: "contain",
             },
             {
               eyebrow: "New sale",
               title: "Sell with less friction",
               description: "Product search, customer, payment method, and invoice in one place.",
               image: landingNewSale,
+              mediaFit: "contain",
             },
             {
               eyebrow: "Sales history",
               title: "Find sales in seconds",
               description: "Filter, review details, and keep a clear view of activity.",
               image: landingSalesHistory,
+              mediaFit: "cover",
             },
             {
               eyebrow: "Inventory",
               title: "Keep stock under control",
               description: "Receipts, withdrawals, and remaining quantities stay visible at a glance.",
               image: landingInventory,
+              mediaFit: "contain",
             },
             {
               eyebrow: "Products",
               title: "Structure your catalogue",
               description: "Import, create, and manage products from one workspace.",
               image: landingProducts,
+              mediaFit: "cover",
             },
             {
               eyebrow: "CAMELEYON Dynamics",
               title: "A brand built to support growth",
               description: "The logo will close the sequence with a clear brand signature.",
               image: cameleyonDynamicsLogo,
+              mediaFit: "logo",
             },
           ],
         }
@@ -397,8 +412,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
       <header className="public-site-header">
         <div className="public-wordmark">
-          <span>CAMELEYON</span>
-          <strong>Dynamics</strong>
+          <span>CAMELEYON ERP</span>
         </div>
 
         <div className="hero-actions public-cta-actions public-header-actions">
@@ -420,7 +434,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           <div className="public-carousel-heading">
             <p className="eyebrow">{text.carouselEyebrow}</p>
             <h2>{text.carouselTitle}</h2>
-            <p>{text.carouselDescription}</p>
           </div>
 
           <div className="public-carousel-frame">
@@ -431,7 +444,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                 <p>{currentSlide.description}</p>
               </div>
 
-              <div className={`public-carousel-media ${activeSlide === text.carouselSlides.length - 1 ? "brand" : ""}`}>
+              <div className={`public-carousel-media ${currentSlide.mediaFit}`}>
                 <img src={currentSlide.image} alt="" aria-hidden="true" />
               </div>
             </div>
