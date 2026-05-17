@@ -27,9 +27,7 @@ body,
 body {
   margin: 0;
   font-family: var(--body-font);
-  background:
-    radial-gradient(circle at top, rgba(100, 181, 246, 0.16), transparent 28%),
-    linear-gradient(180deg, #fff8e1 0%, #f7fbfc 100%);
+  background: #edf6f8;
   color: var(--text-color);
 }
 
@@ -1212,8 +1210,8 @@ td {
 }
 
 .public-wordmark span {
-  font-size: 24px;
-  letter-spacing: 0.08em;
+  font-size: 22px;
+  letter-spacing: 0;
 }
 
 .public-header-actions {
@@ -1238,12 +1236,6 @@ td {
     radial-gradient(circle at top right, rgba(128, 203, 196, 0.24), transparent 36%),
     linear-gradient(150deg, #03395e 0%, #044975 55%, #1975ad 100%);
   box-shadow: 0 26px 58px rgba(4, 73, 117, 0.2);
-}
-
-.public-showcase-copy h1 {
-  margin: 16px 0 14px;
-  font-size: 22px;
-  line-height: 1.25;
 }
 
 .public-carousel-panel {
@@ -1549,10 +1541,21 @@ td {
 }
 
 .public-hero-tagline {
-  margin: 0;
+  margin: 16px 0 0;
   font-size: 22px;
   font-family: var(--heading-font);
   color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.public-hero-tagline strong {
+  font: inherit;
+}
+
+.public-hero-supporting-copy {
+  margin: 14px 0 0;
+  color: #111111 !important;
+  font-size: 14px;
+  font-family: var(--body-font);
 }
 
 .public-section-soft {
@@ -1601,6 +1604,12 @@ td {
 
 .public-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.public-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .public-feature-card,
@@ -2081,6 +2090,10 @@ body.invoice-printing .sidebar-overlay {
 
   .public-utility-links {
     flex-wrap: wrap;
+  }
+
+  .public-plan-grid {
+    grid-template-columns: 1fr;
   }
 
   .scanner-header {

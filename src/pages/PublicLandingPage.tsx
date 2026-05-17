@@ -32,18 +32,14 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     ? {
         loadError: "Impossible de charger les donnees publiques",
         badge: "Propulse par CAMELEYON Dynamics",
-        heroSubtitle: "Une seule plateforme pour les operations, le stock, les ventes et la croissance.",
+        heroSubtitle: "Une seule plateforme pour toutes vos entreprises pour gerer vos ventes, vos produits, vos clients et vos stocks.",
         signUp: "S'inscrire",
         login: "Se connecter",
         contactEyebrow: "Contact",
         contactTitle: "Cette solution ne correspond pas a vos besoins? Pas de souci, parlons de vos besoins.",
         websiteLabel: "Site web",
         emailLabel: "Email",
-        introTitle:
-          "CAMELEYON ERP reunit les ventes, l'inventaire, les produits, les prix et la prise de decision dans un espace de travail elegant concu pour les organisations en croissance.",
-        introSubtitle: "Fini les tableurs et les feuilles dispersees.",
         featuresEyebrow: "Fonctionnalites cles",
-        featuresTitle: "Tout ce dont votre organisation a besoin pour rester alignee",
         featuresSubtitle: "Zero rupture d'inventaire. Zero deficit surprise. Zero opportunite manquee.",
         cards: [
           ["Pilotage des ventes", "Creez rapidement des transactions et conservez un historique de ventes clair."],
@@ -62,7 +58,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         monthlyPromo: "Promo mensuelle :",
         yearlyPromo: "Promo annuelle :",
         plansEyebrow: "Plans",
-        plansTitle: "Choisissez l'abonnement qui correspond a votre rythme",
+        plansTitle: "Choisissez l'abonnement qui correspond a vos besoins.",
         plansLoading: "Chargement des plans...",
         plansEmpty: "Aucun plan disponible.",
         defaultPlanText: "Pack operationnel pour les equipes qui veulent de la clarte et de la rapidite.",
@@ -70,6 +66,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         perMonth: "par mois",
         yearly: "Annuel :",
         continuePlan: "Continuer avec ce plan",
+        comingSoon: "A venir",
+        planLabels: {
+          BASIC: "Basic",
+          STANDARD: "Standard",
+          PREMIUM: "Premium",
+        },
         navigationWebsite: "Site web",
         navigationEmail: "Contact",
         carouselEyebrow: "Apercu de la plateforme",
@@ -137,12 +139,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           contactTitle: "Si esta solucion no corresponde a sus necesidades, no se preocupe, conversemos sobre ellas.",
           websiteLabel: "Sitio web",
           emailLabel: "Correo",
-          introTitle:
-            "CAMELEYON ERP integra ventas, inventario, productos, precios y toma de decisiones en un espacio de trabajo elegante creado para organizaciones en crecimiento.",
-          introSubtitle: "No mas hojas de calculo ni papeles sueltos.",
-          featuresEyebrow: "Funciones clave",
-          featuresTitle: "Todo lo que su organizacion necesita para mantenerse alineada",
-          featuresSubtitle: "Cero faltantes de inventario. Cero deficits sorpresa. Cero oportunidades perdidas.",
+        featuresEyebrow: "Funciones clave",
+        featuresSubtitle: "Cero faltantes de inventario. Cero deficits sorpresa. Cero oportunidades perdidas.",
           cards: [
             ["Control de ventas", "Cree transacciones rapidamente y conserve un historial de ventas claro."],
             ["Control de inventario", "Siga el movimiento del inventario y mantengase alerta ante faltantes."],
@@ -168,6 +166,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           perMonth: "por mes",
           yearly: "Anual:",
           continuePlan: "Continuar con este plan",
+          comingSoon: "Proximamente",
+          planLabels: {
+            BASIC: "Basic",
+            STANDARD: "Standard",
+            PREMIUM: "Premium",
+          },
           navigationWebsite: "Sitio web",
           navigationEmail: "Contacto",
           carouselEyebrow: "Vista de la plataforma",
@@ -234,12 +238,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           contactTitle: "If this solution does not match your needs, no problem, let's talk about what you need.",
           websiteLabel: "Website",
           emailLabel: "Email",
-          introTitle:
-            "CAMELEYON ERP brings sales, inventory, products, pricing, and decision-making into one elegant workspace built for growing organisations.",
-          introSubtitle: "No more spreadsheets and loose sheets.",
-          featuresEyebrow: "Key features",
-          featuresTitle: "Everything your organisation needs to stay aligned",
-          featuresSubtitle: "Zero inventory gaps. Zero surprise deficits. Zero missed opportunities.",
+        featuresEyebrow: "Key features",
+        featuresSubtitle: "Zero inventory gaps. Zero surprise deficits. Zero missed opportunities.",
           cards: [
             ["Sales control", "Create transactions quickly and keep a clean sales history."],
             ["Inventory control", "Track stock movement and stay alert on inventory gaps."],
@@ -265,6 +265,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           perMonth: "per month",
           yearly: "Yearly:",
           continuePlan: "Continue with this plan",
+          comingSoon: "Coming soon",
+          planLabels: {
+            BASIC: "Basic",
+            STANDARD: "Standard",
+            PREMIUM: "Premium",
+          },
           navigationWebsite: "Website",
           navigationEmail: "Contact",
           carouselEyebrow: "Platform preview",
@@ -397,6 +403,18 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   }
 
   const currentSlide = text.carouselSlides[activeSlide]
+  const displayPlans = ["BASIC", "STANDARD", "PREMIUM"].map((code) => {
+    const plan = plans.find((candidate) => candidate.code.toUpperCase() === code)
+
+    return {
+      code,
+      name: plan?.name || text.planLabels[code as keyof typeof text.planLabels],
+      description: plan?.description || (code === "BASIC" ? text.defaultPlanText : text.comingSoon),
+      monthlyPrice: plan?.monthlyPrice ?? null,
+      yearlyPrice: plan?.yearlyPrice ?? null,
+      available: Boolean(plan),
+    }
+  })
 
   return (
     <div className="public-page public-page-redesign">
@@ -412,7 +430,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
       <header className="public-site-header">
         <div className="public-wordmark">
-          <span>CAMELEYON ERP</span>
+          <span>CAMELEYON-ERP</span>
         </div>
 
         <div className="hero-actions public-cta-actions public-header-actions">
@@ -426,8 +444,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
       <section className="public-showcase">
         <div className="public-showcase-copy">
           <div className="public-badge">{text.badge}</div>
-          <h1>CAMELEYON-ERP</h1>
-          <p className="public-hero-tagline">{text.heroSubtitle}</p>
+          <p className="public-hero-tagline">
+            <strong>CAMELEYON-ERP,</strong> {text.heroSubtitle}
+          </p>
+          <p className="public-hero-supporting-copy">{text.featuresSubtitle}</p>
         </div>
 
         <div className="public-carousel-panel">
@@ -464,19 +484,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         </div>
       </section>
 
-      <section className="public-intro card">
-        <h2>{text.introTitle}</h2>
-        <p>{text.introSubtitle}</p>
-      </section>
-
       {error && <div className="card error">{error}</div>}
 
       <section className="public-band">
         <div className="section-heading">
           <div>
             <p className="eyebrow">{text.featuresEyebrow}</p>
-            <h2>{text.featuresTitle}</h2>
-            <p className="section-subtitle">{text.featuresSubtitle}</p>
           </div>
         </div>
 
@@ -534,27 +547,31 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
         {loading ? (
           <p>{text.plansLoading}</p>
-        ) : plans.length === 0 ? (
-          <div className="card">{text.plansEmpty}</div>
         ) : (
-          <div className="public-grid">
-            {plans.map((plan) => (
-              <div key={plan.id} className="public-plan-card">
+          <div className="public-plan-grid">
+            {displayPlans.map((plan) => (
+              <div key={plan.code} className="public-plan-card">
                 <div className="public-plan-topline">
                   <span>{plan.code}</span>
                 </div>
                 <h3>{plan.name}</h3>
-                <p>{plan.description || text.defaultPlanText}</p>
+                <p>{plan.description}</p>
                 <div className="public-price-stack">
-                  <strong>{plan.monthlyPrice === null ? text.custom : formatCurrency(plan.monthlyPrice)}</strong>
+                  <strong>{plan.monthlyPrice === null ? text.comingSoon : formatCurrency(plan.monthlyPrice)}</strong>
                   <span>{text.perMonth}</span>
                 </div>
                 <p>
-                  <strong>{text.yearly}</strong> {plan.yearlyPrice === null ? "-" : formatCurrency(plan.yearlyPrice)}
+                  <strong>{text.yearly}</strong> {plan.yearlyPrice === null ? text.comingSoon : formatCurrency(plan.yearlyPrice)}
                 </p>
-                <button type="button" onClick={onGoToSignup}>
-                  {text.continuePlan}
-                </button>
+                {plan.available ? (
+                  <button type="button" onClick={onGoToSignup}>
+                    {text.continuePlan}
+                  </button>
+                ) : (
+                  <button type="button" disabled>
+                    {text.comingSoon}
+                  </button>
+                )}
               </div>
             ))}
           </div>
