@@ -400,6 +400,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   }
 
   const currentSlide = text.carouselSlides[activeSlide]
+  const badgePrefix = language === "fr"
+    ? "Propulse par"
+    : language === "es"
+      ? "Impulsado por"
+      : "Powered by"
   const displayPlans = ["BASIC", "STANDARD", "PREMIUM"].map((code) => {
     const plan = plans.find((candidate) => candidate.code.toUpperCase() === code)
 
@@ -434,7 +439,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
       <section className="public-showcase">
         <div className="public-showcase-copy">
-          <div className="public-badge">{text.badge}</div>
+          <div className="public-badge">
+            <span>{badgePrefix}</span>
+            <strong>CAMELEYON Dynamics</strong>
+          </div>
           <p className="public-hero-tagline">
             <strong>CAMELEYON-ERP,</strong> {text.heroSubtitle}
           </p>

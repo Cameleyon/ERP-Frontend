@@ -1398,6 +1398,15 @@ td {
   color: white;
 }
 
+.public-badge {
+  gap: 4px;
+  font-weight: 400;
+}
+
+.public-badge strong {
+  font-weight: 700;
+}
+
 .public-hero-copy p,
 .platform-hero-copy p {
   max-width: 620px;
@@ -2074,6 +2083,40 @@ body.invoice-printing .sidebar-overlay {
 
   .public-carousel-slide {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .public-carousel-panel {
+    padding: 18px;
+  }
+
+  .public-carousel-slide-copy h3 {
+    font-size: 21px;
+  }
+
+  .public-carousel-media {
+    height: auto;
+    min-height: 0;
+    background: rgba(245, 251, 253, 0.98);
+  }
+
+  .public-carousel-media.contain {
+    padding: 12px;
+  }
+
+  .public-carousel-media img,
+  .public-carousel-media.cover img,
+  .public-carousel-media.contain img {
+    height: auto;
+    min-height: 0;
+    object-fit: contain;
+  }
+
+  .public-carousel-media.logo img {
+    width: min(68%, 220px);
+    max-height: 150px;
   }
 
   .section-heading h2 {
