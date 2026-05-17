@@ -11,6 +11,7 @@ import {
 import { getCostRubrics, type CompanyCostRubricResponse } from "../api/costRubricApi"
 import TablePagination from "../components/common/TablePagination"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
+import QuantityInput from "../components/common/QuantityInput"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import { messages } from "../i18n/messages"
@@ -43,17 +44,17 @@ export default function InventoryPage() {
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
   const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState("1")
   const [notes, setNotes] = useState("")
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
   const [rubricsLoading, setRubricsLoading] = useState(true)
   const [costAmounts, setCostAmounts] = useState<CostAmountMap>({})
   const [activeReceipts, setActiveReceipts] = useState<InventoryReceiptResponse[]>([])
   const [withdrawalReceiptId, setWithdrawalReceiptId] = useState<number | null>(null)
-  const [withdrawalQuantity, setWithdrawalQuantity] = useState(1)
+  const [withdrawalQuantity, setWithdrawalQuantity] = useState("1")
   const [withdrawalReason, setWithdrawalReason] = useState("")
   const [editingReceiptId, setEditingReceiptId] = useState<number | null>(null)
-  const [editedReceiptQuantity, setEditedReceiptQuantity] = useState(1)
+  const [editedReceiptQuantity, setEditedReceiptQuantity] = useState("1")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -135,7 +136,9 @@ export default function InventoryPage() {
       setError(text.noProduct)
       return
     }
-    if (quantity <= 0) {
+    const quantityValue = parseQuantity(quantity)
+
+    if (quantityValue <= 0) {
       setError(text.quantityPositive)
       return
     }
@@ -151,7 +154,7 @@ export default function InventoryPage() {
       const response = await createInventoryReceipt({
         locationId: locationId ? Number(locationId) : null,
         productId: selectedProduct.id,
-        receivedQuantity: quantity,
+        receivedQuantity: quantityValue,
         notes,
         costLines: rubrics.map((rubric) => ({
           companyCostRubricId: rubric.id,
@@ -161,7 +164,7 @@ export default function InventoryPage() {
 
       setSuccess(text.receiptSuccess(response.id))
       setSelectedProduct({ ...selectedProduct, currentStock: selectedProduct.currentStock + response.receivedQuantity })
-      setQuantity(1)
+      setQuantity("1")
       setNotes("")
       setCostAmounts(createInitialCostAmounts(rubrics))
       if (locationId) await loadOpenReceipts(Number(locationId))
@@ -174,7 +177,9 @@ export default function InventoryPage() {
   }
 
   async function handleReceiptWithdrawal(receipt: InventoryReceiptResponse) {
-    if (withdrawalQuantity <= 0) {
+    const withdrawalQuantityValue = parseQuantity(withdrawalQuantity)
+
+    if (withdrawalQuantityValue <= 0) {
       setError(text.quantityPositive)
       return
     }
@@ -184,13 +189,13 @@ export default function InventoryPage() {
       setError("")
       setSuccess("")
       const response = await createInventoryReceiptWithdrawal(receipt.id, {
-        quantity: withdrawalQuantity,
+        quantity: withdrawalQuantityValue,
         reason: withdrawalReason,
       })
 
       setSuccess(text.withdrawalSuccess(response.productName))
       setWithdrawalReceiptId(null)
-      setWithdrawalQuantity(1)
+      setWithdrawalQuantity("1")
       setWithdrawalReason("")
       if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
@@ -202,7 +207,9 @@ export default function InventoryPage() {
   }
 
   async function handleReceiptQuantityUpdate(receipt: InventoryReceiptResponse) {
-    if (editedReceiptQuantity <= 0) {
+    const editedReceiptQuantityValue = parseQuantity(editedReceiptQuantity)
+
+    if (editedReceiptQuantityValue <= 0) {
       setError(text.quantityPositive)
       return
     }
@@ -212,7 +219,7 @@ export default function InventoryPage() {
       setError("")
       setSuccess("")
       const response = await updateInventoryReceiptQuantity(receipt.id, {
-        receivedQuantity: editedReceiptQuantity,
+        receivedQuantity: editedReceiptQuantityValue,
       })
 
       setSuccess(text.receiptUpdated(response.id))
@@ -239,21 +246,21 @@ export default function InventoryPage() {
 
   function startWithdrawal(receipt: InventoryReceiptResponse) {
     setWithdrawalReceiptId(receipt.id)
-    setWithdrawalQuantity(1)
+    setWithdrawalQuantity("1")
     setWithdrawalReason("")
     setEditingReceiptId(null)
   }
 
   function startEdit(receipt: InventoryReceiptResponse) {
     setEditingReceiptId(receipt.id)
-    setEditedReceiptQuantity(receipt.receivedQuantity)
+    setEditedReceiptQuantity(String(receipt.receivedQuantity))
     setWithdrawalReceiptId(null)
   }
 
   function cancelReceiptCreation() {
     setSelectedProduct(null)
     setProductCode("")
-    setQuantity(1)
+    setQuantity("1")
     setNotes("")
     setCostAmounts(createInitialCostAmounts(rubrics))
     setError("")
@@ -268,7 +275,8 @@ export default function InventoryPage() {
       }, 0),
     [rubrics, costAmounts],
   )
-  const unitCost = quantity > 0 ? totalCost / quantity : 0
+  const quantityValue = parseQuantity(quantity)
+  const unitCost = quantityValue > 0 ? totalCost / quantityValue : 0
   const unitLabel = selectedProduct?.unitName ? ` ${selectedProduct.unitName}` : ""
 
   return (
@@ -331,12 +339,12 @@ export default function InventoryPage() {
           <div className="inventory-form-grid">
             <label>
               {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitName})` : ""}
-              <input
-                type="number"
+              <QuantityInput
                 min={0.0001}
-                step="0.0001"
+                step={0.0001}
                 value={quantity}
-                onChange={(event) => setQuantity(Number(event.target.value))}
+                onChange={setQuantity}
+                ariaLabel={text.receivedQuantity}
               />
             </label>
 
@@ -445,19 +453,19 @@ function ActiveReceiptTable({
   rows: InventoryReceiptResponse[]
   text: InventoryPageCopy
   withdrawalReceiptId: number | null
-  withdrawalQuantity: number
+  withdrawalQuantity: string
   withdrawalReason: string
   editingReceiptId: number | null
-  editedReceiptQuantity: number
+  editedReceiptQuantity: string
   saveLoading: boolean
   onStartWithdrawal: (receipt: InventoryReceiptResponse) => void
   onCancelWithdrawal: () => void
-  onWithdrawalQuantityChange: (quantity: number) => void
+  onWithdrawalQuantityChange: (quantity: string) => void
   onWithdrawalReasonChange: (reason: string) => void
   onSubmitWithdrawal: (receipt: InventoryReceiptResponse) => Promise<void>
   onStartEdit: (receipt: InventoryReceiptResponse) => void
   onCancelEdit: () => void
-  onEditedQuantityChange: (quantity: number) => void
+  onEditedQuantityChange: (quantity: string) => void
   onSubmitEdit: (receipt: InventoryReceiptResponse) => Promise<void>
 }) {
   const [filterValue, setFilterValue] = useState("")
@@ -558,12 +566,11 @@ function ActiveReceiptTable({
                 <td>
                   {withdrawalReceiptId === row.id ? (
                     <div className="inventory-inline-actions">
-                      <input
-                        type="number"
+                      <QuantityInput
                         min={0.0001}
-                        step="0.0001"
+                        step={0.0001}
                         value={withdrawalQuantity}
-                        onChange={(event) => onWithdrawalQuantityChange(Number(event.target.value))}
+                        onChange={onWithdrawalQuantityChange}
                       />
                       <input
                         type="text"
@@ -580,12 +587,11 @@ function ActiveReceiptTable({
                     </div>
                   ) : editingReceiptId === row.id ? (
                     <div className="inventory-inline-actions">
-                      <input
-                        type="number"
+                      <QuantityInput
                         min={0.0001}
-                        step="0.0001"
+                        step={0.0001}
                         value={editedReceiptQuantity}
-                        onChange={(event) => onEditedQuantityChange(Number(event.target.value))}
+                        onChange={onEditedQuantityChange}
                       />
                       <button type="button" onClick={() => void onSubmitEdit(row)} disabled={saveLoading}>
                         {text.save}
@@ -687,4 +693,9 @@ function formatReceiptAction(action: InventoryReceiptResponse["lastAction"], tex
     default:
       return text.creationActionLabel
   }
+}
+
+function parseQuantity(value: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
 }

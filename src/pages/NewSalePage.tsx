@@ -8,6 +8,7 @@ import BarcodeLookup from "../components/sales/BarcodeLookup"
 import CartTable from "../components/sales/CartTable"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
+import QuantityInput from "../components/common/QuantityInput"
 import { useAuth } from "../auth/AuthContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
@@ -58,7 +59,7 @@ export default function NewSalePage() {
   const [paymentReference, setPaymentReference] = useState("")
   const [paymentAuthorizationCode, setPaymentAuthorizationCode] = useState("")
   const [paymentConfirmedManually, setPaymentConfirmedManually] = useState(false)
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState("1")
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [lastSaleInvoice, setLastSaleInvoice] = useState<SaleDetailResponse | null>(null)
 
@@ -118,7 +119,7 @@ export default function NewSalePage() {
 
       const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
       setSelectedProduct(product)
-      setQuantity(1)
+      setQuantity("1")
     } catch (err) {
       console.error(err)
       setSelectedProduct(null)
@@ -134,12 +135,14 @@ export default function NewSalePage() {
       return
     }
 
-    if (quantity <= 0) {
+    const quantityValue = parseQuantity(quantity)
+
+    if (quantityValue <= 0) {
       setError(text.quantityPositive)
       return
     }
 
-    if (quantity > selectedProduct.currentStock) {
+    if (quantityValue > selectedProduct.currentStock) {
       setError(text.quantityExceedsStock)
       return
     }
@@ -147,7 +150,7 @@ export default function NewSalePage() {
     const existing = cartItems.find((item) => item.productId === selectedProduct.id)
 
     if (existing) {
-      const newQuantity = existing.quantity + quantity
+      const newQuantity = existing.quantity + quantityValue
       const pricing = resolveUnitPrice(selectedProduct, newQuantity)
 
       if (newQuantity > selectedProduct.currentStock) {
@@ -168,7 +171,7 @@ export default function NewSalePage() {
         ),
       )
     } else {
-      const pricing = resolveUnitPrice(selectedProduct, quantity)
+      const pricing = resolveUnitPrice(selectedProduct, quantityValue)
 
       setCartItems((prev) => [
         ...prev,
@@ -177,16 +180,16 @@ export default function NewSalePage() {
           productName: selectedProduct.name,
           sku: selectedProduct.sku,
           unitName: selectedProduct.unitName,
-          quantity,
+          quantity: quantityValue,
           unitPrice: pricing.unitPrice,
-          lineTotal: quantity * pricing.unitPrice,
+          lineTotal: quantityValue * pricing.unitPrice,
         },
       ])
     }
 
     setSelectedProduct(null)
     setProductCode("")
-    setQuantity(1)
+    setQuantity("1")
     setError("")
   }
 
@@ -236,7 +239,7 @@ export default function NewSalePage() {
       setCartItems([])
       setSelectedProduct(null)
       setProductCode("")
-      setQuantity(1)
+      setQuantity("1")
       setSelectedCustomerId("WALK_IN")
       setCustomerSearch("")
       setPaymentMethod("CASH")
@@ -324,7 +327,8 @@ export default function NewSalePage() {
     }
   }
 
-  const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantity) : null
+  const quantityValue = parseQuantity(quantity)
+  const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantityValue) : null
 
   return (
     <div>
@@ -399,11 +403,12 @@ export default function NewSalePage() {
           <div className="sale-form-row">
             <label>
               {text.quantity} {selectedProduct.unitName ? `(${selectedProduct.unitName})` : ""}
-              <input
-                type="number"
+              <QuantityInput
                 min={1}
+                step={1}
                 value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
+                onChange={setQuantity}
+                ariaLabel={text.quantity}
               />
             </label>
 
@@ -412,7 +417,7 @@ export default function NewSalePage() {
 
           <p>
             <strong>{text.linePreview}:</strong>{" "}
-            {formatCurrency(quantity * (selectedPricing?.unitPrice ?? selectedProduct.unitPrice))}
+            {formatCurrency(quantityValue * (selectedPricing?.unitPrice ?? selectedProduct.unitPrice))}
           </p>
         </div>
       )}
@@ -556,4 +561,9 @@ export default function NewSalePage() {
       )}
     </div>
   )
+}
+
+function parseQuantity(value: string) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
 }
