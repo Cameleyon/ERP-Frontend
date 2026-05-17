@@ -1431,6 +1431,7 @@ td {
 .public-badge {
   gap: 4px;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .public-badge strong {
