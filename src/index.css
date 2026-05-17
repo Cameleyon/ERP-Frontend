@@ -1503,13 +1503,14 @@ td {
 .public-contact-heading h3 {
   margin: 8px 0 0;
   color: #044975;
-  font-size: 22px;
+  font-size: 16px;
+  font-weight: 400;
   line-height: 1.45;
 }
 
 .public-contact-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   margin-top: 18px;
 }
@@ -1518,7 +1519,7 @@ td {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 16px 18px;
+  padding: 10px 14px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(245, 251, 253, 0.96) 0%, rgba(237, 246, 248, 0.96) 100%);
   border: 1px solid rgba(4, 73, 117, 0.1);
@@ -1537,7 +1538,7 @@ td {
 
 .public-contact-item strong {
   color: #044975;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .public-hero-tagline {
