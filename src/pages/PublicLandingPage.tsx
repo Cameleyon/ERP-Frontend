@@ -75,7 +75,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         navigationWebsite: "Site web",
         navigationEmail: "Contact",
         carouselEyebrow: "Apercu de la plateforme",
-        carouselTitle: "Les pages cles de l'application, presentees comme une vitrine.",
         carouselSlides: [
           {
             eyebrow: "Tableau de bord",
@@ -175,7 +174,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           navigationWebsite: "Sitio web",
           navigationEmail: "Contacto",
           carouselEyebrow: "Vista de la plataforma",
-          carouselTitle: "Las paginas clave de la aplicacion, presentadas como una vitrina.",
           carouselSlides: [
             {
               eyebrow: "Panel",
@@ -274,7 +272,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           navigationWebsite: "Website",
           navigationEmail: "Contact",
           carouselEyebrow: "Platform preview",
-          carouselTitle: "The key app pages, presented like a storefront.",
           carouselSlides: [
             {
               eyebrow: "Dashboard",
@@ -419,12 +416,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   return (
     <div className="public-page public-page-redesign">
       <div className="public-utility-bar">
-        <div className="public-utility-links">
-          <a href="https://www.cameleyondynamics.com" target="_blank" rel="noreferrer">
-            {text.navigationWebsite}
-          </a>
-          <span>contact@cameleyondynamics.com</span>
-        </div>
         <LanguageSwitcher className="public-language-switcher" />
       </div>
 
@@ -453,7 +444,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         <div className="public-carousel-panel">
           <div className="public-carousel-heading">
             <p className="eyebrow">{text.carouselEyebrow}</p>
-            <h2>{text.carouselTitle}</h2>
           </div>
 
           <div className="public-carousel-frame">

@@ -1520,7 +1520,7 @@ td {
   gap: 4px;
   padding: 16px 18px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(236, 239, 241, 0.9) 0%, rgba(255, 248, 225, 0.78) 100%);
+  background: linear-gradient(180deg, rgba(245, 251, 253, 0.96) 0%, rgba(237, 246, 248, 0.96) 100%);
   border: 1px solid rgba(4, 73, 117, 0.1);
   color: var(--text-color);
   user-select: text;
