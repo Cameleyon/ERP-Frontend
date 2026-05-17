@@ -7,6 +7,13 @@ import {
   type PublicPromotionResponse,
 } from "../api/publicPromotionsApi"
 import { formatCurrency } from "../utils/format"
+import cameleyonDynamicsLogo from "../assets/cameleyon-dynamics-logo.png"
+import landingCustomers from "../assets/landing-customers.png"
+import landingDashboard from "../assets/landing-dashboard.png"
+import landingInventory from "../assets/landing-inventory.png"
+import landingNewSale from "../assets/landing-new-sale.png"
+import landingProducts from "../assets/landing-products.png"
+import landingSalesHistory from "../assets/landing-sales-history.png"
 
 type Props = {
   onGoToSignup: () => void
@@ -19,6 +26,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   const [promotions, setPromotions] = useState<PublicPromotionResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [activeSlide, setActiveSlide] = useState(0)
 
   const text = language === "fr"
     ? {
@@ -62,6 +70,56 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         perMonth: "par mois",
         yearly: "Annuel :",
         continuePlan: "Continuer avec ce plan",
+        navigationWebsite: "Site web",
+        navigationEmail: "Contact",
+        carouselEyebrow: "Apercu de la plateforme",
+        carouselTitle: "Les pages cles de l'application, presentees comme une vitrine.",
+        carouselDescription:
+          "Ce carrousel est pret a recevoir les captures reelles de l'application et le logo CAMELEYON Dynamics en derniere image.",
+        carouselSlides: [
+          {
+            eyebrow: "Tableau de bord",
+            title: "Suivez les ventes et les indicateurs",
+            description: "Un apercu rapide de l'activite, du stock faible et des produits performants.",
+            image: landingDashboard,
+          },
+          {
+            eyebrow: "Clients",
+            title: "Gardez les clients organises",
+            description: "Ajoutez les contacts et suivez facilement les informations utiles.",
+            image: landingCustomers,
+          },
+          {
+            eyebrow: "Nouvelle vente",
+            title: "Encaissez avec fluidite",
+            description: "Recherche produit, client, mode de paiement et facture reunis au meme endroit.",
+            image: landingNewSale,
+          },
+          {
+            eyebrow: "Historique",
+            title: "Retrouvez les ventes en quelques secondes",
+            description: "Filtrez, consultez les details et gardez une vue claire de l'activite.",
+            image: landingSalesHistory,
+          },
+          {
+            eyebrow: "Inventaire",
+            title: "Gardez le stock sous controle",
+            description: "Receptions, retraits et quantites restantes restent visibles en un coup d'oeil.",
+            image: landingInventory,
+          },
+          {
+            eyebrow: "Produits",
+            title: "Structurez votre catalogue",
+            description: "Importez, creez et gerez vos produits depuis un seul espace.",
+            image: landingProducts,
+          },
+          {
+            eyebrow: "CAMELEYON Dynamics",
+            title: "Une marque pour accompagner la croissance",
+            description: "Le logo viendra conclure le defilement avec une signature claire de la marque.",
+            image: cameleyonDynamicsLogo,
+          },
+        ],
       }
     : language === "es"
       ? {
@@ -105,6 +163,56 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           perMonth: "por mes",
           yearly: "Anual:",
           continuePlan: "Continuar con este plan",
+          navigationWebsite: "Sitio web",
+          navigationEmail: "Contacto",
+          carouselEyebrow: "Vista de la plataforma",
+          carouselTitle: "Las paginas clave de la aplicacion, presentadas como una vitrina.",
+          carouselDescription:
+            "Este carrusel esta listo para recibir capturas reales de la aplicacion y el logo de CAMELEYON Dynamics como ultima imagen.",
+          carouselSlides: [
+            {
+              eyebrow: "Panel",
+              title: "Siga ventas e indicadores",
+              description: "Una vista rapida de la actividad, el inventario bajo y los productos destacados.",
+              image: landingDashboard,
+            },
+            {
+              eyebrow: "Clientes",
+              title: "Mantenga sus clientes organizados",
+              description: "Agregue contactos y consulte facilmente la informacion util.",
+              image: landingCustomers,
+            },
+            {
+              eyebrow: "Nueva venta",
+              title: "Venda con fluidez",
+              description: "Busqueda de producto, cliente, pago y factura reunidos en un mismo lugar.",
+              image: landingNewSale,
+            },
+            {
+              eyebrow: "Historial",
+              title: "Encuentre ventas en segundos",
+              description: "Filtre, consulte detalles y mantenga una vista clara de la actividad.",
+              image: landingSalesHistory,
+            },
+            {
+              eyebrow: "Inventario",
+              title: "Mantenga el stock bajo control",
+              description: "Recepciones, retiros y cantidades restantes visibles de un vistazo.",
+              image: landingInventory,
+            },
+            {
+              eyebrow: "Productos",
+              title: "Estructure su catalogo",
+              description: "Importe, cree y gestione productos desde un solo espacio.",
+              image: landingProducts,
+            },
+            {
+              eyebrow: "CAMELEYON Dynamics",
+              title: "Una marca para acompanar el crecimiento",
+              description: "El logo cerrara el recorrido con una firma clara de la marca.",
+              image: cameleyonDynamicsLogo,
+            },
+          ],
         }
       : {
           loadError: "Failed to load public data",
@@ -147,6 +255,56 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           perMonth: "per month",
           yearly: "Yearly:",
           continuePlan: "Continue with this plan",
+          navigationWebsite: "Website",
+          navigationEmail: "Contact",
+          carouselEyebrow: "Platform preview",
+          carouselTitle: "The key app pages, presented like a storefront.",
+          carouselDescription:
+            "This carousel is ready for the real application screenshots and the CAMELEYON Dynamics logo as the final image.",
+          carouselSlides: [
+            {
+              eyebrow: "Dashboard",
+              title: "Track sales and indicators",
+              description: "A quick view of activity, low stock, and top-performing products.",
+              image: landingDashboard,
+            },
+            {
+              eyebrow: "Customers",
+              title: "Keep customers organised",
+              description: "Add contacts and keep the useful details easy to reach.",
+              image: landingCustomers,
+            },
+            {
+              eyebrow: "New sale",
+              title: "Sell with less friction",
+              description: "Product search, customer, payment method, and invoice in one place.",
+              image: landingNewSale,
+            },
+            {
+              eyebrow: "Sales history",
+              title: "Find sales in seconds",
+              description: "Filter, review details, and keep a clear view of activity.",
+              image: landingSalesHistory,
+            },
+            {
+              eyebrow: "Inventory",
+              title: "Keep stock under control",
+              description: "Receipts, withdrawals, and remaining quantities stay visible at a glance.",
+              image: landingInventory,
+            },
+            {
+              eyebrow: "Products",
+              title: "Structure your catalogue",
+              description: "Import, create, and manage products from one workspace.",
+              image: landingProducts,
+            },
+            {
+              eyebrow: "CAMELEYON Dynamics",
+              title: "A brand built to support growth",
+              description: "The logo will close the sequence with a clear brand signature.",
+              image: cameleyonDynamicsLogo,
+            },
+          ],
         }
 
   function formatTrialDuration(days: number) {
@@ -195,6 +353,14 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     loadPublicData()
   }, [])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % text.carouselSlides.length)
+    }, 4500)
+
+    return () => window.clearInterval(timer)
+  }, [text.carouselSlides.length])
+
   async function loadPublicData() {
     try {
       setLoading(true)
@@ -215,23 +381,72 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
   }
 
-  return (
-    <div className="public-page">
-      <LanguageSwitcher className="public-language-switcher" />
+  const currentSlide = text.carouselSlides[activeSlide]
 
-      <section className="public-hero">
-        <div className="public-hero-copy">
+  return (
+    <div className="public-page public-page-redesign">
+      <div className="public-utility-bar">
+        <div className="public-utility-links">
+          <a href="https://www.cameleyondynamics.com" target="_blank" rel="noreferrer">
+            {text.navigationWebsite}
+          </a>
+          <span>contact@cameleyondynamics.com</span>
+        </div>
+        <LanguageSwitcher className="public-language-switcher" />
+      </div>
+
+      <header className="public-site-header">
+        <div className="public-wordmark">
+          <span>CAMELEYON</span>
+          <strong>Dynamics</strong>
+        </div>
+
+        <div className="hero-actions public-cta-actions public-header-actions">
+          <button onClick={onGoToSignup}>{text.signUp}</button>
+          <button type="button" className="secondary-button public-login-button" onClick={onGoToLogin}>
+            {text.login}
+          </button>
+        </div>
+      </header>
+
+      <section className="public-showcase">
+        <div className="public-showcase-copy">
           <div className="public-badge">{text.badge}</div>
           <h1>CAMELEYON-ERP</h1>
           <p className="public-hero-tagline">{text.heroSubtitle}</p>
         </div>
 
-        <div className="public-hero-actions-wrap">
-          <div className="hero-actions public-cta-actions">
-            <button onClick={onGoToSignup}>{text.signUp}</button>
-            <button type="button" className="secondary-button public-login-button" onClick={onGoToLogin}>
-              {text.login}
-            </button>
+        <div className="public-carousel-panel">
+          <div className="public-carousel-heading">
+            <p className="eyebrow">{text.carouselEyebrow}</p>
+            <h2>{text.carouselTitle}</h2>
+            <p>{text.carouselDescription}</p>
+          </div>
+
+          <div className="public-carousel-frame">
+            <div className={`public-carousel-slide slide-${activeSlide}`}>
+              <div className="public-carousel-slide-copy">
+                <span>{currentSlide.eyebrow}</span>
+                <h3>{currentSlide.title}</h3>
+                <p>{currentSlide.description}</p>
+              </div>
+
+              <div className={`public-carousel-media ${activeSlide === text.carouselSlides.length - 1 ? "brand" : ""}`}>
+                <img src={currentSlide.image} alt="" aria-hidden="true" />
+              </div>
+            </div>
+          </div>
+
+          <div className="public-carousel-dots">
+            {text.carouselSlides.map((slide, index) => (
+              <button
+                key={slide.title}
+                type="button"
+                className={index === activeSlide ? "active" : ""}
+                aria-label={`${slide.eyebrow} ${index + 1}`}
+                onClick={() => setActiveSlide(index)}
+              />
+            ))}
           </div>
         </div>
       </section>
