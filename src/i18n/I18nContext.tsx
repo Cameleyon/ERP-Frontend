@@ -40,6 +40,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, language)
     document.documentElement.lang = language
+    document.documentElement.translate = false
+    document.body.translate = false
   }, [language])
 
   const value = useMemo<I18nContextValue>(() => ({
