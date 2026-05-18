@@ -30,28 +30,28 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
   const text = language === "fr"
     ? {
-        loadError: "Impossible de charger les donnees publiques",
-        badge: "Propulse par CAMELEYON Dynamics",
-        heroSubtitle: "Une seule plateforme pour toutes vos entreprises pour gerer vos ventes, vos produits, vos clients et vos stocks.",
+        loadError: "Impossible de charger les données publiques",
+        badge: "Propulsé par CAMELEYON Dynamics",
+        heroSubtitle: "Une seule plateforme pour toutes vos entreprises pour gérer vos ventes, vos produits, vos clients et vos stocks.",
         signUp: "S'inscrire",
         login: "Se connecter",
         contactEyebrow: "Contact",
-        contactTitle: "Cette solution ne correspond pas a vos besoins? Pas de souci, parlons de vos besoins.",
+        contactTitle: "Cette solution ne correspond pas à vos besoins? Pas de souci, parlons de vos besoins.",
         websiteLabel: "Site web",
         emailLabel: "Email",
-        featuresEyebrow: "Fonctionnalites cles",
-        featuresSubtitle: "Zero rupture d'inventaire. Zero deficit surprise. Zero opportunite manquee.",
+        featuresEyebrow: "Fonctionnalités clés",
+        featuresSubtitle: "Zéro rupture d'inventaire. Zéro déficit surprise. Zéro opportunité manquée.",
         cards: [
-          ["Pilotage des ventes", "Creez rapidement des transactions et conservez un historique de ventes clair."],
-          ["Controle de l'inventaire", "Suivez les mouvements de stock et restez alerte sur les ecarts d'inventaire."],
-          ["Structure produits", "Gerez les produits et les prix."],
-          ["Visibilite d'entreprise", "Accedez a votre entreprise a tout moment, partout."],
+          ["Pilotage des ventes", "Créez rapidement des transactions et conservez un historique de ventes clair."],
+          ["Contrôle de l'inventaire", "Suivez les mouvements de stock et restez alerte sur les écarts d'inventaire."],
+          ["Structure produits", "Gérez les produits et les prix."],
+          ["Visibilité d'entreprise", "Accédez à votre entreprise à tout moment, partout."],
         ],
         promotionsEyebrow: "Promotions",
         promotionsTitle: "Offres en cours",
         promotionsLoading: "Chargement des promotions...",
         promotionsEmpty: "Aucune promotion disponible pour le moment.",
-        specialOffer: "Offre speciale",
+        specialOffer: "Offre spéciale",
         promoText: "Tarification promotionnelle actuellement disponible.",
         freeTrial: "Essai gratuit :",
         days: "jours",
@@ -61,12 +61,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         plansTitle: "Choisissez l'abonnement qui correspond a vos besoins.",
         plansLoading: "Chargement des plans...",
         plansEmpty: "Aucun plan disponible.",
-        defaultPlanText: "Pack operationnel pour les equipes qui veulent de la clarte et de la rapidite.",
+        defaultPlanText: "Pack opérationnel pour les équipes qui veulent de la clarté et de la rapidité.",
         custom: "Sur mesure",
         perMonth: "par mois",
         yearly: "Annuel :",
         continuePlan: "Continuer avec ce plan",
-        comingSoon: "A venir",
+        comingSoon: "À venir",
         planLabels: {
           BASIC: "Basic",
           STANDARD: "Standard",
@@ -74,54 +74,54 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         },
         navigationWebsite: "Site web",
         navigationEmail: "Contact",
-        carouselEyebrow: "Apercu de la plateforme",
+        carouselEyebrow: "Aperçu de la plateforme",
         carouselSlides: [
           {
             eyebrow: "Tableau de bord",
             title: "Suivez les ventes et les indicateurs",
-            description: "Un apercu rapide de l'activite, du stock faible et des produits performants.",
+            description: "Un aperçu rapide de l'activité, du stock faible et des produits performants.",
             image: landingDashboard,
             mediaFit: "cover",
           },
           {
             eyebrow: "Clients",
-            title: "Gardez les clients organises",
+            title: "Gardez les clients organisés",
             description: "Ajoutez les contacts et suivez facilement les informations utiles.",
             image: landingCustomers,
             mediaFit: "contain",
           },
           {
             eyebrow: "Nouvelle vente",
-            title: "Encaissez avec fluidite",
-            description: "Recherche produit, client, mode de paiement et facture reunis au meme endroit.",
+            title: "Encaissez avec fluidité",
+            description: "Recherche produit, client, mode de paiement et facture réunis au même endroit.",
             image: landingNewSale,
             mediaFit: "contain",
           },
           {
             eyebrow: "Historique",
             title: "Retrouvez les ventes en quelques secondes",
-            description: "Filtrez, consultez les details et gardez une vue claire de l'activite.",
+            description: "Filtrez, consultez les détails et gardez une vue claire de l'activité.",
             image: landingSalesHistory,
             mediaFit: "cover",
           },
           {
             eyebrow: "Inventaire",
-            title: "Gardez le stock sous controle",
-            description: "Receptions, retraits et quantites restantes restent visibles en un coup d'oeil.",
+            title: "Gardez le stock sous contrôle",
+            description: "Réceptions, retraits et quantités restantes restent visibles en un coup d'œil.",
             image: landingInventory,
             mediaFit: "contain",
           },
           {
             eyebrow: "Produits",
             title: "Structurez votre catalogue",
-            description: "Importez, creez et gerez vos produits depuis un seul espace.",
+            description: "Importez, créez et gérez vos produits depuis un seul espace.",
             image: landingProducts,
             mediaFit: "cover",
           },
           {
             eyebrow: "CAMELEYON Dynamics",
             title: "Une marque pour accompagner la croissance",
-            description: "Le logo viendra conclure le defilement avec une signature claire de la marque.",
+            description: "Le logo viendra conclure le défilement avec une signature claire de la marque.",
             image: cameleyonDynamicsLogo,
             mediaFit: "logo",
           },
@@ -129,20 +129,20 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
       }
     : language === "es"
       ? {
-          loadError: "No fue posible cargar los datos publicos",
+          loadError: "No fue posible cargar los datos públicos",
           badge: "Impulsado por CAMELEYON Dynamics",
           heroSubtitle: "Una sola plataforma para operaciones, inventario, ventas y crecimiento.",
           signUp: "Registrarse",
-          login: "Iniciar sesion",
+          login: "Iniciar sesión",
           contactEyebrow: "Contacto",
-          contactTitle: "Si esta solucion no corresponde a sus necesidades, no se preocupe, conversemos sobre ellas.",
+          contactTitle: "Si esta solución no corresponde a sus necesidades, no se preocupe, conversemos sobre ellas.",
           websiteLabel: "Sitio web",
           emailLabel: "Correo",
         featuresEyebrow: "Funciones clave",
-        featuresSubtitle: "Cero faltantes de inventario. Cero deficits sorpresa. Cero oportunidades perdidas.",
+        featuresSubtitle: "Cero faltantes de inventario. Cero déficits sorpresa. Cero oportunidades perdidas.",
           cards: [
-            ["Control de ventas", "Cree transacciones rapidamente y conserve un historial de ventas claro."],
-            ["Control de inventario", "Siga el movimiento del inventario y mantengase alerta ante faltantes."],
+            ["Control de ventas", "Cree transacciones rápidamente y conserve un historial de ventas claro."],
+            ["Control de inventario", "Siga el movimiento del inventario y manténgase alerta ante faltantes."],
             ["Estructura de productos", "Gestione productos y precios."],
             ["Visibilidad del negocio", "Acceda a su empresa en cualquier momento y desde cualquier lugar."],
           ],
@@ -153,11 +153,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           specialOffer: "Oferta especial",
           promoText: "Precio promocional disponible actualmente.",
           freeTrial: "Prueba gratis:",
-          days: "dias",
+          days: "días",
           monthlyPromo: "Promo mensual:",
           yearlyPromo: "Promo anual:",
           plansEyebrow: "Planes",
-          plansTitle: "Elija la suscripcion que mejor se adapte a su ritmo",
+          plansTitle: "Elija la suscripción que mejor se adapte a su ritmo",
           plansLoading: "Cargando planes...",
           plansEmpty: "No hay planes disponibles.",
           defaultPlanText: "Paquete operativo para equipos que buscan claridad y rapidez.",
@@ -165,7 +165,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           perMonth: "por mes",
           yearly: "Anual:",
           continuePlan: "Continuar con este plan",
-          comingSoon: "Proximamente",
+          comingSoon: "Próximamente",
           planLabels: {
             BASIC: "Basic",
             STANDARD: "Standard",
@@ -178,21 +178,21 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             {
               eyebrow: "Panel",
               title: "Siga ventas e indicadores",
-              description: "Una vista rapida de la actividad, el inventario bajo y los productos destacados.",
+              description: "Una vista rápida de la actividad, el inventario bajo y los productos destacados.",
               image: landingDashboard,
               mediaFit: "cover",
             },
             {
               eyebrow: "Clientes",
               title: "Mantenga sus clientes organizados",
-              description: "Agregue contactos y consulte facilmente la informacion util.",
+              description: "Agregue contactos y consulte fácilmente la información útil.",
               image: landingCustomers,
               mediaFit: "contain",
             },
             {
               eyebrow: "Nueva venta",
               title: "Venda con fluidez",
-              description: "Busqueda de producto, cliente, pago y factura reunidos en un mismo lugar.",
+              description: "Búsqueda de producto, cliente, pago y factura reunidos en un mismo lugar.",
               image: landingNewSale,
               mediaFit: "contain",
             },
@@ -212,15 +212,15 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             },
             {
               eyebrow: "Productos",
-              title: "Estructure su catalogo",
+              title: "Estructure su catálogo",
               description: "Importe, cree y gestione productos desde un solo espacio.",
               image: landingProducts,
               mediaFit: "cover",
             },
             {
               eyebrow: "CAMELEYON Dynamics",
-              title: "Una marca para acompanar el crecimiento",
-              description: "El logo cerrara el recorrido con una firma clara de la marca.",
+              title: "Una marca para acompañar el crecimiento",
+              description: "El logo cerrará el recorrido con una firma clara de la marca.",
               image: cameleyonDynamicsLogo,
               mediaFit: "logo",
             },
@@ -333,7 +333,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
 
     if (language === "fr") return `${days} jours`
-    if (language === "es") return `${days} dias`
+    if (language === "es") return `${days} días`
     return `${days} days`
   }
 
@@ -401,7 +401,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
   const currentSlide = text.carouselSlides[activeSlide]
   const badgePrefix = language === "fr"
-    ? "Propulse par"
+    ? "Propulsé par"
     : language === "es"
       ? "Impulsado por"
       : "Powered by"

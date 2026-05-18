@@ -15,18 +15,18 @@ export default function PlatformRedirectPage({ platformAppUrl }: Props) {
       ? {
           title: "Utilisez le portail plateforme",
           message:
-            "Les espaces super admin et promoteur se connectent maintenant sur un portail dedie pour garder l'application entreprise plus legere.",
+            "Les espaces super admin et promoteur se connectent maintenant sur un portail dédié pour garder l'application entreprise plus légère.",
           openPlatform: "Ouvrir le portail plateforme",
-          logout: "Deconnexion",
-          connectedAs: "Connecte en tant que",
+          logout: "Déconnexion",
+          connectedAs: "Connecté en tant que",
         }
       : language === "es"
         ? {
             title: "Use el portal de plataforma",
             message:
-              "Los espacios de superadministrador y promotor ahora se conectan en un portal dedicado para mantener la aplicacion de empresa mas ligera.",
+              "Los espacios de superadministrador y promotor ahora se conectan en un portal dedicado para mantener la aplicación de empresa más ligera.",
             openPlatform: "Abrir el portal de plataforma",
-            logout: "Cerrar sesion",
+            logout: "Cerrar sesión",
             connectedAs: "Conectado como",
           }
         : {

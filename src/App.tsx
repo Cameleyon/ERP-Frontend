@@ -217,30 +217,30 @@ function getTermsGateText(language: "fr" | "en" | "es") {
 
   if (language === "es") {
     return {
-      adminTitle: "Terminos de uso requeridos",
+      adminTitle: "Términos de uso requeridos",
       blockedTitle: "Acceso temporalmente bloqueado",
-      adminIntro: "Antes de que su empresa pueda continuar usando CAMELEYON ERP, un administrador debe aceptar los terminos de uso actualizados.",
-      blockedIntro: "La cuenta de su empresa esta esperando que un administrador acepte los terminos de uso. Contacte a un administrador.",
+      adminIntro: "Antes de que su empresa pueda continuar usando CAMELEYON ERP, un administrador debe aceptar los términos de uso actualizados.",
+      blockedIntro: "La cuenta de su empresa está esperando que un administrador acepte los términos de uso. Contacte a un administrador.",
       acceptButton: "Acepto y continuar",
       accepting: "Aceptando...",
-      acceptError: "No se pudieron aceptar los terminos de uso",
-      readPrompt: "Revise los terminos de uso antes de continuar.",
-      termsLink: "Ver terminos de uso",
-      termsTitle: "Terminos de uso de CAMELEYON ERP",
+      acceptError: "No se pudieron aceptar los términos de uso",
+      readPrompt: "Revise los términos de uso antes de continuar.",
+      termsLink: "Ver términos de uso",
+      termsTitle: "Términos de uso de CAMELEYON ERP",
       closeTerms: "Cerrar",
       paragraphs: [
         "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
-        "La empresa confirma que su informacion es correcta y que el administrador principal es responsable de usuarios, accesos y datos de la empresa.",
-        "El uso de la solucion puede depender de una suscripcion paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripcion cuando sea necesario, con aviso previo cuando corresponda.",
-        "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos terminos.",
+        "La empresa confirma que su información es correcta y que el administrador principal es responsable de usuarios, accesos y datos de la empresa.",
+        "El uso de la solución puede depender de una suscripción paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripción cuando sea necesario, con aviso previo cuando corresponda.",
+        "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos términos.",
       ],
     }
   }
 
   return {
     adminTitle: "Conditions d'utilisation requises",
-    blockedTitle: "Acces temporairement bloque",
-    adminIntro: "Avant que votre entreprise puisse continuer a utiliser CAMELEYON ERP, un admin doit accepter les conditions d'utilisation mises a jour.",
+    blockedTitle: "Accès temporairement bloqué",
+    adminIntro: "Avant que votre entreprise puisse continuer à utiliser CAMELEYON ERP, un admin doit accepter les conditions d'utilisation mises à jour.",
     blockedIntro: "Le compte de votre entreprise attend qu'un admin accepte les conditions d'utilisation. Veuillez contacter un administrateur.",
     acceptButton: "J'accepte et je continue",
     accepting: "Acceptation...",
@@ -250,10 +250,10 @@ function getTermsGateText(language: "fr" | "en" | "es") {
     termsTitle: "Conditions d'utilisation CAMELEYON ERP",
     closeTerms: "Fermer",
     paragraphs: [
-      "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise a gerer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses operations.",
-      "L'entreprise confirme que ses informations sont exactes et que l'administrateur principal est responsable des utilisateurs, des acces et des donnees de l'entreprise.",
-      "L'utilisation de la solution peut dependre d'un abonnement payant. Tout mois commence est du. CAMELEYON se reserve le droit de revoir le prix de l'abonnement au besoin, avec information prealable lorsque necessaire.",
-      "CAMELEYON peut limiter, suspendre ou bloquer l'acces en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte a la securite ou de violation des presentes conditions.",
+      "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise à gérer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses opérations.",
+      "L'entreprise confirme que ses informations sont exactes et que l'administrateur principal est responsable des utilisateurs, des accès et des données de l'entreprise.",
+      "L'utilisation de la solution peut dépendre d'un abonnement payant. Tout mois commencé est dû. CAMELEYON se réserve le droit de revoir le prix de l'abonnement au besoin, avec information préalable lorsque nécessaire.",
+      "CAMELEYON peut limiter, suspendre ou bloquer l'accès en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte à la sécurité ou de violation des présentes conditions.",
     ],
   }
 }
