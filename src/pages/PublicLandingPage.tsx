@@ -120,8 +120,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           },
           {
             eyebrow: "CAMELEYON Dynamics",
-            title: "Une marque pour accompagner la croissance",
-            description: "Le logo viendra conclure le défilement avec une signature claire de la marque.",
+            title: "Faites votre choix dès aujourd'hui",
+            description: "Votre partenaire de choix pour propulser votre croissance.",
             image: cameleyonDynamicsLogo,
             mediaFit: "logo",
           },
@@ -219,8 +219,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             },
             {
               eyebrow: "CAMELEYON Dynamics",
-              title: "Una marca para acompañar el crecimiento",
-              description: "El logo cerrará el recorrido con una firma clara de la marca.",
+              title: "Elija hoy mismo",
+              description: "Su socio ideal para impulsar su crecimiento.",
               image: cameleyonDynamicsLogo,
               mediaFit: "logo",
             },
@@ -317,8 +317,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             },
             {
               eyebrow: "CAMELEYON Dynamics",
-              title: "A brand built to support growth",
-              description: "The logo will close the sequence with a clear brand signature.",
+              title: "Make your choice today",
+              description: "Your partner of choice to drive your growth.",
               image: cameleyonDynamicsLogo,
               mediaFit: "logo",
             },
