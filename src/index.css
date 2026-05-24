@@ -2113,8 +2113,10 @@ body.invoice-printing .sidebar-overlay {
   }
 
   .public-carousel-slide {
-    align-content: space-between;
+    align-content: center;
     grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 18px;
     height: clamp(390px, 118vw, 500px);
     min-height: 390px;
     padding: 18px;
@@ -2128,11 +2130,16 @@ body.invoice-printing .sidebar-overlay {
     font-size: 21px;
   }
 
+  .public-carousel-slide-copy {
+    width: 100%;
+  }
+
   .public-carousel-media {
     aspect-ratio: 16 / 10;
     background: rgba(245, 251, 253, 0.98);
     height: clamp(180px, 52vw, 260px);
     min-height: 180px;
+    width: min(100%, 420px);
   }
 
   .public-carousel-media.contain {
