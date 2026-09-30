@@ -65,6 +65,7 @@ type LandingCopy = {
   yearly: string
   continuePlan: string
   notAvailable: string
+  planLabels: Record<"BASIC" | "STANDARD" | "PREMIUM", string>
   carouselEyebrow: string
   carouselSlides: LandingSlide[]
   trustCards: Array<[string, string, string]>
@@ -121,6 +122,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         yearly: "Annuel :",
         continuePlan: "Choisir ce plan",
         notAvailable: "Non disponible",
+        planLabels: {
+          BASIC: "Basic",
+          STANDARD: "Standard",
+          PREMIUM: "Premium",
+        },
         carouselEyebrow: "Aperçu de la plateforme",
         carouselSlides: [
           {
@@ -216,6 +222,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           yearly: "Anual:",
           continuePlan: "Elegir este plan",
           notAvailable: "No disponible",
+          planLabels: {
+            BASIC: "Basic",
+            STANDARD: "Standard",
+            PREMIUM: "Premium",
+          },
           carouselEyebrow: "Vista de la plataforma",
           carouselSlides: [
             {
@@ -310,6 +321,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           yearly: "Yearly:",
           continuePlan: "Choose this plan",
           notAvailable: "Not available",
+          planLabels: {
+            BASIC: "Basic",
+            STANDARD: "Standard",
+            PREMIUM: "Premium",
+          },
           carouselEyebrow: "Platform preview",
           carouselSlides: [
             {
@@ -437,14 +453,21 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
   }
 
-  const sortedPlans = useMemo(
+  const displayPlans = useMemo(
     () =>
-      [...plans].sort((first, second) => {
-        const firstOrder = first.displayOrder ?? first.id
-        const secondOrder = second.displayOrder ?? second.id
-        return firstOrder - secondOrder
+      (["BASIC", "STANDARD", "PREMIUM"] as const).map((code) => {
+        const plan = plans.find((candidate) => candidate.code.toUpperCase() === code)
+
+        return {
+          code,
+          name: plan?.name || text.planLabels[code],
+          description: plan?.description || text.notAvailable,
+          monthlyPrice: plan?.monthlyPrice ?? null,
+          yearlyPrice: plan?.yearlyPrice ?? null,
+          available: Boolean(plan),
+        }
       }),
-    [plans],
+    [plans, text.notAvailable, text.planLabels],
   )
 
   const currentSlide = text.carouselSlides[activeSlide]
@@ -601,17 +624,15 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
             {loading ? (
               <div className="public-empty-panel">{text.plansLoading}</div>
-            ) : sortedPlans.length === 0 ? (
-              <div className="public-empty-panel">{text.plansEmpty}</div>
             ) : (
               <div className="public-plan-grid">
-                {sortedPlans.map((plan) => (
-                  <article key={plan.id} className="public-plan-card">
+                {displayPlans.map((plan) => (
+                  <article key={plan.code} className={`public-plan-card ${!plan.available ? "public-plan-card-unavailable" : ""}`}>
                     <div className="public-plan-topline">
                       <span>{plan.code}</span>
                     </div>
                     <h3>{plan.name}</h3>
-                    {plan.description && <p>{plan.description}</p>}
+                    <p>{plan.description}</p>
                     <div className="public-price-stack">
                       <strong>{plan.monthlyPrice === null ? text.notAvailable : formatCurrency(plan.monthlyPrice)}</strong>
                       {plan.monthlyPrice !== null && <span>{text.perMonth}</span>}
@@ -621,8 +642,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                         <strong>{text.yearly}</strong> {formatCurrency(plan.yearlyPrice)}
                       </p>
                     )}
-                    <button type="button" onClick={onGoToSignup}>
-                      {text.continuePlan}
+                    <button type="button" onClick={onGoToSignup} disabled={!plan.available}>
+                      {plan.available ? text.continuePlan : text.notAvailable}
                     </button>
                   </article>
                 ))}
