@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import { useI18n } from "../i18n/I18nContext"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
@@ -20,6 +20,56 @@ type Props = {
   onGoToLogin: () => void
 }
 
+type LandingSlide = {
+  eyebrow: string
+  title: string
+  description: string
+  image: string
+  mediaFit: "cover" | "contain" | "logo"
+}
+
+type LandingCopy = {
+  loadError: string
+  badge: string
+  headlinePrimary: string
+  headlineSecondary: string
+  heroDescription: string
+  signUp: string
+  login: string
+  discover: string
+  contactEyebrow: string
+  contactTitle: string
+  websiteLabel: string
+  emailLabel: string
+  footerRights: string
+  poweredBy: string
+  featuresEyebrow: string
+  featuresTitle: string
+  cards: Array<[string, string, string]>
+  promotionsEyebrow: string
+  promotionsTitle: string
+  promotionsLoading: string
+  promotionsEmpty: string
+  specialOffer: string
+  promoText: string
+  freeTrial: string
+  days: string
+  monthlyPromo: string
+  yearlyPromo: string
+  plansEyebrow: string
+  plansTitle: string
+  plansAction: string
+  plansLoading: string
+  plansEmpty: string
+  perMonth: string
+  yearly: string
+  continuePlan: string
+  notAvailable: string
+  carouselEyebrow: string
+  carouselSlides: LandingSlide[]
+  trustCards: Array<[string, string, string]>
+}
+
 export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) {
   const { language } = useI18n()
   const [plans, setPlans] = useState<PublicPlanResponse[]>([])
@@ -28,24 +78,29 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   const [error, setError] = useState("")
   const [activeSlide, setActiveSlide] = useState(0)
 
-  const text = language === "fr"
+  const text: LandingCopy = language === "fr"
     ? {
         loadError: "Impossible de charger les données publiques",
         badge: "Propulsé par CAMELEYON Dynamics",
-        heroSubtitle: "Une seule plateforme pour toutes vos entreprises pour gérer vos ventes, vos produits, vos clients et vos stocks.",
+        headlinePrimary: "Gérez votre entreprise.",
+        headlineSecondary: "Simplifiez. Pilotez. Développez.",
+        heroDescription: "CAMELEYON-ERP est une plateforme tout-en-un qui aide les entreprises à gérer leurs ventes, leurs produits, leurs clients et leurs stocks en toute simplicité.",
         signUp: "S'inscrire",
         login: "Se connecter",
+        discover: "Découvrir la plateforme",
         contactEyebrow: "Contact",
-        contactTitle: "Cette solution ne correspond pas à vos besoins? Pas de souci, parlons de vos besoins.",
+        contactTitle: "Besoin d'aide ou d'une solution adaptée ? Parlons de vos besoins.",
         websiteLabel: "Site web",
         emailLabel: "Email",
+        footerRights: "Tous droits réservés.",
+        poweredBy: "Propulsé par CAMELEYON Dynamics",
         featuresEyebrow: "Fonctionnalités clés",
-        featuresSubtitle: "Zéro rupture d'inventaire. Zéro déficit surprise. Zéro opportunité manquée.",
+        featuresTitle: "Les outils essentiels pour garder le contrôle de votre activité.",
         cards: [
-          ["Pilotage des ventes", "Créez rapidement des transactions et conservez un historique de ventes clair."],
-          ["Contrôle de l'inventaire", "Suivez les mouvements de stock et restez alerte sur les écarts d'inventaire."],
-          ["Structure produits", "Gérez les produits et les prix."],
-          ["Visibilité d'entreprise", "Accédez à votre entreprise à tout moment, partout."],
+          ["Pilotage des ventes", "Créez rapidement des transactions et conservez un historique clair des ventes.", "01"],
+          ["Contrôle de l'inventaire", "Suivez les mouvements de stock et gardez une meilleure visibilité sur votre inventaire.", "02"],
+          ["Structure produits", "Gérez vos produits, catégories et prix facilement.", "03"],
+          ["Visibilité d'entreprise", "Accédez aux informations de votre entreprise à tout moment, où que vous soyez.", "04"],
         ],
         promotionsEyebrow: "Promotions",
         promotionsTitle: "Offres en cours",
@@ -58,38 +113,16 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         monthlyPromo: "Promo mensuelle :",
         yearlyPromo: "Promo annuelle :",
         plansEyebrow: "Plans",
-        plansTitle: "Choisissez l'abonnement qui correspond a vos besoins.",
+        plansTitle: "Choisissez l'abonnement qui correspond à vos besoins.",
+        plansAction: "Voir tous les plans",
         plansLoading: "Chargement des plans...",
         plansEmpty: "Aucun plan disponible.",
-        defaultPlanText: "Pack opérationnel pour les équipes qui veulent de la clarté et de la rapidité.",
-        custom: "Sur mesure",
         perMonth: "par mois",
         yearly: "Annuel :",
-        continuePlan: "Continuer avec ce plan",
-        comingSoon: "À venir",
-        planLabels: {
-          BASIC: "Basic",
-          STANDARD: "Standard",
-          PREMIUM: "Premium",
-        },
-        navigationWebsite: "Site web",
-        navigationEmail: "Contact",
+        continuePlan: "Choisir ce plan",
+        notAvailable: "Non disponible",
         carouselEyebrow: "Aperçu de la plateforme",
         carouselSlides: [
-          {
-            eyebrow: "Tableau de bord",
-            title: "Suivez les ventes et les indicateurs",
-            description: "Un aperçu rapide de l'activité, du stock faible et des produits performants.",
-            image: landingDashboard,
-            mediaFit: "cover",
-          },
-          {
-            eyebrow: "Clients",
-            title: "Gardez les clients organisés",
-            description: "Ajoutez les contacts et suivez facilement les informations utiles.",
-            image: landingCustomers,
-            mediaFit: "contain",
-          },
           {
             eyebrow: "Nouvelle vente",
             title: "Encaissez avec fluidité",
@@ -98,10 +131,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             mediaFit: "contain",
           },
           {
-            eyebrow: "Historique",
-            title: "Retrouvez les ventes en quelques secondes",
-            description: "Filtrez, consultez les détails et gardez une vue claire de l'activité.",
-            image: landingSalesHistory,
+            eyebrow: "Tableau de bord",
+            title: "Suivez les ventes et les indicateurs",
+            description: "Un aperçu rapide de l'activité, du stock faible et des produits performants.",
+            image: landingDashboard,
             mediaFit: "cover",
           },
           {
@@ -112,6 +145,13 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             mediaFit: "contain",
           },
           {
+            eyebrow: "Clients",
+            title: "Gardez les clients organisés",
+            description: "Ajoutez les contacts et suivez facilement les informations utiles.",
+            image: landingCustomers,
+            mediaFit: "contain",
+          },
+          {
             eyebrow: "Produits",
             title: "Structurez votre catalogue",
             description: "Importez, créez et gérez vos produits depuis un seul espace.",
@@ -119,32 +159,43 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             mediaFit: "cover",
           },
           {
-            eyebrow: "CAMELEYON Dynamics",
-            title: "Faites votre choix dès aujourd'hui",
-            description: "Votre partenaire de choix pour propulser votre croissance.",
-            image: cameleyonDynamicsLogo,
-            mediaFit: "logo",
+            eyebrow: "Historique",
+            title: "Retrouvez les ventes en quelques secondes",
+            description: "Filtrez, consultez les détails et gardez une vue claire de l'activité.",
+            image: landingSalesHistory,
+            mediaFit: "cover",
           },
+        ],
+        trustCards: [
+          ["Sécurisé", "Vos données sont protégées.", "SH"],
+          ["Accessible partout", "Ordinateur, tablette et mobile.", "CL"],
+          ["Support réactif", "Notre équipe vous accompagne.", "HD"],
+          ["Conçu pour grandir", "Une solution qui évolue avec votre entreprise.", "UP"],
         ],
       }
     : language === "es"
       ? {
           loadError: "No fue posible cargar los datos públicos",
           badge: "Impulsado por CAMELEYON Dynamics",
-          heroSubtitle: "Una sola plataforma para operaciones, inventario, ventas y crecimiento.",
+          headlinePrimary: "Gestione su empresa.",
+          headlineSecondary: "Simplifique. Dirija. Crezca.",
+          heroDescription: "CAMELEYON-ERP es una plataforma todo en uno que ayuda a las empresas a gestionar ventas, productos, clientes e inventario con simplicidad.",
           signUp: "Registrarse",
           login: "Iniciar sesión",
+          discover: "Explorar la plataforma",
           contactEyebrow: "Contacto",
-          contactTitle: "Si esta solución no corresponde a sus necesidades, no se preocupe, conversemos sobre ellas.",
+          contactTitle: "¿Necesita ayuda o una solución adaptada? Hablemos de sus necesidades.",
           websiteLabel: "Sitio web",
           emailLabel: "Correo",
-        featuresEyebrow: "Funciones clave",
-        featuresSubtitle: "Cero faltantes de inventario. Cero déficits sorpresa. Cero oportunidades perdidas.",
+          footerRights: "Todos los derechos reservados.",
+          poweredBy: "Impulsado por CAMELEYON Dynamics",
+          featuresEyebrow: "Funciones clave",
+          featuresTitle: "Herramientas esenciales para mantener el control de su operación.",
           cards: [
-            ["Control de ventas", "Cree transacciones rápidamente y conserve un historial de ventas claro."],
-            ["Control de inventario", "Siga el movimiento del inventario y manténgase alerta ante faltantes."],
-            ["Estructura de productos", "Gestione productos y precios."],
-            ["Visibilidad del negocio", "Acceda a su empresa en cualquier momento y desde cualquier lugar."],
+            ["Control de ventas", "Cree transacciones rápidamente y conserve un historial de ventas claro.", "01"],
+            ["Control de inventario", "Siga los movimientos de stock y mantenga mejor visibilidad de su inventario.", "02"],
+            ["Estructura de productos", "Gestione productos, categorías y precios con facilidad.", "03"],
+            ["Visibilidad del negocio", "Acceda a la información de su empresa en cualquier momento y lugar.", "04"],
           ],
           promotionsEyebrow: "Promociones",
           promotionsTitle: "Ofertas actuales",
@@ -157,38 +208,16 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           monthlyPromo: "Promo mensual:",
           yearlyPromo: "Promo anual:",
           plansEyebrow: "Planes",
-          plansTitle: "Elija la suscripción que mejor se adapte a su ritmo",
+          plansTitle: "Elija la suscripción que corresponde a sus necesidades.",
+          plansAction: "Ver todos los planes",
           plansLoading: "Cargando planes...",
           plansEmpty: "No hay planes disponibles.",
-          defaultPlanText: "Paquete operativo para equipos que buscan claridad y rapidez.",
-          custom: "Personalizado",
           perMonth: "por mes",
           yearly: "Anual:",
-          continuePlan: "Continuar con este plan",
-          comingSoon: "Próximamente",
-          planLabels: {
-            BASIC: "Basic",
-            STANDARD: "Standard",
-            PREMIUM: "Premium",
-          },
-          navigationWebsite: "Sitio web",
-          navigationEmail: "Contacto",
+          continuePlan: "Elegir este plan",
+          notAvailable: "No disponible",
           carouselEyebrow: "Vista de la plataforma",
           carouselSlides: [
-            {
-              eyebrow: "Panel",
-              title: "Siga ventas e indicadores",
-              description: "Una vista rápida de la actividad, el inventario bajo y los productos destacados.",
-              image: landingDashboard,
-              mediaFit: "cover",
-            },
-            {
-              eyebrow: "Clientes",
-              title: "Mantenga sus clientes organizados",
-              description: "Agregue contactos y consulte fácilmente la información útil.",
-              image: landingCustomers,
-              mediaFit: "contain",
-            },
             {
               eyebrow: "Nueva venta",
               title: "Venda con fluidez",
@@ -197,10 +226,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "contain",
             },
             {
-              eyebrow: "Historial",
-              title: "Encuentre ventas en segundos",
-              description: "Filtre, consulte detalles y mantenga una vista clara de la actividad.",
-              image: landingSalesHistory,
+              eyebrow: "Panel",
+              title: "Siga ventas e indicadores",
+              description: "Una vista rápida de la actividad, el inventario bajo y los productos destacados.",
+              image: landingDashboard,
               mediaFit: "cover",
             },
             {
@@ -211,6 +240,13 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "contain",
             },
             {
+              eyebrow: "Clientes",
+              title: "Mantenga sus clientes organizados",
+              description: "Agregue contactos y consulte fácilmente la información útil.",
+              image: landingCustomers,
+              mediaFit: "contain",
+            },
+            {
               eyebrow: "Productos",
               title: "Estructure su catálogo",
               description: "Importe, cree y gestione productos desde un solo espacio.",
@@ -218,31 +254,42 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "cover",
             },
             {
-              eyebrow: "CAMELEYON Dynamics",
-              title: "Elija hoy mismo",
-              description: "Su socio ideal para impulsar su crecimiento.",
-              image: cameleyonDynamicsLogo,
-              mediaFit: "logo",
+              eyebrow: "Historial",
+              title: "Encuentre ventas en segundos",
+              description: "Filtre, consulte detalles y mantenga una vista clara de la actividad.",
+              image: landingSalesHistory,
+              mediaFit: "cover",
             },
+          ],
+          trustCards: [
+            ["Seguro", "Sus datos están protegidos.", "SH"],
+            ["Accesible en todas partes", "Computadora, tableta y móvil.", "CL"],
+            ["Soporte receptivo", "Nuestro equipo le acompaña.", "HD"],
+            ["Diseñado para crecer", "Una solución que evoluciona con su empresa.", "UP"],
           ],
         }
       : {
           loadError: "Failed to load public data",
           badge: "Powered by CAMELEYON Dynamics",
-          heroSubtitle: "One platform for operations, stock, sales, and growth.",
+          headlinePrimary: "Manage your business.",
+          headlineSecondary: "Simplify. Control. Grow.",
+          heroDescription: "CAMELEYON-ERP is an all-in-one platform that helps companies manage sales, products, customers, and inventory with simplicity.",
           signUp: "Sign Up",
           login: "Login",
+          discover: "Explore the platform",
           contactEyebrow: "Contact",
-          contactTitle: "If this solution does not match your needs, no problem, let's talk about what you need.",
+          contactTitle: "Need help or a tailored solution? Let's talk about what you need.",
           websiteLabel: "Website",
           emailLabel: "Email",
-        featuresEyebrow: "Key features",
-        featuresSubtitle: "Zero inventory gaps. Zero surprise deficits. Zero missed opportunities.",
+          footerRights: "All rights reserved.",
+          poweredBy: "Powered by CAMELEYON Dynamics",
+          featuresEyebrow: "Key features",
+          featuresTitle: "Essential tools to keep your operation under control.",
           cards: [
-            ["Sales control", "Create transactions quickly and keep a clean sales history."],
-            ["Inventory control", "Track stock movement and stay alert on inventory gaps."],
-            ["Product structure", "Manage products and pricing."],
-            ["Business visibility", "Access your company anytime, anywhere."],
+            ["Sales control", "Create transactions quickly and keep a clear sales history.", "01"],
+            ["Inventory control", "Track stock movements and keep better visibility into inventory.", "02"],
+            ["Product structure", "Manage products, categories, and prices easily.", "03"],
+            ["Business visibility", "Access company information anytime, wherever you are.", "04"],
           ],
           promotionsEyebrow: "Promotions",
           promotionsTitle: "Current offers",
@@ -255,38 +302,16 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           monthlyPromo: "Monthly promo:",
           yearlyPromo: "Yearly promo:",
           plansEyebrow: "Plans",
-          plansTitle: "Choose the subscription that matches your pace",
+          plansTitle: "Choose the subscription that matches your needs.",
+          plansAction: "View all plans",
           plansLoading: "Loading plans...",
-          plansEmpty: "No plan available.",
-          defaultPlanText: "Operational package for teams that want clarity and speed.",
-          custom: "Custom",
+          plansEmpty: "No plans available.",
           perMonth: "per month",
           yearly: "Yearly:",
-          continuePlan: "Continue with this plan",
-          comingSoon: "Coming soon",
-          planLabels: {
-            BASIC: "Basic",
-            STANDARD: "Standard",
-            PREMIUM: "Premium",
-          },
-          navigationWebsite: "Website",
-          navigationEmail: "Contact",
+          continuePlan: "Choose this plan",
+          notAvailable: "Not available",
           carouselEyebrow: "Platform preview",
           carouselSlides: [
-            {
-              eyebrow: "Dashboard",
-              title: "Track sales and indicators",
-              description: "A quick view of activity, low stock, and top-performing products.",
-              image: landingDashboard,
-              mediaFit: "cover",
-            },
-            {
-              eyebrow: "Customers",
-              title: "Keep customers organised",
-              description: "Add contacts and keep the useful details easy to reach.",
-              image: landingCustomers,
-              mediaFit: "contain",
-            },
             {
               eyebrow: "New sale",
               title: "Sell with less friction",
@@ -295,10 +320,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "contain",
             },
             {
-              eyebrow: "Sales history",
-              title: "Find sales in seconds",
-              description: "Filter, review details, and keep a clear view of activity.",
-              image: landingSalesHistory,
+              eyebrow: "Dashboard",
+              title: "Track sales and indicators",
+              description: "A quick view of activity, low stock, and top-performing products.",
+              image: landingDashboard,
               mediaFit: "cover",
             },
             {
@@ -309,6 +334,13 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "contain",
             },
             {
+              eyebrow: "Customers",
+              title: "Keep customers organised",
+              description: "Add contacts and keep the useful details easy to reach.",
+              image: landingCustomers,
+              mediaFit: "contain",
+            },
+            {
               eyebrow: "Products",
               title: "Structure your catalogue",
               description: "Import, create, and manage products from one workspace.",
@@ -316,12 +348,18 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               mediaFit: "cover",
             },
             {
-              eyebrow: "CAMELEYON Dynamics",
-              title: "Make your choice today",
-              description: "Your partner of choice to drive your growth.",
-              image: cameleyonDynamicsLogo,
-              mediaFit: "logo",
+              eyebrow: "Sales history",
+              title: "Find sales in seconds",
+              description: "Filter, review details, and keep a clear view of activity.",
+              image: landingSalesHistory,
+              mediaFit: "cover",
             },
+          ],
+          trustCards: [
+            ["Secure", "Your data is protected.", "SH"],
+            ["Accessible anywhere", "Desktop, tablet, and mobile.", "CL"],
+            ["Responsive support", "Our team helps you move forward.", "HD"],
+            ["Built to grow", "A solution that evolves with your company.", "UP"],
           ],
         }
 
@@ -399,209 +437,231 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     }
   }
 
-  const currentSlide = text.carouselSlides[activeSlide]
-  const badgePrefix = language === "fr"
-    ? "Propulsé par"
-    : language === "es"
-      ? "Impulsado por"
-      : "Powered by"
-  const displayPlans = ["BASIC", "STANDARD", "PREMIUM"].map((code) => {
-    const plan = plans.find((candidate) => candidate.code.toUpperCase() === code)
+  const sortedPlans = useMemo(
+    () =>
+      [...plans].sort((first, second) => {
+        const firstOrder = first.displayOrder ?? first.id
+        const secondOrder = second.displayOrder ?? second.id
+        return firstOrder - secondOrder
+      }),
+    [plans],
+  )
 
-    return {
-      code,
-      name: plan?.name || text.planLabels[code as keyof typeof text.planLabels],
-      description: plan?.description || (code === "BASIC" ? text.defaultPlanText : text.comingSoon),
-      monthlyPrice: plan?.monthlyPrice ?? null,
-      yearlyPrice: plan?.yearlyPrice ?? null,
-      available: Boolean(plan),
-    }
-  })
+  const currentSlide = text.carouselSlides[activeSlide]
 
   return (
     <div className="public-page public-page-redesign">
-      <div className="public-utility-bar">
-        <LanguageSwitcher className="public-language-switcher" />
-      </div>
-
       <header className="public-site-header">
-        <div className="public-wordmark">
+        <a
+          className="public-brand-link"
+          href="https://www.cameleyondynamics.com/"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="CAMELEYON Dynamics"
+        >
+          <img src={cameleyonDynamicsLogo} alt="CAMELEYON Dynamics" />
           <span>CAMELEYON-ERP</span>
-        </div>
+        </a>
 
-        <div className="hero-actions public-cta-actions public-header-actions">
-          <button onClick={onGoToSignup}>{text.signUp}</button>
-          <button type="button" className="secondary-button public-login-button" onClick={onGoToLogin}>
+        <nav className="public-header-nav" aria-label="Public navigation">
+          <LanguageSwitcher className="public-language-switcher" />
+          <button type="button" className="public-nav-button public-nav-primary" onClick={onGoToSignup}>
+            {text.signUp}
+          </button>
+          <button type="button" className="public-nav-button public-nav-secondary" onClick={onGoToLogin}>
             {text.login}
           </button>
-        </div>
+        </nav>
       </header>
 
-      <section className="public-showcase">
-        <div className="public-showcase-copy">
-          <div className="public-badge">
-            <span>{badgePrefix}</span>
-            <strong>CAMELEYON Dynamics</strong>
-          </div>
-          <p className="public-hero-tagline">
-            <strong>CAMELEYON-ERP,</strong> {text.heroSubtitle}
-          </p>
-          <p className="public-hero-supporting-copy">{text.featuresSubtitle}</p>
-        </div>
+      <main>
+        <section className="public-showcase" aria-labelledby="public-hero-title">
+          <div className="public-showcase-copy">
+            <div className="public-badge">{text.badge}</div>
+            <h1 id="public-hero-title">
+              <span>{text.headlinePrimary}</span>
+              <strong>{text.headlineSecondary}</strong>
+            </h1>
+            <p>{text.heroDescription}</p>
 
-        <div className="public-carousel-panel">
-          <div className="public-carousel-heading">
-            <p className="eyebrow">{text.carouselEyebrow}</p>
-          </div>
-
-          <div className="public-carousel-frame">
-            <div className={`public-carousel-slide slide-${activeSlide}`}>
-              <div className="public-carousel-slide-copy">
-                <span>{currentSlide.eyebrow}</span>
-                <h3>{currentSlide.title}</h3>
-                <p>{currentSlide.description}</p>
-              </div>
-
-              <div className={`public-carousel-media ${currentSlide.mediaFit}`}>
-                <img src={currentSlide.image} alt="" aria-hidden="true" />
-              </div>
+            <div className="public-hero-actions">
+              <button type="button" onClick={onGoToSignup}>
+                {text.signUp}
+              </button>
+              <a href="#platform-preview">{text.discover}</a>
             </div>
           </div>
 
-          <div className="public-carousel-dots">
-            {text.carouselSlides.map((slide, index) => (
-              <button
-                key={slide.title}
-                type="button"
-                className={index === activeSlide ? "active" : ""}
-                aria-label={`${slide.eyebrow} ${index + 1}`}
-                onClick={() => setActiveSlide(index)}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {error && <div className="card error">{error}</div>}
-
-      <section className="public-band">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{text.featuresEyebrow}</p>
-          </div>
-        </div>
-
-        <div className="public-grid">
-          {text.cards.map(([title, body]) => (
-            <div key={title} className="public-feature-card">
-              <h3>{title}</h3>
-              <p>{body}</p>
+          <div className="public-carousel-panel" id="platform-preview">
+            <div className="public-carousel-heading">
+              <p className="eyebrow">{text.carouselEyebrow}</p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className="public-section public-section-soft">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{text.promotionsEyebrow}</p>
-            <h2>{text.promotionsTitle}</h2>
+            <div className="public-carousel-frame">
+              <div className={`public-carousel-slide slide-${activeSlide}`}>
+                <div className="public-carousel-slide-copy">
+                  <span>{currentSlide.eyebrow}</span>
+                  <h2>{currentSlide.title}</h2>
+                  <p>{currentSlide.description}</p>
+                </div>
+
+                <div className={`public-carousel-media ${currentSlide.mediaFit}`}>
+                  <img
+                    src={currentSlide.image}
+                    alt={`${currentSlide.eyebrow} - ${currentSlide.title}`}
+                    loading={activeSlide === 0 ? "eager" : "lazy"}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="public-carousel-dots" aria-label={text.carouselEyebrow}>
+              {text.carouselSlides.map((slide, index) => (
+                <button
+                  key={slide.title}
+                  type="button"
+                  className={index === activeSlide ? "active" : ""}
+                  aria-label={`${slide.eyebrow} ${index + 1}`}
+                  aria-current={index === activeSlide ? "true" : undefined}
+                  onClick={() => setActiveSlide(index)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
 
-        {loading ? (
-          <p>{text.promotionsLoading}</p>
-        ) : promotions.length === 0 ? (
-          <p>{text.promotionsEmpty}</p>
-        ) : (
+        {error && <div className="card error">{error}</div>}
+
+        <section className="public-band" aria-labelledby="public-features-title">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">{text.featuresEyebrow}</p>
+              <h2 id="public-features-title">{text.featuresTitle}</h2>
+            </div>
+          </div>
+
           <div className="public-grid">
-            {promotions.map((promotion) => (
-              <div key={promotion.id} className="public-promo-card">
-                <div className="public-card-label">{text.specialOffer}</div>
-                <h3>{resolvePromotionName(promotion)}</h3>
-                <p>{resolvePromotionDescription(promotion)}</p>
-                {promotion.freeTrialDays && (
-                  <p><strong>{text.freeTrial}</strong> {promotion.freeTrialDays} {text.days}</p>
-                )}
-                {promotion.promoPriceMonthly !== null && (
-                  <p><strong>{text.monthlyPromo}</strong> {formatCurrency(promotion.promoPriceMonthly)}</p>
-                )}
-                {promotion.promoPriceYearly !== null && (
-                  <p><strong>{text.yearlyPromo}</strong> {formatCurrency(promotion.promoPriceYearly)}</p>
-                )}
-              </div>
+            {text.cards.map(([title, body, icon]) => (
+              <article key={title} className="public-feature-card">
+                <span className="public-card-icon" aria-hidden="true">{icon}</span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+                <span className="public-card-arrow" aria-hidden="true">→</span>
+              </article>
             ))}
           </div>
-        )}
-      </section>
+        </section>
 
-      <section className="public-section">
-        <div className="section-heading">
+        <div className="public-commerce-grid">
+          <section className="public-section public-section-soft" aria-labelledby="public-promotions-title">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{text.promotionsEyebrow}</p>
+                <h2 id="public-promotions-title">{text.promotionsTitle}</h2>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="public-empty-panel">{text.promotionsLoading}</div>
+            ) : promotions.length === 0 ? (
+              <div className="public-empty-panel">
+                <span className="public-empty-icon" aria-hidden="true">%</span>
+                <strong>{text.promotionsTitle}</strong>
+                <p>{text.promotionsEmpty}</p>
+              </div>
+            ) : (
+              <div className="public-promo-list">
+                {promotions.map((promotion) => (
+                  <article key={promotion.id} className="public-promo-card">
+                    <div className="public-card-label">{text.specialOffer}</div>
+                    <h3>{resolvePromotionName(promotion)}</h3>
+                    <p>{resolvePromotionDescription(promotion)}</p>
+                    {promotion.freeTrialDays && (
+                      <p><strong>{text.freeTrial}</strong> {promotion.freeTrialDays} {text.days}</p>
+                    )}
+                    {promotion.promoPriceMonthly !== null && (
+                      <p><strong>{text.monthlyPromo}</strong> {formatCurrency(promotion.promoPriceMonthly)}</p>
+                    )}
+                    {promotion.promoPriceYearly !== null && (
+                      <p><strong>{text.yearlyPromo}</strong> {formatCurrency(promotion.promoPriceYearly)}</p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="public-section public-plans-section" aria-labelledby="public-plans-title">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{text.plansEyebrow}</p>
+                <h2 id="public-plans-title">{text.plansTitle}</h2>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="public-empty-panel">{text.plansLoading}</div>
+            ) : sortedPlans.length === 0 ? (
+              <div className="public-empty-panel">{text.plansEmpty}</div>
+            ) : (
+              <div className="public-plan-grid">
+                {sortedPlans.map((plan) => (
+                  <article key={plan.id} className="public-plan-card">
+                    <div className="public-plan-topline">
+                      <span>{plan.code}</span>
+                    </div>
+                    <h3>{plan.name}</h3>
+                    {plan.description && <p>{plan.description}</p>}
+                    <div className="public-price-stack">
+                      <strong>{plan.monthlyPrice === null ? text.notAvailable : formatCurrency(plan.monthlyPrice)}</strong>
+                      {plan.monthlyPrice !== null && <span>{text.perMonth}</span>}
+                    </div>
+                    {plan.yearlyPrice !== null && (
+                      <p>
+                        <strong>{text.yearly}</strong> {formatCurrency(plan.yearlyPrice)}
+                      </p>
+                    )}
+                    <button type="button" onClick={onGoToSignup}>
+                      {text.continuePlan}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <section className="public-trust-strip" aria-label="CAMELEYON-ERP trust">
+          {text.trustCards.map(([title, body, icon]) => (
+            <article key={title} className="public-trust-item">
+              <span aria-hidden="true">{icon}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+
+      <footer className="public-footer">
+        <div className="public-footer-brand">
+          <img src={cameleyonDynamicsLogo} alt="CAMELEYON Dynamics" />
           <div>
-            <p className="eyebrow">{text.plansEyebrow}</p>
-            <h2>{text.plansTitle}</h2>
+            <strong>CAMELEYON-ERP</strong>
+            <span>{text.poweredBy}</span>
           </div>
         </div>
 
-        {loading ? (
-          <p>{text.plansLoading}</p>
-        ) : (
-          <div className="public-plan-grid">
-            {displayPlans.map((plan) => (
-              <div key={plan.code} className="public-plan-card">
-                <div className="public-plan-topline">
-                  <span>{plan.code}</span>
-                </div>
-                <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-                <div className="public-price-stack">
-                  <strong>{plan.monthlyPrice === null ? text.comingSoon : formatCurrency(plan.monthlyPrice)}</strong>
-                  <span>{text.perMonth}</span>
-                </div>
-                <p>
-                  <strong>{text.yearly}</strong> {plan.yearlyPrice === null ? text.comingSoon : formatCurrency(plan.yearlyPrice)}
-                </p>
-                {plan.available ? (
-                  <button type="button" onClick={onGoToSignup}>
-                    {text.continuePlan}
-                  </button>
-                ) : (
-                  <button type="button" disabled>
-                    {text.comingSoon}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="public-contact-card card">
-        <div className="public-contact-heading">
-          <p className="eyebrow">{text.contactEyebrow}</p>
-          <h3>{text.contactTitle}</h3>
+        <div className="public-footer-contact">
+          <a href="https://www.cameleyondynamics.com/" target="_blank" rel="noreferrer">
+            www.cameleyondynamics.com
+          </a>
+          <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a>
         </div>
 
-        <div className="public-contact-grid">
-          <div className="public-contact-item">
-            <span>{text.websiteLabel}</span>
-            <strong>
-              <a
-                href="https://www.cameleyondynamics.com"
-                target="_blank"
-                rel="noreferrer"
-              >
-                www.cameleyondynamics.com
-              </a>
-            </strong>
-          </div>
-
-          <div className="public-contact-item">
-            <span>{text.emailLabel}</span>
-            <strong>contact@cameleyondynamics.com</strong>
-          </div>
-        </div>
-      </section>
+        <p>© 2024 CAMELEYON-ERP. {text.footerRights}</p>
+      </footer>
     </div>
   )
 }
