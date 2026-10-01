@@ -633,14 +633,18 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                     </div>
                     <h3>{plan.name}</h3>
                     <p>{plan.description}</p>
-                    <div className="public-price-stack">
-                      <strong>{plan.monthlyPrice === null ? text.notAvailable : formatCurrency(plan.monthlyPrice)}</strong>
-                      {plan.monthlyPrice !== null && <span>{text.perMonth}</span>}
-                    </div>
-                    {plan.yearlyPrice !== null && (
-                      <p>
-                        <strong>{text.yearly}</strong> {formatCurrency(plan.yearlyPrice)}
-                      </p>
+                    {plan.available && (
+                      <>
+                        <div className="public-price-stack">
+                          <strong>{plan.monthlyPrice === null ? text.notAvailable : formatCurrency(plan.monthlyPrice)}</strong>
+                          {plan.monthlyPrice !== null && <span>{text.perMonth}</span>}
+                        </div>
+                        {plan.yearlyPrice !== null && (
+                          <p>
+                            <strong>{text.yearly}</strong> {formatCurrency(plan.yearlyPrice)}
+                          </p>
+                        )}
+                      </>
                     )}
                     <button type="button" onClick={onGoToSignup} disabled={!plan.available}>
                       {plan.available ? text.continuePlan : text.notAvailable}
