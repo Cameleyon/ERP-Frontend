@@ -1942,12 +1942,19 @@ td {
   border-radius: 18px;
   color: #0d48d8;
   display: inline-flex;
-  font-family: var(--heading-font);
-  font-size: 0.76rem;
-  font-weight: 800;
   height: 52px;
   justify-content: center;
   width: 52px;
+}
+
+.public-trust-item svg {
+  fill: none;
+  height: 25px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 25px;
 }
 
 .public-feature-card h3,
@@ -2651,8 +2658,12 @@ body.invoice-printing .sidebar-overlay {
     border-radius: 18px;
     border-width: 1px;
     flex-direction: row;
+    flex-wrap: wrap;
+    left: auto;
     margin: 0 0 18px;
     padding: 12px;
+    position: static;
+    width: 100%;
   }
 
   .public-brand-link {

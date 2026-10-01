@@ -67,8 +67,10 @@ type LandingCopy = {
   planLabels: Record<"BASIC" | "STANDARD" | "PREMIUM", string>
   carouselEyebrow: string
   carouselSlides: LandingSlide[]
-  trustCards: Array<[string, string, string]>
+  trustCards: Array<[string, string, TrustIconName]>
 }
+
+type TrustIconName = "shield" | "cloud" | "headset" | "trend"
 
 export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) {
   const { language } = useI18n()
@@ -171,10 +173,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           },
         ],
         trustCards: [
-          ["Sécurisé", "Vos données sont protégées.", "SH"],
-          ["Accessible partout", "Ordinateur, tablette et mobile.", "CL"],
-          ["Support réactif", "Notre équipe vous accompagne.", "HD"],
-          ["Conçu pour grandir", "Une solution qui évolue avec votre entreprise.", "UP"],
+          ["Sécurisé", "Vos données sont protégées.", "shield"],
+          ["Accessible partout", "Ordinateur, tablette et mobile.", "cloud"],
+          ["Support réactif", "Notre équipe vous accompagne.", "headset"],
+          ["Conçu pour grandir", "Une solution qui évolue avec votre entreprise.", "trend"],
         ],
       }
     : language === "es"
@@ -270,10 +272,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             },
           ],
           trustCards: [
-            ["Seguro", "Sus datos están protegidos.", "SH"],
-            ["Accesible en todas partes", "Computadora, tableta y móvil.", "CL"],
-            ["Soporte receptivo", "Nuestro equipo le acompaña.", "HD"],
-            ["Diseñado para crecer", "Una solución que evoluciona con su empresa.", "UP"],
+            ["Seguro", "Sus datos están protegidos.", "shield"],
+            ["Accesible en todas partes", "Computadora, tableta y móvil.", "cloud"],
+            ["Soporte receptivo", "Nuestro equipo le acompaña.", "headset"],
+            ["Diseñado para crecer", "Una solución que evoluciona con su empresa.", "trend"],
           ],
         }
       : {
@@ -368,10 +370,10 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             },
           ],
           trustCards: [
-            ["Secure", "Your data is protected.", "SH"],
-            ["Accessible anywhere", "Desktop, tablet, and mobile.", "CL"],
-            ["Responsive support", "Our team helps you move forward.", "HD"],
-            ["Built to grow", "A solution that evolves with your company.", "UP"],
+            ["Secure", "Your data is protected.", "shield"],
+            ["Accessible anywhere", "Desktop, tablet, and mobile.", "cloud"],
+            ["Responsive support", "Our team helps you move forward.", "headset"],
+            ["Built to grow", "A solution that evolves with your company.", "trend"],
           ],
         }
 
@@ -648,7 +650,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         <section className="public-trust-strip" aria-label="CAMELEYON-ERP trust">
           {text.trustCards.map(([title, body, icon]) => (
             <article key={title} className="public-trust-item">
-              <span aria-hidden="true">{icon}</span>
+              <span aria-hidden="true">
+                <TrustIcon name={icon} />
+              </span>
               <div>
                 <h3>{title}</h3>
                 <p>{body}</p>
@@ -677,5 +681,42 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         <p>© 2024 CAMELEYON-ERP. {text.footerRights}</p>
       </footer>
     </div>
+  )
+}
+
+function TrustIcon({ name }: { name: TrustIconName }) {
+  if (name === "cloud") {
+    return (
+      <svg viewBox="0 0 24 24" role="img" focusable="false">
+        <path d="M7.8 18.5h9.1a4.1 4.1 0 0 0 .4-8.2 6.1 6.1 0 0 0-11.7 1.4A3.5 3.5 0 0 0 7.8 18.5Z" />
+      </svg>
+    )
+  }
+
+  if (name === "headset") {
+    return (
+      <svg viewBox="0 0 24 24" role="img" focusable="false">
+        <path d="M4.8 13.8v-1.6a7.2 7.2 0 0 1 14.4 0v1.6" />
+        <path d="M7.3 12.8H5.9a1.6 1.6 0 0 0-1.6 1.6v2.4a1.6 1.6 0 0 0 1.6 1.6h1.4v-5.6Z" />
+        <path d="M16.7 18.4h1.4a1.6 1.6 0 0 0 1.6-1.6v-2.4a1.6 1.6 0 0 0-1.6-1.6h-1.4v5.6Z" />
+        <path d="M15.7 20.2h-2.1a2 2 0 0 1-2-2" />
+      </svg>
+    )
+  }
+
+  if (name === "trend") {
+    return (
+      <svg viewBox="0 0 24 24" role="img" focusable="false">
+        <path d="m4.5 16.7 5.1-5.1 3.7 3.7 6.2-6.2" />
+        <path d="M14.8 9.1h4.7v4.7" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" role="img" focusable="false">
+      <path d="M12 3.3 5.8 5.6v5.2c0 4.1 2.6 7.8 6.2 9.1 3.6-1.3 6.2-5 6.2-9.1V5.6L12 3.3Z" />
+      <path d="m9.2 12 1.9 1.9 3.8-4.1" />
+    </svg>
   )
 }
