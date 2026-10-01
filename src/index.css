@@ -1782,7 +1782,6 @@ td {
 }
 
 .public-nav-button,
-.public-hero-actions a,
 .public-plans-link {
   align-items: center;
   border-radius: 14px;
@@ -1850,29 +1849,6 @@ td {
   background: rgba(255, 255, 255, 0.13);
   color: rgba(255, 255, 255, 0.92);
   white-space: normal;
-}
-
-.public-hero-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.public-hero-actions button {
-  background: #ffffff;
-  color: #063f79;
-  min-height: 42px;
-  padding-inline: 18px;
-}
-
-.public-hero-actions a {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  color: #ffffff;
-  font-weight: 800;
-  padding: 10px 18px;
 }
 
 .public-carousel-panel {
@@ -2729,17 +2705,6 @@ body.invoice-printing .sidebar-overlay {
 
   .public-showcase-copy > p {
     font-size: 0.98rem;
-  }
-
-  .public-hero-actions {
-    align-items: stretch;
-    display: grid;
-    gap: 10px;
-  }
-
-  .public-hero-actions button,
-  .public-hero-actions a {
-    width: 100%;
   }
 
   .public-carousel-slide {

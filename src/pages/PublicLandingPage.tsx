@@ -36,7 +36,6 @@ type LandingCopy = {
   heroDescription: string
   signUp: string
   login: string
-  discover: string
   contactEyebrow: string
   contactTitle: string
   websiteLabel: string
@@ -88,7 +87,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         heroDescription: "CAMELEYON-ERP est une plateforme tout-en-un qui aide les entreprises à gérer leurs ventes, leurs produits, leurs clients et leurs stocks en toute simplicité.",
         signUp: "S'inscrire",
         login: "Se connecter",
-        discover: "Découvrir la plateforme",
         contactEyebrow: "Contact",
         contactTitle: "Besoin d'aide ou d'une solution adaptée ? Parlons de vos besoins.",
         websiteLabel: "Site web",
@@ -188,7 +186,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           heroDescription: "CAMELEYON-ERP es una plataforma todo en uno que ayuda a las empresas a gestionar ventas, productos, clientes e inventario con simplicidad.",
           signUp: "Registrarse",
           login: "Iniciar sesión",
-          discover: "Explorar la plataforma",
           contactEyebrow: "Contacto",
           contactTitle: "¿Necesita ayuda o una solución adaptada? Hablemos de sus necesidades.",
           websiteLabel: "Sitio web",
@@ -287,7 +284,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           heroDescription: "CAMELEYON-ERP is an all-in-one platform that helps companies manage sales, products, customers, and inventory with simplicity.",
           signUp: "Sign Up",
           login: "Login",
-          discover: "Explore the platform",
           contactEyebrow: "Contact",
           contactTitle: "Need help or a tailored solution? Let's talk about what you need.",
           websiteLabel: "Website",
@@ -506,13 +502,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               <strong>{text.headlineSecondary}</strong>
             </h1>
             <p>{text.heroDescription}</p>
-
-            <div className="public-hero-actions">
-              <button type="button" onClick={onGoToSignup}>
-                {text.signUp}
-              </button>
-              <a href="#platform-preview">{text.discover}</a>
-            </div>
           </div>
 
           <div className="public-carousel-panel" id="platform-preview">
