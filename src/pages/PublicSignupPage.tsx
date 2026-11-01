@@ -142,7 +142,7 @@ const BUSINESS_TYPE_OPTIONS = [
   },
 ] as const
 
-export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome }: Props) {
+export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
   const { language } = useI18n()
   const [plans, setPlans] = useState<PublicPlanResponse[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
@@ -150,6 +150,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [signupComplete, setSignupComplete] = useState(false)
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -178,7 +179,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         verificationStartSuccess: (email: string) => `Un code a été envoyé à ${email}.`,
         verificationExpired: "Le délai de vérification est expiré. Veuillez renseigner le formulaire de nouveau.",
         verificationRestart: "La vérification a été annulée. Veuillez renseigner le formulaire de nouveau.",
-        success: (message: string, adminEmail: string) => `${message}. Votre entreprise a été créée et vous pouvez maintenant vous connecter avec ${adminEmail}.`,
+        success: (_message: string, adminEmail: string) => `Votre essai gratuit de 90 jours est actif, sans carte bancaire. Connectez-vous avec ${adminEmail}.`,
+        login: "Se connecter",
         backHome: "Retour à l'accueil",
         title: "Inscription",
         companyName: "Nom de l'entreprise",
@@ -252,7 +254,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           verificationStartSuccess: (email: string) => `Se envió un código a ${email}.`,
           verificationExpired: "El tiempo de verificación expiró. Complete nuevamente el formulario.",
           verificationRestart: "La verificación fue cancelada. Complete nuevamente el formulario.",
-          success: (message: string, adminEmail: string) => `${message}. Su empresa ha sido creada y ahora puede iniciar sesión con ${adminEmail}.`,
+          success: (_message: string, adminEmail: string) => `Su prueba gratuita de 90 días está activa, sin tarjeta bancaria. Inicie sesión con ${adminEmail}.`,
+          login: "Iniciar sesión",
           backHome: "Volver al inicio",
           title: "Registro",
           companyName: "Nombre de la empresa",
@@ -325,7 +328,8 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
           verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
           verificationExpired: "The verification time expired. Please fill in the form again.",
           verificationRestart: "Verification was cancelled. Please fill in the form again.",
-          success: (message: string, adminEmail: string) => `${message}. Your company has been created and you can now log in with ${adminEmail}.`,
+          success: (_message: string, adminEmail: string) => `Your 90-day free trial is active. No credit card required. Log in with ${adminEmail}.`,
+          login: "Log in",
           backHome: "Back to home",
           title: "Sign Up",
           companyName: "Company name",
@@ -633,6 +637,7 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
       }
 
       setSuccess(text.success(response.signup.message, response.signup.adminEmail))
+      setSignupComplete(true)
       setForm(emptyForm)
       setCurrencySelection("")
       setCustomCurrencyCode("")
@@ -660,7 +665,12 @@ export default function PublicSignupPage({ onGoToLogin: _onGoToLogin, onGoToHome
         <h1>{text.title}</h1>
 
         {error && <div className="card error">{error}</div>}
-        {success && <div className="card success">{success}</div>}
+        {success && (
+          <div className="card success" role="status">
+            <p>{success}</p>
+            {signupComplete && <button type="button" onClick={onGoToLogin}>{text.login}</button>}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="product-form-grid">
           <label className="full-width">

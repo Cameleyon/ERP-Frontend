@@ -165,6 +165,27 @@ td {
   margin-top: 0;
 }
 
+.trial-reminder {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid #99d6c8;
+  border-radius: 6px;
+  background: #eaf8f3;
+  color: #135747;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.trial-reminder-ending {
+  border-color: #eccb80;
+  background: #fff8e6;
+  color: #714d0c;
+}
+
 .page-title-row {
   align-items: center;
   display: flex;

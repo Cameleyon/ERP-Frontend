@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar"
 import type { Page } from "../../types/navigation"
 import LanguageSwitcher from "../common/LanguageSwitcher"
 import { useI18n } from "../../i18n/I18nContext"
+import TrialReminder from "./TrialReminder"
 
 type Props = {
     children: ReactNode
@@ -29,6 +30,7 @@ export default function AppLayout({ children, page, onNavigate }: Props) {
             />
 
             <main className="app-content">
+                <TrialReminder />
                 <div className="mobile-topbar">
                     <LanguageSwitcher />
                     <button
