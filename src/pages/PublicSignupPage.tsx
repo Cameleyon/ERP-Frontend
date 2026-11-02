@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
+import { useRef } from "react"
 import { useI18n } from "../i18n/I18nContext"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
 import {
@@ -148,7 +149,18 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
   const [loadingPlans, setLoadingPlans] = useState(true)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [error, setError] = useState("")
+  const [error, updateError] = useState("")
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  function setError(message: string) {
+    updateError(message)
+    if (message) {
+      window.requestAnimationFrame(() => {
+        errorRef.current?.focus({ preventScroll: true })
+        errorRef.current?.scrollIntoView({ block: "center", behavior: "auto" })
+      })
+    }
+  }
   const [success, setSuccess] = useState("")
   const [signupComplete, setSignupComplete] = useState(false)
   const [verificationError, setVerificationError] = useState("")
@@ -664,7 +676,6 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
 
         <h1>{text.title}</h1>
 
-        {error && <div className="card error">{error}</div>}
         {success && (
           <div className="card success" role="status">
             <p>{success}</p>
@@ -938,6 +949,12 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
               .
             </span>
           </label>
+
+          {error && (
+            <div ref={errorRef} className="card error full-width" role="alert" tabIndex={-1}>
+              {error}
+            </div>
+          )}
 
           <div className="form-actions full-width">
             <button type="submit" disabled={saving || loadingPlans || Boolean(pendingVerification)}>
