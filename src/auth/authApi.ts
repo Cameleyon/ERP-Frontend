@@ -7,6 +7,7 @@ export type AuthenticatedUserResponse = {
   lastName: string
   email: string
   role: string
+  companyOwner: boolean
   companyId: number | null
   companyName: string | null
   companySidebarColor: string | null
@@ -19,9 +20,12 @@ export type AuthenticatedUserResponse = {
   locations: CompanyLocationResponse[]
 }
 
+export type CompanyAccountType = "OWNER" | "USER"
+
 export type LoginRequest = {
   email: string
   password: string
+  accountType: CompanyAccountType
 }
 
 export type LoginResponse = {
@@ -31,6 +35,7 @@ export type LoginResponse = {
 
 export type PasswordResetStartRequest = {
   email: string
+  accountType: CompanyAccountType
 }
 
 export type PasswordResetStartResponse = {

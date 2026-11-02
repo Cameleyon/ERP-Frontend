@@ -4,8 +4,10 @@ import {
   confirmPasswordReset,
   requestPasswordReset,
   type PasswordResetStartResponse,
+  type CompanyAccountType,
 } from "../auth/authApi"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
+import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
 
 type Props = {
@@ -16,6 +18,43 @@ type Props = {
 export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
   const { loginUser } = useAuth()
   const { language } = useI18n()
+  const accountText = language === "fr"
+    ? {
+        choose: "Comment souhaitez-vous vous connecter ?",
+        owner: "Propriétaire", user: "Utilisateur d'une entreprise",
+        ownerHint: "Vous avez enregistré votre entreprise.",
+        userHint: "Votre compte a été créé par le propriétaire.",
+        missingOwner: "Vous n'avez pas de compte en tant que propriétaire. Essayez de vous connecter comme utilisateur, ou contactez CAMELEYON Dynamics : contact@cameleyondynamics.com.",
+        missingUser: "Vous n'avez pas de compte en tant qu'utilisateur d'une entreprise. Essayez de vous connecter comme propriétaire, ou contactez CAMELEYON Dynamics : contact@cameleyondynamics.com.",
+        ambiguous: "Plusieurs comptes correspondent à ce choix. Contactez l'assistance technique : contact@cameleyondynamics.com.",
+      }
+    : language === "es"
+      ? {
+          choose: "¿Cómo desea iniciar sesión?",
+          owner: "Propietario", user: "Usuario de una empresa",
+          ownerHint: "Usted registró su empresa.", userHint: "El propietario creó su cuenta.",
+          missingOwner: "No tiene una cuenta de propietario. Intente iniciar sesión como usuario o contacte con CAMELEYON Dynamics: contact@cameleyondynamics.com.",
+          missingUser: "No tiene una cuenta de usuario de empresa. Intente iniciar sesión como propietario o contacte con CAMELEYON Dynamics: contact@cameleyondynamics.com.",
+          ambiguous: "Hay varias cuentas para esta opción. Contacte con asistencia técnica: contact@cameleyondynamics.com.",
+        }
+      : {
+          choose: "How would you like to sign in?",
+          owner: "Owner", user: "Business user",
+          ownerHint: "You registered your business.", userHint: "The owner created your account.",
+          missingOwner: "You don't have an owner account. Try signing in as a business user, or contact CAMELEYON Dynamics: contact@cameleyondynamics.com.",
+          missingUser: "You don't have a business user account. Try signing in as an owner, or contact CAMELEYON Dynamics: contact@cameleyondynamics.com.",
+          ambiguous: "Multiple accounts match this choice. Contact technical support: contact@cameleyondynamics.com.",
+        }
+  const [accountType, setAccountType] = useState<CompanyAccountType | null>(null)
+
+  function accountError(err: unknown, fallback: string) {
+    const message = err instanceof Error ? err.message : fallback
+    if (message === "NO_OWNER_ACCOUNT") return accountText.missingOwner
+    if (message === "NO_USER_ACCOUNT") return accountText.missingUser
+    if (message === "ACCOUNT_TYPE_REQUIRED") return accountText.choose
+    if (message === "MULTIPLE_COMPANY_ACCOUNTS_CONTACT_SUPPORT") return accountText.ambiguous
+    return message
+  }
 
   const text = language === "fr"
     ? {
@@ -169,21 +208,23 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!accountType) return
 
     try {
       setLoading(true)
       setError("")
       setSuccess("")
-      await loginUser({ email, password })
+      await loginUser({ email: email.trim(), password, accountType })
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.fallbackError)
+      setError(accountError(err, text.fallbackError))
     } finally {
       setLoading(false)
     }
   }
 
   async function handleRequestReset() {
+    if (!accountType) return
     if (!email.trim()) {
       setError(text.emailRequiredForReset)
       return
@@ -194,14 +235,14 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
       setError("")
       setSuccess("")
       setResetError("")
-      const response = await requestPasswordReset({ email: email.trim() })
+      const response = await requestPasswordReset({ email: email.trim(), accountType })
       setPendingReset(response)
       setResetCode("")
       setNewPassword("")
       setConfirmNewPassword("")
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.resetFallbackError)
+      setError(accountError(err, text.resetFallbackError))
     } finally {
       setRequestingReset(false)
     }
@@ -285,16 +326,37 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
         </div>
 
         <h1>CAMELEYON ERP</h1>
-        <p>{text.subtitle}</p>
+        <p>{accountType ? text.subtitle : accountText.choose}</p>
 
-        {error && <div className="card error">{error}</div>}
+        <fieldset className="account-type-selector" disabled={loading || requestingReset}>
+          <legend className="visually-hidden">{accountText.choose}</legend>
+          {(["OWNER", "USER"] as const).map((type) => (
+            <label key={type} className={accountType === type ? "selected" : ""}>
+              <input type="radio" name="accountType" value={type} checked={accountType === type}
+                onChange={() => {
+                  setAccountType(type)
+                  setPassword("")
+                  setError("")
+                  setSuccess("")
+                  setPendingReset(null)
+                  setResetError("")
+                }} />
+              <span><strong>{type === "OWNER" ? accountText.owner : accountText.user}</strong>
+                <small>{type === "OWNER" ? accountText.ownerHint : accountText.userHint}</small></span>
+            </label>
+          ))}
+        </fieldset>
+
+        {error && <div className="card error" role="alert">{error}</div>}
         {success && <div className="card success">{success}</div>}
 
-        <form onSubmit={handleSubmit} className="login-form">
+        {accountType && <><form onSubmit={handleSubmit} className="login-form">
           <label>
             {text.email}
             <input
               type="email"
+              required
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={text.emailPlaceholder}
@@ -305,6 +367,8 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
             {text.password}
             <input
               type="password"
+              required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={text.passwordPlaceholder}
@@ -324,6 +388,8 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
         >
           {requestingReset ? text.requestingReset : text.forgotPassword}
         </button>
+        </>}
+        <SupportContact />
       </div>
 
       {pendingReset && (

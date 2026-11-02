@@ -1284,7 +1284,7 @@ export default function ProfilePage() {
             <h3>{text.usersSectionTitle}</h3>
             <p>{text.usersSectionSubtitle}</p>
 
-            <div className="company-user-warning">
+            {user?.companyOwner && <><div className="company-user-warning">
               <strong>{text.additionalUserWarningTitle}</strong>
               <span>{text.additionalUserWarningMessage}</span>
             </div>
@@ -1372,7 +1372,7 @@ export default function ProfilePage() {
                   {companyUsersSaving ? text.addUserSubmitting : text.addUserButton}
                 </button>
               </div>
-            </form>
+            </form></>}
 
             <div style={{ marginTop: 24 }}>
               <h4 style={{ marginTop: 0 }}>{text.usersListTitle}</h4>

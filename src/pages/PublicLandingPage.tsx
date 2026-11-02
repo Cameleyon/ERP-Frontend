@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
+import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
 import {
@@ -675,7 +676,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           <a href="https://www.cameleyondynamics.com/" target="_blank" rel="noreferrer">
             www.cameleyondynamics.com
           </a>
-          <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a>
+          <SupportContact />
         </div>
 
         <p>© 2024 CAMELEYON-ERP. {text.footerRights}</p>

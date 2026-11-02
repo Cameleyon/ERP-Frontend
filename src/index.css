@@ -944,6 +944,37 @@ td {
   gap: 16px;
 }
 
+.account-type-selector {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.account-type-selector label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #c9d8e5;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.account-type-selector label.selected {
+  border-color: #044975;
+  background: #edf7fa;
+}
+
+.account-type-selector input { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; }
+.account-type-selector small { display: block; margin-top: 4px; line-height: 1.4; }
+.support-contact { display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.support-contact a { text-decoration: underline; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.login-card .error { overflow-wrap: anywhere; }
+
 .inline-text-button {
   margin-top: 14px;
   border: none;

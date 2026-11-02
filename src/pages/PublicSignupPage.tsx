@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
+import SupportContact from "../components/common/SupportContact"
 import { useRef } from "react"
 import { useI18n } from "../i18n/I18nContext"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
@@ -211,10 +212,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
         currentTime: "Heure actuelle",
         timeZonePlaceholder: "Ex. America/Port-au-Prince",
         invalidTimeZone: "Fuseau horaire invalide",
-        adminFirstName: "Prénom de l'administrateur",
-        adminLastName: "Nom de l'administrateur",
-        adminEmail: "Email de l'administrateur",
-        adminPassword: "Mot de passe de l'administrateur",
+        adminFirstName: "Prénom du propriétaire",
+        adminLastName: "Nom du propriétaire",
+        adminEmail: "Email du propriétaire",
+        adminPassword: "Mot de passe du propriétaire",
         plan: "Plan",
         selectPlan: "Choisir un plan",
         billingCycle: "Cycle de facturation",
@@ -233,9 +234,9 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
           "CAMELEYON peut limiter, suspendre ou bloquer l'accès en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte à la sécurité ou de violation des présentes conditions.",
           "En créant son compte, l'entreprise accepte ces conditions et comprend qu'elles peuvent être mises à jour au besoin pour tenir compte de l'évolution du service.",
         ],
-        submit: "Vérifier l'e-mail admin",
+        submit: "Vérifier l'e-mail du propriétaire",
         submitting: "Envoi du code...",
-        verificationTitle: "Confirmer l'e-mail admin",
+        verificationTitle: "Confirmer l'e-mail du propriétaire",
         verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`,
         verificationHint: "Vous avez 3 essais et 30 secondes.",
         verificationCode: "Code de vérification",
@@ -284,10 +285,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
           currentTime: "Hora actual",
           timeZonePlaceholder: "Ej. America/Port-au-Prince",
           invalidTimeZone: "Zona horaria inválida",
-          adminFirstName: "Nombre del administrador",
-          adminLastName: "Apellido del administrador",
-          adminEmail: "Correo del administrador",
-          adminPassword: "Contraseña del administrador",
+          adminFirstName: "Nombre del propietario",
+          adminLastName: "Apellido del propietario",
+          adminEmail: "Correo del propietario",
+          adminPassword: "Contraseña del propietario",
           plan: "Plan",
           selectPlan: "Elegir un plan",
           billingCycle: "Ciclo de facturación",
@@ -356,10 +357,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
           currentTime: "Current time",
           timeZonePlaceholder: "Ex. America/Port-au-Prince",
           invalidTimeZone: "Invalid time zone",
-          adminFirstName: "Admin first name",
-          adminLastName: "Admin last name",
-          adminEmail: "Admin email",
-          adminPassword: "Admin password",
+          adminFirstName: "Owner first name",
+          adminLastName: "Owner last name",
+          adminEmail: "Owner email",
+          adminPassword: "Owner password",
           plan: "Plan",
           selectPlan: "Choose a plan",
           billingCycle: "Billing cycle",
@@ -378,9 +379,9 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
             "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
             "By creating an account, the company accepts these terms and understands that they may be updated when needed to reflect the evolution of the service.",
           ],
-          submit: "Verify admin email",
+          submit: "Verify owner email",
           submitting: "Sending code...",
-          verificationTitle: "Confirm admin email",
+          verificationTitle: "Confirm owner email",
           verificationText: (email: string) => `Enter the code sent to ${email}.`,
           verificationHint: "You have 3 attempts and 30 seconds.",
           verificationCode: "Verification code",
@@ -585,7 +586,7 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
       setSuccess(text.verificationStartSuccess(response.adminEmail))
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.signupFailed)
+      setError(signupError(err))
     } finally {
       setSaving(false)
     }
@@ -646,10 +647,20 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
       setCustomCurrencyCode("")
     } catch (err) {
       console.error(err)
-      setVerificationError(err instanceof Error ? err.message : text.signupFailed)
+      setVerificationError(signupError(err))
     } finally {
       setVerifying(false)
     }
+  }
+
+  function signupError(err: unknown) {
+    const message = err instanceof Error ? err.message : text.signupFailed
+    if (message !== "ACTIVE_COMPANY_OWNER_EXISTS") return message
+    return language === "fr"
+      ? "Vous possédez déjà une entreprise active avec cet e-mail. Connectez-vous comme propriétaire ou contactez l'assistance technique : contact@cameleyondynamics.com."
+      : language === "es"
+        ? "Ya tiene una empresa activa con este correo. Inicie sesión como propietario o contacte con asistencia técnica: contact@cameleyondynamics.com."
+        : "You already own an active business with this email. Sign in as an owner or contact technical support: contact@cameleyondynamics.com."
   }
 
   return (
@@ -942,6 +953,7 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
             </button>
           </div>
         </form>
+        <SupportContact />
       </div>
 
       {pendingVerification && (
