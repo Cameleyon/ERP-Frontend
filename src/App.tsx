@@ -28,6 +28,7 @@ function AppContent() {
   const { copy, language } = useI18n()
   const [page, setPage] = useState<Page>("dashboard")
   const [publicPage, setPublicPage] = useState<PublicPage>("landing")
+  const [registeredEmail, setRegisteredEmail] = useState("")
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [termsError, setTermsError] = useState("")
   const [termsRequired, setTermsRequired] = useState(false)
@@ -75,7 +76,11 @@ function AppContent() {
     if (publicPage === "signup") {
       return (
           <PublicSignupPage
-              onGoToLogin={() => setPublicPage("login")}
+              onSignupComplete={(email) => {
+                setRegisteredEmail(email)
+                setPublicPage("login")
+                window.scrollTo(0, 0)
+              }}
               onGoToHome={() => setPublicPage("landing")}
           />
       )
@@ -84,8 +89,10 @@ function AppContent() {
     if (publicPage === "login") {
       return (
           <LoginPage
-              onGoToHome={() => setPublicPage("landing")}
-              onGoToSignup={() => setPublicPage("signup")}
+              registeredEmail={registeredEmail}
+              onSignedIn={() => setRegisteredEmail("")}
+              onGoToHome={() => { setRegisteredEmail(""); setPublicPage("landing") }}
+              onGoToSignup={() => { setRegisteredEmail(""); setPublicPage("signup") }}
           />
       )
     }

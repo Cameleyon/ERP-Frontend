@@ -19,7 +19,7 @@ import {
 } from "../utils/companyLocalization"
 
 type Props = {
-  onGoToLogin: () => void
+  onSignupComplete: (email: string) => void
   onGoToHome: () => void
 }
 
@@ -142,7 +142,7 @@ const BUSINESS_TYPE_OPTIONS = [
   },
 ] as const
 
-export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
+export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props) {
   const { language } = useI18n()
   const [plans, setPlans] = useState<PublicPlanResponse[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
@@ -161,7 +161,6 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
     }
   }
   const [success, setSuccess] = useState("")
-  const [signupComplete, setSignupComplete] = useState(false)
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -185,13 +184,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
         currencyRequired: "La devise est requise",
         verificationCodeRequired: "Le code de vérification est requis",
         termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer",
-        redirecting: "Redirection vers le paiement Stripe...",
         signupFailed: "L'inscription a échoué",
         verificationStartSuccess: (email: string) => `Un code a été envoyé à ${email}.`,
         verificationExpired: "Le délai de vérification est expiré. Veuillez renseigner le formulaire de nouveau.",
         verificationRestart: "La vérification a été annulée. Veuillez renseigner le formulaire de nouveau.",
-        success: (_message: string, adminEmail: string) => `Votre essai gratuit de 90 jours est actif, sans carte bancaire. Connectez-vous avec ${adminEmail}.`,
-        login: "Se connecter",
         backHome: "Retour à l'accueil",
         title: "Inscription",
         companyName: "Nom de l'entreprise",
@@ -258,13 +254,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
           currencyRequired: "La moneda es obligatoria",
           verificationCodeRequired: "El código de verificación es obligatorio",
           termsRequired: "Debe aceptar los términos de uso para continuar",
-          redirecting: "Redirigiendo al pago de Stripe...",
           signupFailed: "El registro falló",
           verificationStartSuccess: (email: string) => `Se envió un código a ${email}.`,
           verificationExpired: "El tiempo de verificación expiró. Complete nuevamente el formulario.",
           verificationRestart: "La verificación fue cancelada. Complete nuevamente el formulario.",
-          success: (_message: string, adminEmail: string) => `Su prueba gratuita de 90 días está activa, sin tarjeta bancaria. Inicie sesión con ${adminEmail}.`,
-          login: "Iniciar sesión",
           backHome: "Volver al inicio",
           title: "Registro",
           companyName: "Nombre de la empresa",
@@ -330,13 +323,10 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
           currencyRequired: "Currency is required",
           verificationCodeRequired: "Verification code is required",
           termsRequired: "You must accept the terms of use to continue",
-          redirecting: "Redirecting to Stripe payment...",
           signupFailed: "Signup failed",
           verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
           verificationExpired: "The verification time expired. Please fill in the form again.",
           verificationRestart: "Verification was cancelled. Please fill in the form again.",
-          success: (_message: string, adminEmail: string) => `Your 90-day free trial is active. No credit card required. Log in with ${adminEmail}.`,
-          login: "Log in",
           backHome: "Back to home",
           title: "Sign Up",
           companyName: "Company name",
@@ -634,17 +624,7 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
       setPendingVerification(null)
       setVerificationCode("")
 
-      if (response.signup.checkoutUrl) {
-        setSuccess(text.redirecting)
-        window.location.href = response.signup.checkoutUrl
-        return
-      }
-
-      setSuccess(text.success(response.signup.message, response.signup.adminEmail))
-      setSignupComplete(true)
-      setForm(emptyForm)
-      setCurrencySelection("")
-      setCustomCurrencyCode("")
+      onSignupComplete(response.signup.adminEmail)
     } catch (err) {
       console.error(err)
       setVerificationError(signupError(err))
@@ -681,7 +661,6 @@ export default function PublicSignupPage({ onGoToLogin, onGoToHome }: Props) {
         {success && (
           <div className="card success" role="status">
             <p>{success}</p>
-            {signupComplete && <button type="button" onClick={onGoToLogin}>{text.login}</button>}
           </div>
         )}
 

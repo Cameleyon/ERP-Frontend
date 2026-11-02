@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAuth } from "../auth/AuthContext"
 import {
   confirmPasswordReset,
@@ -13,9 +13,11 @@ import { useI18n } from "../i18n/I18nContext"
 type Props = {
   onGoToHome?: () => void
   onGoToSignup?: () => void
+  registeredEmail?: string
+  onSignedIn?: () => void
 }
 
-export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
+export default function LoginPage({ onGoToHome, onGoToSignup, registeredEmail, onSignedIn }: Props) {
   const { loginUser } = useAuth()
   const { language } = useI18n()
   const accountText = language === "fr"
@@ -45,7 +47,18 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
           missingUser: "You don't have a business user account. Try signing in as an owner, or contact CAMELEYON Dynamics: contact@cameleyondynamics.com.",
           ambiguous: "Multiple accounts match this choice. Contact technical support: contact@cameleyondynamics.com.",
         }
-  const [accountType, setAccountType] = useState<CompanyAccountType | null>(null)
+  const [accountType, setAccountType] = useState<CompanyAccountType | null>(registeredEmail ? "OWNER" : null)
+  const [showRegistrationMessage, setShowRegistrationMessage] = useState(Boolean(registeredEmail))
+  const registrationMessageRef = useRef<HTMLDivElement>(null)
+  const registrationMessage = language === "fr"
+    ? "Votre compte a été créé avec succès. Connectez-vous à votre nouveau compte."
+    : language === "es"
+      ? "Su cuenta se ha creado correctamente. Inicie sesión en su nueva cuenta."
+      : "Your account has been created successfully. Log in to your new account."
+
+  useEffect(() => {
+    if (registeredEmail) registrationMessageRef.current?.focus()
+  }, [registeredEmail])
 
   function accountError(err: unknown, fallback: string) {
     const message = err instanceof Error ? err.message : fallback
@@ -161,7 +174,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
           timeRemaining: (count: number) => `Time remaining: ${count}s`,
         }
 
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(registeredEmail ?? "")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -215,6 +228,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
       setError("")
       setSuccess("")
       await loginUser({ email: email.trim(), password, accountType })
+      onSignedIn?.()
     } catch (err) {
       console.error(err)
       setError(accountError(err, text.fallbackError))
@@ -326,6 +340,11 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
         </div>
 
         <h1>CAMELEYON ERP</h1>
+        {showRegistrationMessage && (
+          <div ref={registrationMessageRef} className="card success" role="status" tabIndex={-1}>
+            {registrationMessage}
+          </div>
+        )}
         <p>{accountType ? text.subtitle : accountText.choose}</p>
 
         <fieldset className="account-type-selector" disabled={loading || requestingReset}>
@@ -335,6 +354,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup }: Props) {
               <input type="radio" name="accountType" value={type} checked={accountType === type}
                 onChange={() => {
                   setAccountType(type)
+                  setShowRegistrationMessage(false)
                   setPassword("")
                   setError("")
                   setSuccess("")
