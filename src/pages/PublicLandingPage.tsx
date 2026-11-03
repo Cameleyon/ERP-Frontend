@@ -49,7 +49,9 @@ type LandingCopy = {
   promotionsEyebrow: string
   promotionsTitle: string
   promotionsLoading: string
-  promotionsEmpty: string
+  trialTitle: string
+  trialDescription: string
+  startTrial: string
   specialOffer: string
   promoText: string
   freeTrial: string
@@ -107,7 +109,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         promotionsEyebrow: "Promotions",
         promotionsTitle: "Offres en cours",
         promotionsLoading: "Chargement des promotions...",
-        promotionsEmpty: "Aucune promotion disponible pour le moment.",
+        trialTitle: "3 mois gratuits",
+        trialDescription: "Profitez de 90 jours d'essai de CAMELEYON-ERP, sans carte bancaire.",
+        startTrial: "Commencer l'essai gratuit",
         specialOffer: "Offre spéciale",
         promoText: "Tarification promotionnelle actuellement disponible.",
         freeTrial: "Essai gratuit :",
@@ -206,7 +210,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           promotionsEyebrow: "Promociones",
           promotionsTitle: "Ofertas actuales",
           promotionsLoading: "Cargando promociones...",
-          promotionsEmpty: "No hay promociones disponibles por el momento.",
+          trialTitle: "3 meses gratis",
+          trialDescription: "Disfrute de 90 días de prueba de CAMELEYON-ERP, sin tarjeta bancaria.",
+          startTrial: "Comenzar la prueba gratuita",
           specialOffer: "Oferta especial",
           promoText: "Precio promocional disponible actualmente.",
           freeTrial: "Prueba gratis:",
@@ -304,7 +310,9 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           promotionsEyebrow: "Promotions",
           promotionsTitle: "Current offers",
           promotionsLoading: "Loading promotions...",
-          promotionsEmpty: "No promotions available at the moment.",
+          trialTitle: "3 months free",
+          trialDescription: "Enjoy a 90-day CAMELEYON-ERP trial. No credit card required.",
+          startTrial: "Start free trial",
           specialOffer: "Special offer",
           promoText: "Promotional pricing currently available.",
           freeTrial: "Free trial:",
@@ -379,6 +387,11 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         }
 
   function formatTrialDuration(days: number) {
+    if (days === 90) {
+      if (language === "fr") return "3 mois"
+      if (language === "es") return "3 meses"
+      return "3 months"
+    }
     if (days === 60) {
       if (language === "fr") return "2 mois"
       if (language === "es") return "2 meses"
@@ -470,6 +483,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   )
 
   const currentSlide = text.carouselSlides[activeSlide]
+  const additionalPromotions = promotions.filter(promotion => promotion.freeTrialDays !== 90
+    || promotion.promoPriceMonthly != null || promotion.promoPriceYearly != null)
 
   return (
     <div className="public-page public-page-redesign">
@@ -561,7 +576,6 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                 <span className="public-card-icon" aria-hidden="true">{icon}</span>
                 <h3>{title}</h3>
                 <p>{body}</p>
-                <span className="public-card-arrow" aria-hidden="true">→</span>
               </article>
             ))}
           </div>
@@ -576,17 +590,15 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
               </div>
             </div>
 
-            {loading ? (
-              <div className="public-empty-panel">{text.promotionsLoading}</div>
-            ) : promotions.length === 0 ? (
-              <div className="public-empty-panel">
-                <span className="public-empty-icon" aria-hidden="true">%</span>
-                <strong>{text.promotionsTitle}</strong>
-                <p>{text.promotionsEmpty}</p>
-              </div>
-            ) : (
-              <div className="public-promo-list">
-                {promotions.map((promotion) => (
+            <div className="public-promo-list">
+              <article className="public-promo-card public-trial-offer">
+                <div className="public-card-label">{text.specialOffer}</div>
+                <h3>{text.trialTitle}</h3>
+                <p>{text.trialDescription}</p>
+                <button type="button" onClick={onGoToSignup}>{text.startTrial}</button>
+              </article>
+              {loading && <p role="status">{text.promotionsLoading}</p>}
+                {additionalPromotions.map((promotion) => (
                   <article key={promotion.id} className="public-promo-card">
                     <div className="public-card-label">{text.specialOffer}</div>
                     <h3>{resolvePromotionName(promotion)}</h3>
@@ -602,8 +614,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                     )}
                   </article>
                 ))}
-              </div>
-            )}
+            </div>
           </section>
 
           <section className="public-section public-plans-section" aria-labelledby="public-plans-title">
@@ -669,17 +680,17 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           <div>
             <strong>CAMELEYON-ERP</strong>
             <span>{text.poweredBy}</span>
+            <a href="https://www.cameleyondynamics.com/" target="_blank" rel="noreferrer">
+              www.cameleyondynamics.com
+            </a>
           </div>
         </div>
 
         <div className="public-footer-contact">
-          <a href="https://www.cameleyondynamics.com/" target="_blank" rel="noreferrer">
-            www.cameleyondynamics.com
-          </a>
           <SupportContact />
         </div>
 
-        <p>© 2024 CAMELEYON-ERP. {text.footerRights}</p>
+        <p className="public-footer-copyright">© 2024 CAMELEYON-ERP. {text.footerRights}</p>
       </footer>
     </div>
   )
