@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../auth/AuthContext"
+import { useRef } from "react"
 import {
   getCompanyProfile,
   updateCompanyProfile,
@@ -99,7 +100,7 @@ const emptyForm: FormState = {
   postalCode: "",
   country: "",
   timeZoneId: getBrowserTimeZone(),
-  currencyCode: "CAD",
+  currencyCode: "",
 }
 
 const emptyPasswordForm: PasswordFormState = {
@@ -157,7 +158,7 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
     postalCode: profile.postalCode || "",
     country: profile.country || "",
     timeZoneId: profile.timeZoneId || getBrowserTimeZone(),
-    currencyCode: profile.currencyCode || "CAD",
+    currencyCode: profile.currencyCode || "",
   }
 }
 
@@ -174,7 +175,7 @@ function cleanSubscriptionNotes(notes: string | null | undefined) {
   return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
 }
 
-export default function ProfilePage() {
+export default function ProfilePage({ configureCurrency = false }: { configureCurrency?: boolean }) {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
@@ -198,6 +199,16 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("")
   const [isEditing, setIsEditing] = useState(false)
   const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
+  const currencyInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!configureCurrency || loading || !isAdmin) return
+    setIsEditing(true)
+    const frame = window.requestAnimationFrame(() => {
+      currencyInputRef.current?.focus()
+      currencyInputRef.current?.scrollIntoView({ block: "center" })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [configureCurrency, loading, isAdmin])
 
   const text = language === "fr"
     ? {
@@ -539,7 +550,7 @@ export default function ProfilePage() {
       setCompanyUsers(companyUsersData)
       setCompanyLocations(companyLocationsData)
       setForm(buildFormState(profileData))
-      setIsEditing(false)
+      setIsEditing(configureCurrency)
 
       if (subscriptionData.paymentProvider === "STRIPE") {
         try {
@@ -768,7 +779,7 @@ export default function ProfilePage() {
   }
 
   async function handleSaveUserProfile() {
-    if (!userForm.firstName.trim() || !userForm.lastName.trim() || !userForm.email.trim()) {
+    if (!userForm.email.trim()) {
       setError(text.userProfileError)
       return
     }
@@ -1490,10 +1501,12 @@ export default function ProfilePage() {
               <label>
                 {text.currency}
                 <input
+                  ref={currencyInputRef}
                   type="text"
+                  placeholder="USD, HTG, CAD..."
                   value={form.currencyCode}
                   disabled={!isEditing}
-                  onChange={(e) => updateForm("currencyCode", e.target.value)}
+                  onChange={(e) => updateForm("currencyCode", e.target.value.toUpperCase())}
                 />
               </label>
 

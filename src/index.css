@@ -944,6 +944,18 @@ td {
   gap: 16px;
 }
 
+.public-signup-form { width: 100%; max-width: 560px; box-sizing: border-box; margin: 0 auto; }
+.sidebar-user { overflow-wrap: anywhere; }
+.public-signup-form h1 { font-size: 28px; margin: 20px 0 12px; }
+.public-signup-form .login-form label { min-width: 0; }
+.public-signup-form input { min-width: 0; box-sizing: border-box; }
+.public-signup-form .error { margin: 0; overflow-wrap: anywhere; }
+.signup-dialog, .currency-required-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; margin: auto; box-sizing: border-box; border-radius: 8px; }
+dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
+.signup-dialog::backdrop, .currency-required-dialog::backdrop { background: rgba(10, 30, 40, 0.45); }
+.signup-dialog h2, .currency-required-dialog h2 { font-size: 22px; line-height: 1.3; overflow-wrap: anywhere; }
+.signup-dialog button, .currency-required-dialog button { max-width: 100%; white-space: normal; }
+
 .account-type-selector {
   display: grid;
   gap: 10px;
@@ -2061,6 +2073,19 @@ td {
 .public-trial-offer h3 { font-size: 1.5rem; }
 .public-trial-offer p { margin: 0; line-height: 1.5; }
 .public-trial-offer button { margin-top: auto; max-width: 100%; white-space: normal; }
+.public-offer-band { margin-bottom: 16px; }
+.public-offer-band .section-heading { margin-bottom: 10px; }
+.public-offer-band .section-heading h2 { font-size: 22px; }
+.public-offer-band .public-promo-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.public-offer-band .public-trial-offer { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.public-offer-band .public-trial-offer .public-card-label { grid-column: 1 / -1; }
+.public-offer-band .public-trial-offer p { grid-column: 1; }
+.public-offer-band .public-trial-offer button { grid-column: 2; grid-row: 2 / span 2; margin-top: 0; }
+.public-commerce-grid.public-commerce-grid-plans-only { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 700px) {
+  .public-offer-band .public-trial-offer { grid-template-columns: minmax(0, 1fr); }
+  .public-offer-band .public-trial-offer button { grid-column: 1; grid-row: auto; }
+}
 
 .public-empty-panel {
   align-items: center;

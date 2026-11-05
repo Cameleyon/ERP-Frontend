@@ -1,6 +1,25 @@
 const VISITOR_KEY = "cameleyon-visitor-id"
 
-export function trackApplicationVisit() {
+export type SignupEvent = "PAGE_VIEW" | "FORM_SUBMITTED" | "CODE_SENT" | "FORM_ERROR" | "VERIFICATION_ERROR" | "CODE_EXPIRED" | "CANCELLED" | "COMPLETED"
+export type SignupErrorReason = "VALIDATION" | "ACTIVE_OWNER_EXISTS" | "NETWORK" | "REQUEST_FAILED" | "INVALID_CODE" | "CODE_EXPIRED" | "ATTEMPTS_EXHAUSTED" | "INVALID_RESPONSE"
+
+export function newSignupAttemptId() {
+  try { return navigator.doNotTrack === "1" ? null : crypto.randomUUID() } catch { return null }
+}
+
+export function signupErrorReason(error: unknown): SignupErrorReason {
+  if (error instanceof Error && error.message === "ACTIVE_COMPANY_OWNER_EXISTS") return "ACTIVE_OWNER_EXISTS"
+  return error instanceof TypeError ? "NETWORK" : "REQUEST_FAILED"
+}
+
+export function trackSignupEvent(eventType: SignupEvent, attemptId: string | null = null, reasonCode?: SignupErrorReason) {
+  if (eventType !== "PAGE_VIEW" && !attemptId) return
+  sendEvent({ eventType, attemptId, reasonCode })
+}
+
+export function trackApplicationVisit() { sendEvent({}) }
+
+function sendEvent(details: { eventType?: SignupEvent; attemptId?: string | null; reasonCode?: SignupErrorReason }) {
   if (!import.meta.env.PROD || navigator.doNotTrack === "1") return
   try {
     let visitorId = localStorage.getItem(VISITOR_KEY)
@@ -8,7 +27,7 @@ export function trackApplicationVisit() {
       visitorId = crypto.randomUUID()
       localStorage.setItem(VISITOR_KEY, visitorId)
     }
-    const body = JSON.stringify({ visitId: crypto.randomUUID(), visitorId })
+    const body = JSON.stringify({ visitId: crypto.randomUUID(), visitorId, ...details })
     // Retrying the same visit ID cannot increment the backend counter twice.
     async function send(retry = true) {
       try {

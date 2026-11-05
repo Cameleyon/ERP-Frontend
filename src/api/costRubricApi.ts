@@ -1,5 +1,6 @@
 import { apiGet } from "./client"
 import { API_BASE_URL } from "./config"
+import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 
@@ -31,6 +32,7 @@ export async function createCostRubric(payload: {
     body: JSON.stringify(payload),
   })
 
+  await checkCompanyCurrencyResponse(response)
   if (!response.ok) {
     const text = await response.text()
     throw new Error(text || `Request failed with status ${response.status}`)

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config"
+import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 
@@ -145,6 +146,7 @@ export type SalesFilters = {
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
+  await checkCompanyCurrencyResponse(response)
   if (!response.ok) {
     const text = await response.text()
     throw new Error(text || `Request failed with status ${response.status}`)

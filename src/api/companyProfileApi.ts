@@ -12,7 +12,7 @@ export type CompanyProfileResponse = {
     postalCode: string | null
     country: string | null
     timeZoneId: string | null
-    currencyCode: string
+    currencyCode: string | null
     active: boolean
     sidebarColor: string | null
     primaryColor: string | null

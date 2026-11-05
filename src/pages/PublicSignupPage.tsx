@@ -1,1013 +1,229 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
-import { useRef } from "react"
 import { useI18n } from "../i18n/I18nContext"
-import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
-import {
-  confirmSignupCompany,
-  signupCompany,
-  type PublicSignupRequest,
-} from "../api/publicSignupApi"
-import {
-  composeStructuredAddress,
-  formatCurrentTimeInTimeZone,
-  getBrowserTimeZone,
-  getCountryOptions,
-  getTimeZoneOptions,
-  isValidTimeZone,
-} from "../utils/companyLocalization"
+import { confirmSignupCompany, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
+import { getBrowserTimeZone } from "../utils/companyLocalization"
+import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
 
 type Props = {
   onSignupComplete: (email: string) => void
   onGoToHome: () => void
 }
 
-type FormState = {
-  companyName: string
-  businessType: string
-  businessTypeOther: string
-  phone: string
-  companyEmail: string
-  addressLine1: string
-  city: string
-  postalCode: string
-  country: string
-  timeZoneId: string
-  currencyCode: string
-  adminFirstName: string
-  adminLastName: string
-  adminEmail: string
-  adminPassword: string
-  planCode: string
-  billingCycle: "MONTHLY" | "YEARLY"
-  termsAccepted: boolean
-}
-
-type PendingVerificationState = {
-  pendingSignupId: string
-  adminEmail: string
-  expiresAt: string
-  attemptsRemaining: number
-}
-
-const emptyForm: FormState = {
-  companyName: "",
-  businessType: "",
-  businessTypeOther: "",
-  phone: "",
-  companyEmail: "",
-  addressLine1: "",
-  city: "",
-  postalCode: "",
-  country: "",
-  timeZoneId: getBrowserTimeZone(),
-  currencyCode: "",
-  adminFirstName: "",
-  adminLastName: "",
-  adminEmail: "",
-  adminPassword: "",
-  planCode: "",
-  billingCycle: "MONTHLY",
-  termsAccepted: false,
-}
-
-const BUSINESS_TYPE_OTHER = "OTHER"
-const CURRENCY_OTHER = "__OTHER__"
-
-const CURRENCY_OPTIONS = [
-  "USD",
-  "CAD",
-  "HTG",
-  "DOP",
-  "EUR",
-  "MXN",
-  "GBP",
-] as const
-
-const BUSINESS_TYPE_OPTIONS = [
-  {
-    value: "Retail",
-    fr: "Commerce de détail",
-    en: "Retail",
-    es: "Venta al por menor",
-  },
-  {
-    value: "Wholesale",
-    fr: "Vente en gros",
-    en: "Wholesale",
-    es: "Venta al por mayor",
-  },
-  {
-    value: "Restaurant",
-    fr: "Restaurant",
-    en: "Restaurant",
-    es: "Restaurante",
-  },
-  {
-    value: "Pharmacy",
-    fr: "Pharmacie",
-    en: "Pharmacy",
-    es: "Farmacia",
-  },
-  {
-    value: "Beauty / Salon",
-    fr: "Beauté / Salon",
-    en: "Beauty / Salon",
-    es: "Belleza / Salon",
-  },
-  {
-    value: "Electronics",
-    fr: "Électronique",
-    en: "Electronics",
-    es: "Electronica",
-  },
-  {
-    value: "Construction",
-    fr: "Construction",
-    en: "Construction",
-    es: "Construccion",
-  },
-  {
-    value: "Services",
-    fr: "Services",
-    en: "Services",
-    es: "Servicios",
-  },
-  {
-    value: BUSINESS_TYPE_OTHER,
-    fr: "Autre",
-    en: "Other",
-    es: "Otro",
-  },
-] as const
-
 export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props) {
   const { language } = useI18n()
-  const [plans, setPlans] = useState<PublicPlanResponse[]>([])
-  const [loadingPlans, setLoadingPlans] = useState(true)
+  const text = language === "fr" ? {
+    title: "Inscription", home: "Retour à l'accueil", company: "Nom de l'entreprise", email: "Email du propriétaire", password: "Mot de passe",
+    trial: "90 jours d'essai gratuit, sans carte bancaire. Les autres informations pourront être complétées dans Profil.",
+    passwordHint: "8 caractères minimum", termsPrefix: "J'ai lu et j'accepte les", termsLink: "conditions d'utilisation",
+    termsTitle: "Conditions d'utilisation CAMELEYON ERP", close: "Fermer", cancel: "Annuler",
+    submit: "Créer mon compte", submitting: "Envoi du code...", verificationTitle: "Confirmer l'e-mail du propriétaire",
+    verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`, verificationHint: "Vous avez 3 essais et 30 secondes.",
+    code: "Code de vérification", confirm: "Confirmer le code", confirming: "Vérification...",
+    attempts: (count: number) => `Essais restants : ${count}`, time: (count: number) => `Temps restant : ${count}s`,
+    required: "Renseignez le nom de l'entreprise, votre e-mail et un mot de passe d'au moins 8 caractères.",
+    termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer.", codeRequired: "Le code de vérification est requis.",
+    failed: "L'inscription a échoué. Veuillez réessayer.", expired: "Le délai de vérification est expiré. Veuillez demander un nouveau code.",
+    activeOwner: "Vous possédez déjà une entreprise active avec cet e-mail. Connectez-vous comme propriétaire ou contactez l'assistance technique : contact@cameleyondynamics.com.",
+    paragraphs: [
+      "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise à gérer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses opérations.",
+      "L'entreprise confirme que les informations fournies lors de l'inscription sont exactes et que l'administrateur principal est responsable de la gestion des utilisateurs, des accès et des données de l'entreprise.",
+      "L'utilisation de la solution peut dépendre d'un abonnement payant. Tout mois commencé est dû. CAMELEYON se réserve le droit de revoir le prix de l'abonnement au besoin, avec information préalable lorsque nécessaire.",
+      "L'entreprise demeure responsable des données qu'elle saisit dans la solution. CAMELEYON met en place des mesures raisonnables pour protéger la plateforme, mais l'entreprise doit aussi protéger ses identifiants et l'accès à ses comptes.",
+      "Certaines fonctionnalités, comme l'envoi d'e-mails, les paiements automatiques, les rapports ou les intégrations externes, peuvent dépendre de services tiers et de leur disponibilité.",
+      "CAMELEYON peut limiter, suspendre ou bloquer l'accès en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte à la sécurité ou de violation des présentes conditions.",
+      "En créant son compte, l'entreprise accepte ces conditions et comprend qu'elles peuvent être mises à jour au besoin pour tenir compte de l'évolution du service.",
+    ],
+  } : language === "es" ? {
+    title: "Registro", home: "Volver al inicio", company: "Nombre de la empresa", email: "Correo del propietario", password: "Contraseña",
+    trial: "90 días de prueba gratis, sin tarjeta bancaria. Puede completar los demás datos en Perfil.",
+    passwordHint: "Mínimo 8 caracteres", termsPrefix: "He leído y acepto los", termsLink: "términos de uso",
+    termsTitle: "Términos de uso de CAMELEYON ERP", close: "Cerrar", cancel: "Cancelar",
+    submit: "Crear mi cuenta", submitting: "Enviando código...", verificationTitle: "Confirmar correo del propietario",
+    verificationText: (email: string) => `Ingrese el código enviado a ${email}.`, verificationHint: "Tiene 3 intentos y 30 segundos.",
+    code: "Código de verificación", confirm: "Confirmar código", confirming: "Verificando...",
+    attempts: (count: number) => `Intentos restantes: ${count}`, time: (count: number) => `Tiempo restante: ${count}s`,
+    required: "Ingrese el nombre de la empresa, su correo y una contraseña de al menos 8 caracteres.",
+    termsRequired: "Debe aceptar los términos de uso para continuar.", codeRequired: "El código de verificación es obligatorio.",
+    failed: "El registro falló. Inténtelo de nuevo.", expired: "El tiempo de verificación expiró. Solicite un nuevo código.",
+    activeOwner: "Ya tiene una empresa activa con este correo. Inicie sesión como propietario o contacte con asistencia técnica: contact@cameleyondynamics.com.",
+    paragraphs: [
+      "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
+      "La empresa confirma que la información enviada durante el registro es correcta y que el administrador principal es responsable de gestionar usuarios, accesos y datos de la empresa.",
+      "El uso de la solución puede depender de una suscripción paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripción cuando sea necesario, con aviso previo cuando corresponda.",
+      "La empresa sigue siendo responsable de los datos que introduce en la solución. CAMELEYON aplica medidas razonables para proteger la plataforma, pero la empresa también debe proteger sus credenciales y el acceso a sus cuentas.",
+      "Algunas funciones, como envío de correos, pagos automáticos, informes o integraciones externas, pueden depender de servicios de terceros y de su disponibilidad.",
+      "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos términos.",
+      "Al crear su cuenta, la empresa acepta estos términos y entiende que pueden actualizarse cuando sea necesario para reflejar la evolución del servicio.",
+    ],
+  } : {
+    title: "Sign Up", home: "Back to home", company: "Company name", email: "Owner email", password: "Password",
+    trial: "90-day free trial. No credit card required. Complete the remaining details in Profile later.",
+    passwordHint: "At least 8 characters", termsPrefix: "I have read and accept the", termsLink: "terms of use",
+    termsTitle: "CAMELEYON ERP Terms of Use", close: "Close", cancel: "Cancel",
+    submit: "Create my account", submitting: "Sending code...", verificationTitle: "Confirm owner email",
+    verificationText: (email: string) => `Enter the code sent to ${email}.`, verificationHint: "You have 3 attempts and 30 seconds.",
+    code: "Verification code", confirm: "Confirm code", confirming: "Verifying...",
+    attempts: (count: number) => `Attempts remaining: ${count}`, time: (count: number) => `Time remaining: ${count}s`,
+    required: "Enter the company name, your email and a password of at least 8 characters.",
+    termsRequired: "You must accept the terms of use to continue.", codeRequired: "Verification code is required.",
+    failed: "Signup failed. Please try again.", expired: "Verification expired. Please request a new code.",
+    activeOwner: "You already own an active business with this email. Sign in as an owner or contact technical support: contact@cameleyondynamics.com.",
+    paragraphs: [
+      "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
+      "The company confirms that the information submitted during signup is accurate and that the main administrator is responsible for managing users, access, and company data.",
+      "Use of the solution may depend on a paid subscription. Any month that has started is due. CAMELEYON reserves the right to review subscription pricing when needed, with prior notice when required.",
+      "The company remains responsible for the data it enters into the solution. CAMELEYON applies reasonable measures to protect the platform, but the company must also protect credentials and account access.",
+      "Some features, such as email delivery, automatic payments, reports, or external integrations, may depend on third-party services and their availability.",
+      "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
+      "By creating an account, the company accepts these terms and understands that they may be updated when needed to reflect the evolution of the service.",
+    ],
+  }
+
+  const [companyName, setCompanyName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [error, updateError] = useState("")
-  const errorRef = useRef<HTMLDivElement>(null)
-
-  function setError(message: string) {
-    updateError(message)
-    if (message) {
-      window.requestAnimationFrame(() => {
-        errorRef.current?.focus({ preventScroll: true })
-        errorRef.current?.scrollIntoView({ block: "center", behavior: "auto" })
-      })
-    }
-  }
-  const [success, setSuccess] = useState("")
+  const [error, setError] = useState("")
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
-  const [form, setForm] = useState<FormState>(emptyForm)
-  const [currencySelection, setCurrencySelection] = useState("")
-  const [customCurrencyCode, setCustomCurrencyCode] = useState("")
-  const [pendingVerification, setPendingVerification] = useState<PendingVerificationState | null>(null)
-  const [showTerms, setShowTerms] = useState(false)
+  const [pending, setPending] = useState<PublicSignupVerificationStartResponse | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
-  const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
+  const [showTerms, setShowTerms] = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+  const verificationRef = useRef<HTMLDialogElement>(null)
+  const termsRef = useRef<HTMLDialogElement>(null)
+  const pendingSignupId = pending?.pendingSignupId
+  const pageTracked = useRef(false)
+  const attemptId = useRef<string | null>(null)
+  const validationTracked = useRef(false)
 
-  const text = language === "fr"
-    ? {
-        loadPlansError: "Impossible de charger les plans",
-        companyNameRequired: "Le nom de l'entreprise est requis",
-        adminFirstNameRequired: "Le prénom de l'administrateur est requis",
-        adminLastNameRequired: "Le nom de l'administrateur est requis",
-        adminEmailRequired: "L'email de l'administrateur est requis",
-        adminPasswordRequired: "Le mot de passe de l'administrateur est requis",
-        planRequired: "Le plan est requis",
-        businessTypeRequired: "Le type d'activité est requis",
-        currencyRequired: "La devise est requise",
-        verificationCodeRequired: "Le code de vérification est requis",
-        termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer",
-        signupFailed: "L'inscription a échoué",
-        verificationStartSuccess: (email: string) => `Un code a été envoyé à ${email}.`,
-        verificationExpired: "Le délai de vérification est expiré. Veuillez renseigner le formulaire de nouveau.",
-        verificationRestart: "La vérification a été annulée. Veuillez renseigner le formulaire de nouveau.",
-        backHome: "Retour à l'accueil",
-        title: "Inscription",
-        companyName: "Nom de l'entreprise",
-        businessType: "Type d'activité",
-        selectBusinessType: "Choisir un type d'activité",
-        otherBusinessType: "Autre type d'activité",
-        companyEmail: "Email de l'entreprise",
-        phone: "Téléphone",
-        currency: "Devise",
-        selectCurrency: "Choisir une devise",
-        otherCurrency: "Autre devise",
-        otherCurrencyPlaceholder: "Saisir la devise",
-        addressLine1: "Adresse",
-        city: "Ville",
-        postalCode: "Code postal",
-        country: "Pays",
-        timeZone: "Fuseau horaire",
-        currentTime: "Heure actuelle",
-        timeZonePlaceholder: "Ex. America/Port-au-Prince",
-        invalidTimeZone: "Fuseau horaire invalide",
-        adminFirstName: "Prénom du propriétaire",
-        adminLastName: "Nom du propriétaire",
-        adminEmail: "Email du propriétaire",
-        adminPassword: "Mot de passe du propriétaire",
-        plan: "Plan",
-        selectPlan: "Choisir un plan",
-        billingCycle: "Cycle de facturation",
-        monthly: "Mensuel",
-        yearly: "Annuel",
-        termsAcceptPrefix: "J'ai lu et j'accepte les",
-        termsLink: "conditions d'utilisation",
-        termsTitle: "Conditions d'utilisation CAMELEYON ERP",
-        termsClose: "Fermer",
-        termsParagraphs: [
-          "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise à gérer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses opérations.",
-          "L'entreprise confirme que les informations fournies lors de l'inscription sont exactes et que l'administrateur principal est responsable de la gestion des utilisateurs, des accès et des données de l'entreprise.",
-          "L'utilisation de la solution peut dépendre d'un abonnement payant. Tout mois commencé est dû. CAMELEYON se réserve le droit de revoir le prix de l'abonnement au besoin, avec information préalable lorsque nécessaire.",
-          "L'entreprise demeure responsable des données qu'elle saisit dans la solution. CAMELEYON met en place des mesures raisonnables pour protéger la plateforme, mais l'entreprise doit aussi protéger ses identifiants et l'accès à ses comptes.",
-          "Certaines fonctionnalités, comme l'envoi d'e-mails, les paiements automatiques, les rapports ou les intégrations externes, peuvent dépendre de services tiers et de leur disponibilité.",
-          "CAMELEYON peut limiter, suspendre ou bloquer l'accès en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte à la sécurité ou de violation des présentes conditions.",
-          "En créant son compte, l'entreprise accepte ces conditions et comprend qu'elles peuvent être mises à jour au besoin pour tenir compte de l'évolution du service.",
-        ],
-        submit: "Vérifier l'e-mail du propriétaire",
-        submitting: "Envoi du code...",
-        verificationTitle: "Confirmer l'e-mail du propriétaire",
-        verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`,
-        verificationHint: "Vous avez 3 essais et 30 secondes.",
-        verificationCode: "Code de vérification",
-        confirmVerification: "Confirmer le code",
-        confirmingVerification: "Vérification...",
-        attemptsRemaining: (count: number) => `Essais restants : ${count}`,
-        timeRemaining: (count: number) => `Temps restant : ${count}s`,
-      }
-    : language === "es"
-      ? {
-          loadPlansError: "No fue posible cargar los planes",
-          companyNameRequired: "El nombre de la empresa es obligatorio",
-          adminFirstNameRequired: "El nombre del administrador es obligatorio",
-          adminLastNameRequired: "El apellido del administrador es obligatorio",
-          adminEmailRequired: "El correo del administrador es obligatorio",
-          adminPasswordRequired: "La contraseña del administrador es obligatoria",
-          planRequired: "El plan es obligatorio",
-          businessTypeRequired: "El tipo de negocio es obligatorio",
-          currencyRequired: "La moneda es obligatoria",
-          verificationCodeRequired: "El código de verificación es obligatorio",
-          termsRequired: "Debe aceptar los términos de uso para continuar",
-          signupFailed: "El registro falló",
-          verificationStartSuccess: (email: string) => `Se envió un código a ${email}.`,
-          verificationExpired: "El tiempo de verificación expiró. Complete nuevamente el formulario.",
-          verificationRestart: "La verificación fue cancelada. Complete nuevamente el formulario.",
-          backHome: "Volver al inicio",
-          title: "Registro",
-          companyName: "Nombre de la empresa",
-          businessType: "Tipo de negocio",
-          selectBusinessType: "Elegir un tipo de negocio",
-          otherBusinessType: "Otro tipo de negocio",
-          companyEmail: "Correo de la empresa",
-          phone: "Teléfono",
-          currency: "Moneda",
-          selectCurrency: "Elegir una moneda",
-          otherCurrency: "Otra moneda",
-          otherCurrencyPlaceholder: "Ingrese la moneda",
-          addressLine1: "Dirección",
-          city: "Ciudad",
-          postalCode: "Código postal",
-          country: "País",
-          timeZone: "Zona horaria",
-          currentTime: "Hora actual",
-          timeZonePlaceholder: "Ej. America/Port-au-Prince",
-          invalidTimeZone: "Zona horaria inválida",
-          adminFirstName: "Nombre del propietario",
-          adminLastName: "Apellido del propietario",
-          adminEmail: "Correo del propietario",
-          adminPassword: "Contraseña del propietario",
-          plan: "Plan",
-          selectPlan: "Elegir un plan",
-          billingCycle: "Ciclo de facturación",
-          monthly: "Mensual",
-          yearly: "Anual",
-          termsAcceptPrefix: "He leído y acepto los",
-          termsLink: "términos de uso",
-          termsTitle: "Términos de uso de CAMELEYON ERP",
-          termsClose: "Cerrar",
-          termsParagraphs: [
-            "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
-            "La empresa confirma que la información enviada durante el registro es correcta y que el administrador principal es responsable de gestionar usuarios, accesos y datos de la empresa.",
-            "El uso de la solución puede depender de una suscripción paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripción cuando sea necesario, con aviso previo cuando corresponda.",
-            "La empresa sigue siendo responsable de los datos que introduce en la solución. CAMELEYON aplica medidas razonables para proteger la plataforma, pero la empresa también debe proteger sus credenciales y el acceso a sus cuentas.",
-            "Algunas funciones, como envío de correos, pagos automáticos, informes o integraciones externas, pueden depender de servicios de terceros y de su disponibilidad.",
-            "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos términos.",
-            "Al crear su cuenta, la empresa acepta estos términos y entiende que pueden actualizarse cuando sea necesario para reflejar la evolución del servicio.",
-          ],
-          submit: "Verificar correo del administrador",
-          submitting: "Enviando código...",
-          verificationTitle: "Confirmar correo del administrador",
-          verificationText: (email: string) => `Ingrese el código enviado a ${email}.`,
-          verificationHint: "Tiene 3 intentos y 30 segundos.",
-          verificationCode: "Código de verificación",
-          confirmVerification: "Confirmar código",
-          confirmingVerification: "Verificando...",
-          attemptsRemaining: (count: number) => `Intentos restantes: ${count}`,
-          timeRemaining: (count: number) => `Tiempo restante: ${count}s`,
-        }
-      : {
-          loadPlansError: "Failed to load plans",
-          companyNameRequired: "Company name is required",
-          adminFirstNameRequired: "Admin first name is required",
-          adminLastNameRequired: "Admin last name is required",
-          adminEmailRequired: "Admin email is required",
-          adminPasswordRequired: "Admin password is required",
-          planRequired: "Plan is required",
-          businessTypeRequired: "Business type is required",
-          currencyRequired: "Currency is required",
-          verificationCodeRequired: "Verification code is required",
-          termsRequired: "You must accept the terms of use to continue",
-          signupFailed: "Signup failed",
-          verificationStartSuccess: (email: string) => `A code was sent to ${email}.`,
-          verificationExpired: "The verification time expired. Please fill in the form again.",
-          verificationRestart: "Verification was cancelled. Please fill in the form again.",
-          backHome: "Back to home",
-          title: "Sign Up",
-          companyName: "Company name",
-          businessType: "Business type",
-          selectBusinessType: "Choose a business type",
-          otherBusinessType: "Other business type",
-          companyEmail: "Company email",
-          phone: "Phone",
-          currency: "Currency",
-          selectCurrency: "Choose a currency",
-          otherCurrency: "Other currency",
-          otherCurrencyPlaceholder: "Enter the currency",
-          addressLine1: "Address",
-          city: "City",
-          postalCode: "Postal code",
-          country: "Country",
-          timeZone: "Time zone",
-          currentTime: "Current time",
-          timeZonePlaceholder: "Ex. America/Port-au-Prince",
-          invalidTimeZone: "Invalid time zone",
-          adminFirstName: "Owner first name",
-          adminLastName: "Owner last name",
-          adminEmail: "Owner email",
-          adminPassword: "Owner password",
-          plan: "Plan",
-          selectPlan: "Choose a plan",
-          billingCycle: "Billing cycle",
-          monthly: "Monthly",
-          yearly: "Yearly",
-          termsAcceptPrefix: "I have read and accept the",
-          termsLink: "terms of use",
-          termsTitle: "CAMELEYON ERP Terms of Use",
-          termsClose: "Close",
-          termsParagraphs: [
-            "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
-            "The company confirms that the information submitted during signup is accurate and that the main administrator is responsible for managing users, access, and company data.",
-            "Use of the solution may depend on a paid subscription. Any month that has started is due. CAMELEYON reserves the right to review subscription pricing when needed, with prior notice when required.",
-            "The company remains responsible for the data it enters into the solution. CAMELEYON applies reasonable measures to protect the platform, but the company must also protect credentials and account access.",
-            "Some features, such as email delivery, automatic payments, reports, or external integrations, may depend on third-party services and their availability.",
-            "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
-            "By creating an account, the company accepts these terms and understands that they may be updated when needed to reflect the evolution of the service.",
-          ],
-          submit: "Verify owner email",
-          submitting: "Sending code...",
-          verificationTitle: "Confirm owner email",
-          verificationText: (email: string) => `Enter the code sent to ${email}.`,
-          verificationHint: "You have 3 attempts and 30 seconds.",
-          verificationCode: "Verification code",
-          confirmVerification: "Confirm code",
-          confirmingVerification: "Verifying...",
-          attemptsRemaining: (count: number) => `Attempts remaining: ${count}`,
-          timeRemaining: (count: number) => `Time remaining: ${count}s`,
-        }
+  function getAttemptId() {
+    if (!attemptId.current) attemptId.current = newSignupAttemptId()
+    return attemptId.current
+  }
+  function resetAttempt() { attemptId.current = null; validationTracked.current = false }
+  function trackValidationError() {
+    if (!validationTracked.current) {
+      trackSignupEvent("FORM_ERROR", getAttemptId(), "VALIDATION")
+      validationTracked.current = true
+    }
+  }
+  function cancelVerification() {
+    trackSignupEvent("CANCELLED", attemptId.current)
+    resetAttempt()
+    setPending(null)
+  }
 
   useEffect(() => {
-    loadPlans()
+    if (!pageTracked.current) { pageTracked.current = true; trackSignupEvent("PAGE_VIEW") }
   }, [])
 
+  useEffect(() => { if (error) errorRef.current?.focus() }, [error])
+  useEffect(() => { if (pendingSignupId) verificationRef.current?.showModal() }, [pendingSignupId])
+  useEffect(() => { if (showTerms) termsRef.current?.showModal() }, [showTerms])
   useEffect(() => {
-    if (!pendingVerification) {
-      setSecondsLeft(0)
-      return
-    }
-
-    const expiresAt = pendingVerification.expiresAt
-
-    function updateCountdown() {
-      const remaining = Math.max(
-        0,
-        Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000),
-      )
+    if (!pending) return
+    function tick() {
+      const remaining = Math.max(0, Math.ceil((new Date(pending!.expiresAt).getTime() - Date.now()) / 1000))
       setSecondsLeft(remaining)
-
-      if (remaining <= 0) {
-        resetSignupFlow(text.verificationExpired)
+      if (!remaining) {
+        trackSignupEvent("CODE_EXPIRED", attemptId.current, "CODE_EXPIRED")
+        attemptId.current = null; validationTracked.current = false
+        setPending(null); setVerificationCode(""); setError(text.expired)
       }
     }
+    tick()
+    const timer = window.setInterval(tick, 1000)
+    return () => window.clearInterval(timer)
+  }, [pending, text.expired])
 
-    updateCountdown()
-    const timer = window.setInterval(updateCountdown, 500)
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [pendingVerification, text.verificationExpired])
-
-  const localizedBusinessTypeOptions = useMemo(
-    () => BUSINESS_TYPE_OPTIONS.map((option) => ({
-      value: option.value,
-      label: option[language],
-    })),
-    [language]
-  )
-
-  const timeZoneOptions = useMemo(() => getTimeZoneOptions(), [])
-  const countryOptions = useMemo(() => getCountryOptions(), [])
-
-  const currentTimePreview = useMemo(
-    () => formatCurrentTimeInTimeZone(form.timeZoneId, language),
-    [form.timeZoneId, language, timePreviewTick]
-  )
-
-  const resolvedBusinessType = useMemo(
-    () => (
-      form.businessType === BUSINESS_TYPE_OTHER
-        ? form.businessTypeOther.trim()
-        : form.businessType.trim()
-    ),
-    [form.businessType, form.businessTypeOther],
-  )
-
-  useEffect(() => {
-    if (!isValidTimeZone(form.timeZoneId)) {
-      return
-    }
-
-    const timer = window.setInterval(() => {
-      setTimePreviewTick(Date.now())
-    }, 1000)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [form.timeZoneId])
-
-  async function loadPlans() {
-    try {
-      setLoadingPlans(true)
-      setError("")
-      const data = await getPublicPlans()
-      const safePlans = Array.isArray(data) ? data : []
-      setPlans(safePlans)
-
-      if (safePlans.length > 0) {
-        setForm((prev) => ({
-          ...prev,
-          planCode: prev.planCode || safePlans[0].code,
-        }))
-      }
-    } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.loadPlansError)
-    } finally {
-      setLoadingPlans(false)
-    }
+  function message(err: unknown) {
+    return err instanceof Error ? err.message === "ACTIVE_COMPANY_OWNER_EXISTS" ? text.activeOwner : err.message : text.failed
   }
 
-  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
-
-  function resetSignupFlow(message: string) {
-    setPendingVerification(null)
-    setVerificationCode("")
-    setVerificationError("")
-    setForm(emptyForm)
-    setCurrencySelection("")
-    setCustomCurrencyCode("")
-    setSuccess("")
-    setError(message)
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!form.companyName.trim()) {
-      setError(text.companyNameRequired)
-      return
-    }
-    if (!form.adminFirstName.trim()) {
-      setError(text.adminFirstNameRequired)
-      return
-    }
-    if (!form.adminLastName.trim()) {
-      setError(text.adminLastNameRequired)
-      return
-    }
-    if (!form.adminEmail.trim()) {
-      setError(text.adminEmailRequired)
-      return
-    }
-    if (!form.adminPassword.trim()) {
-      setError(text.adminPasswordRequired)
-      return
-    }
-    if (!form.planCode) {
-      setError(text.planRequired)
-      return
-    }
-    if (!resolvedBusinessType) {
-      setError(text.businessTypeRequired)
-      return
-    }
-    if (!form.currencyCode.trim()) {
-      setError(text.currencyRequired)
-      return
-    }
-    if (!form.termsAccepted) {
-      setError(text.termsRequired)
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError("")
-      setSuccess("")
-      setVerificationError("")
-
-      const composedAddress = composeStructuredAddress({
-        addressLine1: form.addressLine1,
-        city: form.city,
-        postalCode: form.postalCode,
-        country: form.country,
-      })
-
-      const payload: PublicSignupRequest = {
-        companyName: form.companyName.trim(),
-        businessType: resolvedBusinessType,
-        phone: form.phone.trim(),
-        companyEmail: form.companyEmail.trim(),
-        address: composedAddress,
-        addressLine1: form.addressLine1.trim(),
-        city: form.city.trim(),
-        postalCode: form.postalCode.trim(),
-        country: form.country.trim(),
-        timeZoneId: form.timeZoneId.trim(),
-        currencyCode: form.currencyCode.trim(),
-        adminFirstName: form.adminFirstName.trim(),
-        adminLastName: form.adminLastName.trim(),
-        adminEmail: form.adminEmail.trim(),
-        adminPassword: form.adminPassword,
-        planCode: form.planCode,
-        billingCycle: form.billingCycle,
-        termsAccepted: form.termsAccepted,
-      }
-
-      const response = await signupCompany(payload)
-      setPendingVerification({
-        pendingSignupId: response.pendingSignupId,
-        adminEmail: response.adminEmail,
-        expiresAt: response.expiresAt,
-        attemptsRemaining: response.attemptsRemaining,
-      })
-      setVerificationCode("")
-      setSuccess(text.verificationStartSuccess(response.adminEmail))
-    } catch (err) {
-      console.error(err)
-      setError(signupError(err))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleConfirmVerification(event: React.FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-
-    if (!pendingVerification) {
-      return
-    }
-
-    if (!verificationCode.trim()) {
-      setVerificationError(text.verificationCodeRequired)
-      return
-    }
-
+    if (!companyName.trim() || !email.trim() || password.length < 8) { trackValidationError(); setError(text.required); return }
+    if (!termsAccepted) { trackValidationError(); setError(text.termsRequired); return }
+    const currentAttempt = getAttemptId()
+    trackSignupEvent("FORM_SUBMITTED", currentAttempt)
     try {
-      setVerifying(true)
-      setVerificationError("")
-      setError("")
-      const response = await confirmSignupCompany({
-        pendingSignupId: pendingVerification.pendingSignupId,
-        verificationCode: verificationCode.trim(),
-      })
-
-      if (!response.verified) {
-        if (response.requiresRestart || response.expired) {
-          resetSignupFlow(response.message || text.verificationRestart)
-          return
-        }
-
-        setPendingVerification((current) => current
-          ? { ...current, attemptsRemaining: response.attemptsRemaining }
-          : current)
-        setVerificationError(response.message)
-        return
-      }
-
-      if (!response.signup) {
-        setVerificationError(text.signupFailed)
-        return
-      }
-
-      setPendingVerification(null)
-      setVerificationCode("")
-
-      onSignupComplete(response.signup.adminEmail)
+      setSaving(true); setError(""); setVerificationError(""); setVerificationCode("")
+      const response = await signupCompany({ companyName: companyName.trim(), adminEmail: email.trim(), adminPassword: password,
+        termsAccepted, timeZoneId: getBrowserTimeZone() })
+      setPending(response)
+      trackSignupEvent("CODE_SENT", currentAttempt)
     } catch (err) {
-      console.error(err)
-      setVerificationError(signupError(err))
-    } finally {
-      setVerifying(false)
+      trackSignupEvent("FORM_ERROR", currentAttempt, signupErrorReason(err)); resetAttempt(); setError(message(err))
     }
+    finally { setSaving(false) }
   }
 
-  function signupError(err: unknown) {
-    const message = err instanceof Error ? err.message : text.signupFailed
-    if (message !== "ACTIVE_COMPANY_OWNER_EXISTS") return message
-    return language === "fr"
-      ? "Vous possédez déjà une entreprise active avec cet e-mail. Connectez-vous comme propriétaire ou contactez l'assistance technique : contact@cameleyondynamics.com."
-      : language === "es"
-        ? "Ya tiene una empresa activa con este correo. Inicie sesión como propietario o contacte con asistencia técnica: contact@cameleyondynamics.com."
-        : "You already own an active business with this email. Sign in as an owner or contact technical support: contact@cameleyondynamics.com."
+  async function handleConfirm(event: FormEvent) {
+    event.preventDefault()
+    if (!pending) return
+    const currentAttempt = attemptId.current
+    if (!verificationCode.trim()) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "VALIDATION"); setVerificationError(text.codeRequired); return }
+    try {
+      setVerifying(true); setVerificationError("")
+      const response = await confirmSignupCompany({ pendingSignupId: pending.pendingSignupId, verificationCode: verificationCode.trim() })
+      if (!response.verified) {
+        if (response.expired || response.requiresRestart) {
+          trackSignupEvent(response.expired ? "CODE_EXPIRED" : "VERIFICATION_ERROR", currentAttempt,
+            response.expired ? "CODE_EXPIRED" : "ATTEMPTS_EXHAUSTED")
+          resetAttempt(); setPending(null); setError(response.message || text.expired)
+        } else {
+          trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_CODE")
+          setPending({ ...pending, attemptsRemaining: response.attemptsRemaining }); setVerificationError(response.message)
+        }
+        return
+      }
+      if (!response.signup) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_RESPONSE"); setVerificationError(text.failed); return }
+      trackSignupEvent("COMPLETED", currentAttempt)
+      resetAttempt()
+      setPending(null)
+      onSignupComplete(response.signup.adminEmail)
+    } catch (err) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, signupErrorReason(err)); setVerificationError(message(err)) }
+    finally { setVerifying(false) }
   }
 
   return (
-    <div className="public-page" style={{ position: "relative" }}>
-      <div className="card">
-        <div className="login-language-row">
-          <LanguageSwitcher />
-        </div>
-
-        <div className="hero-actions">
-          <button type="button" className="secondary-button" onClick={onGoToHome}>
-            {text.backHome}
-          </button>
-        </div>
-
+    <div className="public-page public-signup-page">
+      <section className="card public-signup-form">
+        <div className="login-language-row"><LanguageSwitcher /></div>
+        <button type="button" className="secondary-button" onClick={onGoToHome}>{text.home}</button>
         <h1>{text.title}</h1>
-
-        {success && (
-          <div className="card success" role="status">
-            <p>{success}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="product-form-grid">
-          <label className="full-width">
-            {text.companyName}
-            <input
-              type="text"
-              value={form.companyName}
-              onChange={(e) => updateForm("companyName", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.businessType}
-            <select
-              value={form.businessType}
-              onChange={(e) => {
-                const value = e.target.value
-                updateForm("businessType", value)
-                if (value !== BUSINESS_TYPE_OTHER) {
-                  updateForm("businessTypeOther", "")
-                }
-              }}
-              disabled={Boolean(pendingVerification)}
-            >
-              <option value="">{text.selectBusinessType}</option>
-              {localizedBusinessTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {form.businessType === BUSINESS_TYPE_OTHER && (
-            <label>
-              {text.otherBusinessType}
-              <input
-                type="text"
-                value={form.businessTypeOther}
-                onChange={(e) => updateForm("businessTypeOther", e.target.value)}
-                disabled={Boolean(pendingVerification)}
-              />
-            </label>
-          )}
-
-          <label>
-            {text.companyEmail}
-            <input
-              type="email"
-              value={form.companyEmail}
-              onChange={(e) => updateForm("companyEmail", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.phone}
-            <input
-              type="text"
-              value={form.phone}
-              onChange={(e) => updateForm("phone", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.currency}
-            <select
-              value={currencySelection}
-              onChange={(e) => {
-                const value = e.target.value
-                setCurrencySelection(value)
-                if (value === CURRENCY_OTHER) {
-                  updateForm("currencyCode", customCurrencyCode)
-                  return
-                }
-                updateForm("currencyCode", value)
-              }}
-              disabled={Boolean(pendingVerification)}
-            >
-              <option value="">{text.selectCurrency}</option>
-              {CURRENCY_OPTIONS.map((currencyCode) => (
-                <option key={currencyCode} value={currencyCode}>
-                  {currencyCode}
-                </option>
-              ))}
-              <option value={CURRENCY_OTHER}>{text.otherCurrency}</option>
-            </select>
-          </label>
-
-          {currencySelection === CURRENCY_OTHER && (
-            <label>
-              {text.otherCurrency}
-              <input
-                type="text"
-                value={customCurrencyCode}
-                onChange={(e) => {
-                  const value = e.target.value.toUpperCase()
-                  setCustomCurrencyCode(value)
-                  updateForm("currencyCode", value)
-                }}
-                placeholder={text.otherCurrencyPlaceholder}
-                disabled={Boolean(pendingVerification)}
-              />
-            </label>
-          )}
-
-          <label className="full-width">
-            {text.addressLine1}
-            <input
-              type="text"
-              value={form.addressLine1}
-              onChange={(e) => updateForm("addressLine1", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.city}
-            <input
-              type="text"
-              value={form.city}
-              onChange={(e) => updateForm("city", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.postalCode}
-            <input
-              type="text"
-              value={form.postalCode}
-              onChange={(e) => updateForm("postalCode", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.country}
-            <input
-              type="text"
-              list="public-signup-country-options"
-              value={form.country}
-              onChange={(e) => updateForm("country", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-            <datalist id="public-signup-country-options">
-              {countryOptions.map((country) => (
-                <option key={country} value={country} />
-              ))}
-            </datalist>
-          </label>
-
-          <label className="full-width">
-            {text.timeZone}
-            <select
-              value={form.timeZoneId}
-              onChange={(e) => updateForm("timeZoneId", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            >
-              {timeZoneOptions.map((timeZoneId) => (
-                <option key={timeZoneId} value={timeZoneId}>
-                  {timeZoneId}
-                </option>
-              ))}
-            </select>
-            <div className="timezone-preview">
-              <strong>{text.currentTime}:</strong>{" "}
-              {currentTimePreview || text.invalidTimeZone}
-            </div>
-          </label>
-
-          <label>
-            {text.adminFirstName}
-            <input
-              type="text"
-              value={form.adminFirstName}
-              onChange={(e) => updateForm("adminFirstName", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.adminLastName}
-            <input
-              type="text"
-              value={form.adminLastName}
-              onChange={(e) => updateForm("adminLastName", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.adminEmail}
-            <input
-              type="email"
-              value={form.adminEmail}
-              onChange={(e) => updateForm("adminEmail", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.adminPassword}
-            <input
-              type="password"
-              value={form.adminPassword}
-              onChange={(e) => updateForm("adminPassword", e.target.value)}
-              disabled={Boolean(pendingVerification)}
-            />
-          </label>
-
-          <label>
-            {text.plan}
-            <select
-              value={form.planCode}
-              onChange={(e) => updateForm("planCode", e.target.value)}
-              disabled={loadingPlans || Boolean(pendingVerification)}
-            >
-              <option value="">{text.selectPlan}</option>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.code}>
-                  {plan.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            {text.billingCycle}
-            <select
-              value={form.billingCycle}
-              onChange={(e) => updateForm("billingCycle", e.target.value as "MONTHLY" | "YEARLY")}
-              disabled={Boolean(pendingVerification)}
-            >
-              <option value="MONTHLY">{text.monthly}</option>
-              <option value="YEARLY">{text.yearly}</option>
-            </select>
-          </label>
-
-          <label className="full-width terms-acceptance">
-            <input
-              type="checkbox"
-              checked={form.termsAccepted}
-              onChange={(e) => updateForm("termsAccepted", e.target.checked)}
-              disabled={Boolean(pendingVerification)}
-            />
-            <span>
-              {text.termsAcceptPrefix}{" "}
-              <button type="button" className="link-button" onClick={() => setShowTerms(true)}>
-                {text.termsLink}
-              </button>
-              .
-            </span>
-          </label>
-
-          {error && (
-            <div ref={errorRef} className="card error full-width" role="alert" tabIndex={-1}>
-              {error}
-            </div>
-          )}
-
-          <div className="form-actions full-width">
-            <button type="submit" disabled={saving || loadingPlans || Boolean(pendingVerification)}>
-              {saving ? text.submitting : text.submit}
-            </button>
-          </div>
+        <p>{text.trial}</p>
+        <form onSubmit={handleSubmit} onInvalidCapture={trackValidationError} className="login-form">
+          <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} /></label>
+          <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
+          <label>{text.password}<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} aria-describedby="signup-password-hint" /><small id="signup-password-hint">{text.passwordHint}</small></label>
+          <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => { setTermsAccepted(event.target.checked); if (error === text.termsRequired) setError("") }} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
+          {error && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{error}</div>}
+          <button type="submit" disabled={saving}>{saving ? text.submitting : text.submit}</button>
         </form>
         <SupportContact />
-      </div>
-
-      {pendingVerification && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(4, 73, 117, 0.12)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 20,
-          }}
-        >
-          <div className="card" style={{ width: "min(520px, 100%)", margin: 0 }}>
-            <h2>{text.verificationTitle}</h2>
-            <p>{text.verificationText(pendingVerification.adminEmail)}</p>
-            <p>{text.verificationHint}</p>
-            <p><strong>{text.attemptsRemaining(pendingVerification.attemptsRemaining)}</strong></p>
-            <p><strong>{text.timeRemaining(secondsLeft)}</strong></p>
-
-            {verificationError && <div className="card error">{verificationError}</div>}
-
-            <form onSubmit={handleConfirmVerification} className="product-form-grid">
-              <label className="full-width">
-                {text.verificationCode}
-                <input
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  autoFocus
-                />
-              </label>
-
-              <div className="form-actions full-width">
-                <button type="submit" disabled={verifying || secondsLeft <= 0}>
-                  {verifying ? text.confirmingVerification : text.confirmVerification}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showTerms && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(4, 73, 117, 0.18)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 30,
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="card terms-dialog" style={{ width: "min(760px, 100%)", margin: 0 }}>
-            <h2>{text.termsTitle}</h2>
-            <div className="terms-dialog-body">
-              {text.termsParagraphs.map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-            </div>
-            <div className="form-actions">
-              <button type="button" onClick={() => setShowTerms(false)}>
-                {text.termsClose}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </section>
+      {pending && <dialog ref={verificationRef} className="card signup-dialog" aria-labelledby="signup-verification-title" onCancel={event => { if (verifying) event.preventDefault(); else cancelVerification() }}>
+        <h2 id="signup-verification-title">{text.verificationTitle}</h2>
+        <p>{text.verificationText(pending.adminEmail)}</p><p>{text.verificationHint}</p>
+        <p><strong>{text.attempts(pending.attemptsRemaining)}</strong></p><p><strong>{text.time(secondsLeft)}</strong></p>
+        <form onSubmit={handleConfirm} className="login-form">
+          <label>{text.code}<input autoFocus inputMode="numeric" autoComplete="one-time-code" value={verificationCode} onChange={event => setVerificationCode(event.target.value)} /></label>
+          {verificationError && <div className="card error" role="alert">{verificationError}</div>}
+          <button type="submit" disabled={verifying || secondsLeft <= 0}>{verifying ? text.confirming : text.confirm}</button>
+          <button type="button" className="secondary-button" disabled={verifying} onClick={cancelVerification}>{text.cancel}</button>
+        </form>
+      </dialog>}
+      {showTerms && <dialog ref={termsRef} className="card signup-dialog terms-dialog" aria-labelledby="signup-terms-title" onCancel={() => setShowTerms(false)}>
+        <h2 id="signup-terms-title">{text.termsTitle}</h2>
+        <div className="terms-dialog-body">{text.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
+        <button type="button" onClick={() => setShowTerms(false)}>{text.close}</button>
+      </dialog>}
     </div>
   )
 }

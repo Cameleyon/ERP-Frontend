@@ -512,6 +512,31 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
       </header>
 
       <main>
+        <section className="public-section public-section-soft public-offer-band" aria-labelledby="public-promotions-title">
+          <div className="section-heading"><div>
+            <p className="eyebrow">{text.promotionsEyebrow}</p>
+            <h2 id="public-promotions-title">{text.promotionsTitle}</h2>
+          </div></div>
+          <div className="public-promo-list">
+            <article className="public-promo-card public-trial-offer">
+              <div className="public-card-label">{text.specialOffer}</div>
+              <h3>{text.trialTitle}</h3>
+              <p>{text.trialDescription}</p>
+              <button type="button" onClick={onGoToSignup}>{text.startTrial}</button>
+            </article>
+            {loading && <p role="status">{text.promotionsLoading}</p>}
+            {additionalPromotions.map(promotion => (
+              <article key={promotion.id} className="public-promo-card">
+                <div className="public-card-label">{text.specialOffer}</div>
+                <h3>{resolvePromotionName(promotion)}</h3>
+                <p>{resolvePromotionDescription(promotion)}</p>
+                {promotion.freeTrialDays && <p><strong>{text.freeTrial}</strong> {promotion.freeTrialDays} {text.days}</p>}
+                {promotion.promoPriceMonthly !== null && <p><strong>{text.monthlyPromo}</strong> {formatCurrency(promotion.promoPriceMonthly)}</p>}
+                {promotion.promoPriceYearly !== null && <p><strong>{text.yearlyPromo}</strong> {formatCurrency(promotion.promoPriceYearly)}</p>}
+              </article>
+            ))}
+          </div>
+        </section>
         <section className="public-showcase" aria-labelledby="public-hero-title">
           <div className="public-showcase-copy">
             <div className="public-badge">{text.badge}</div>
@@ -581,42 +606,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           </div>
         </section>
 
-        <div className="public-commerce-grid">
-          <section className="public-section public-section-soft" aria-labelledby="public-promotions-title">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">{text.promotionsEyebrow}</p>
-                <h2 id="public-promotions-title">{text.promotionsTitle}</h2>
-              </div>
-            </div>
-
-            <div className="public-promo-list">
-              <article className="public-promo-card public-trial-offer">
-                <div className="public-card-label">{text.specialOffer}</div>
-                <h3>{text.trialTitle}</h3>
-                <p>{text.trialDescription}</p>
-                <button type="button" onClick={onGoToSignup}>{text.startTrial}</button>
-              </article>
-              {loading && <p role="status">{text.promotionsLoading}</p>}
-                {additionalPromotions.map((promotion) => (
-                  <article key={promotion.id} className="public-promo-card">
-                    <div className="public-card-label">{text.specialOffer}</div>
-                    <h3>{resolvePromotionName(promotion)}</h3>
-                    <p>{resolvePromotionDescription(promotion)}</p>
-                    {promotion.freeTrialDays && (
-                      <p><strong>{text.freeTrial}</strong> {promotion.freeTrialDays} {text.days}</p>
-                    )}
-                    {promotion.promoPriceMonthly !== null && (
-                      <p><strong>{text.monthlyPromo}</strong> {formatCurrency(promotion.promoPriceMonthly)}</p>
-                    )}
-                    {promotion.promoPriceYearly !== null && (
-                      <p><strong>{text.yearlyPromo}</strong> {formatCurrency(promotion.promoPriceYearly)}</p>
-                    )}
-                  </article>
-                ))}
-            </div>
-          </section>
-
+        <div className="public-commerce-grid public-commerce-grid-plans-only">
           <section className="public-section public-plans-section" aria-labelledby="public-plans-title">
             <div className="section-heading">
               <div>

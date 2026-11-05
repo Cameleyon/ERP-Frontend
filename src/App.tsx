@@ -17,6 +17,8 @@ import PublicLandingPage from "./pages/PublicLandingPage"
 import PublicSignupPage from "./pages/PublicSignupPage"
 import ProfilePage from "./pages/ProfilePage"
 import PlatformRedirectPage from "./pages/PlatformRedirectPage"
+import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
+import { COMPANY_CURRENCY_REQUIRED_EVENT } from "./utils/companyCurrency"
 
 type PublicPage = "landing" | "signup" | "login" | "profile"
 const PLATFORM_APP_URL =
@@ -29,6 +31,8 @@ function AppContent() {
   const [page, setPage] = useState<Page>("dashboard")
   const [publicPage, setPublicPage] = useState<PublicPage>("landing")
   const [registeredEmail, setRegisteredEmail] = useState("")
+  const [currencyRequired, setCurrencyRequired] = useState(false)
+  const [configureCurrency, setConfigureCurrency] = useState(false)
   const [acceptingTerms, setAcceptingTerms] = useState(false)
   const [termsError, setTermsError] = useState("")
   const [termsRequired, setTermsRequired] = useState(false)
@@ -50,14 +54,19 @@ function AppContent() {
     }
 
     window.addEventListener(COMPANY_TERMS_REQUIRED_EVENT, handleTermsRequired)
+    const handleCurrencyRequired = () => setCurrencyRequired(true)
+    window.addEventListener(COMPANY_CURRENCY_REQUIRED_EVENT, handleCurrencyRequired)
 
     return () => {
       window.removeEventListener(COMPANY_TERMS_REQUIRED_EVENT, handleTermsRequired)
+      window.removeEventListener(COMPANY_CURRENCY_REQUIRED_EVENT, handleCurrencyRequired)
     }
   }, [])
 
   useEffect(() => {
     if (!user?.companyId) {
+      setCurrencyRequired(false)
+      setConfigureCurrency(false)
       setTermsRequired(false)
       setShowTermsDetails(false)
       return
@@ -186,7 +195,7 @@ function AppContent() {
           : page
 
   return (
-      <AppLayout page={safePage} onNavigate={setPage}>
+      <AppLayout page={safePage} onNavigate={nextPage => { setConfigureCurrency(false); setPage(nextPage) }}>
         {safePage === "dashboard" && <DashboardPage />}
         {safePage === "customers" && <CustomersPage />}
         {safePage === "products" && isAdmin && <ProductsPage />}
@@ -194,7 +203,9 @@ function AppContent() {
         {safePage === "new-sale" && <NewSalePage />}
         {safePage === "sales-history" && <SalesHistoryPage />}
         {safePage === "inventory" && isAdmin && <InventoryPage />}
-        {safePage === "profile" && <ProfilePage />}
+        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} />}
+        {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
+          onConfigure={() => { setCurrencyRequired(false); setConfigureCurrency(true); setPage("profile") }} />}
       </AppLayout>
   )
 }

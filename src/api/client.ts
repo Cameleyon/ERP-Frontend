@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config"
+import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 export const COMPANY_TERMS_REQUIRED_MESSAGE =
@@ -21,6 +22,7 @@ function getAuthHeaders(includeJsonContentType = false) {
 }
 
 async function parseResponseBody<T>(response: Response): Promise<T> {
+  await checkCompanyCurrencyResponse(response)
   const text = await response.text()
 
   if (!response.ok) {

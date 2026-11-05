@@ -63,7 +63,7 @@ export default function Sidebar({
 
           {user && (
             <div className="sidebar-user">
-              <div>{user.firstName} {user.lastName}</div>
+              <div>{[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}</div>
               <div>{user.role}</div>
             </div>
           )}

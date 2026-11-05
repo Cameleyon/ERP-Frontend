@@ -23,22 +23,22 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export type PublicSignupRequest = {
     companyName: string
-    businessType: string
-    phone: string
-    companyEmail: string
-    address: string
+    businessType?: string
+    phone?: string
+    companyEmail?: string
+    address?: string
     addressLine1?: string
     city?: string
     postalCode?: string
     country?: string
     timeZoneId?: string
-    currencyCode: string
-    adminFirstName: string
-    adminLastName: string
+    currencyCode?: string
+    adminFirstName?: string
+    adminLastName?: string
     adminEmail: string
     adminPassword: string
-    planCode: string
-    billingCycle: "MONTHLY" | "YEARLY"
+    planCode?: string
+    billingCycle?: "MONTHLY" | "YEARLY"
     partnerCode?: string
     termsAccepted: boolean
 }

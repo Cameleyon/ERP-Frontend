@@ -1,4 +1,7 @@
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+const SIGNUP_EVENTS = new Set(["PAGE_VIEW", "FORM_SUBMITTED", "CODE_SENT", "FORM_ERROR", "VERIFICATION_ERROR", "CODE_EXPIRED", "CANCELLED", "COMPLETED"])
+const ERROR_EVENTS = new Set(["FORM_ERROR", "VERIFICATION_ERROR", "CODE_EXPIRED"])
+const ERROR_REASONS = new Set(["VALIDATION", "ACTIVE_OWNER_EXISTS", "NETWORK", "REQUEST_FAILED", "INVALID_CODE", "CODE_EXPIRED", "ATTEMPTS_EXHAUSTED", "INVALID_RESPONSE"])
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store")
@@ -27,16 +30,22 @@ export default async function handler(req, res) {
     return res.status(400).end()
   }
   if (!body || !UUID.test(body.visitId) || !UUID.test(body.visitorId)) return res.status(400).end()
+  const signup = body.eventType !== undefined
+  if (signup && (!SIGNUP_EVENTS.has(body.eventType)
+    || (body.eventType === "PAGE_VIEW" ? body.attemptId != null : !UUID.test(body.attemptId))
+    || (ERROR_EVENTS.has(body.eventType) ? !ERROR_REASONS.has(body.reasonCode) : body.reasonCode != null))) return res.status(400).end()
   // The country comes from Vercel's request metadata, never from the browser payload.
   const country = req.headers["x-vercel-ip-country"]
   const countryCode = typeof country === "string" && /^[A-Z]{2}$/.test(country) ? country : "ZZ"
   try {
-    const url = new URL(`${base.replace(/\/$/, "")}/public/analytics/visits`)
+    const url = new URL(`${base.replace(/\/$/, "")}/public/analytics/${signup ? "signup-events" : "visits"}`)
     if (url.protocol !== "https:") return res.status(503).end()
     const result = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Analytics-Secret": secret },
-      body: JSON.stringify({ visitId: body.visitId, visitorId: body.visitorId, countryCode }),
+      body: JSON.stringify(signup
+        ? { visitId: body.visitId, visitorId: body.visitorId, attemptId: body.attemptId ?? null, eventType: body.eventType, reasonCode: body.reasonCode ?? null, countryCode }
+        : { visitId: body.visitId, visitorId: body.visitorId, countryCode }),
       signal: AbortSignal.timeout(5000),
     })
     return res.status(result.ok ? 204 : 502).end()
