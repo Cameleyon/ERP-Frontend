@@ -93,6 +93,15 @@ export async function signupCompany(
     return handleResponse<PublicSignupVerificationStartResponse>(response)
 }
 
+export async function resendSignupCode(pendingSignupId: string): Promise<PublicSignupVerificationStartResponse> {
+    const response = await fetch(`${API_BASE_URL}/public/signup-company/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendingSignupId }),
+    })
+    return handleResponse<PublicSignupVerificationStartResponse>(response)
+}
+
 export async function confirmSignupCompany(
     payload: PublicSignupVerificationConfirmRequest
 ): Promise<PublicSignupVerificationConfirmResponse> {

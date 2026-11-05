@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
-import { confirmSignupCompany, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
+import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
 import { getBrowserTimeZone } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
 
@@ -18,9 +18,16 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     passwordHint: "8 caractères minimum", termsPrefix: "J'ai lu et j'accepte les", termsLink: "conditions d'utilisation",
     termsTitle: "Conditions d'utilisation CAMELEYON ERP", close: "Fermer", cancel: "Annuler",
     submit: "Créer mon compte", submitting: "Envoi du code...", verificationTitle: "Confirmer l'e-mail du propriétaire",
-    verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`, verificationHint: "Vous avez 3 essais et 30 secondes.",
+    verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`,
     code: "Code de vérification", confirm: "Confirmer le code", confirming: "Vérification...",
-    attempts: (count: number) => `Essais restants : ${count}`, time: (count: number) => `Temps restant : ${count}s`,
+    attempts: (count: number) => `Essais restants : ${count}`,
+    resend: "Renvoyer le code", resent: "Un nouveau code a été envoyé.",
+    resendCooldown: "Patientez un instant avant de demander un autre code.",
+    resendLimit: "La limite de renvois est atteinte.", resendFailed: "Impossible de renvoyer le code. Veuillez réessayer.",
+    restart: "Cette demande n'est plus valide. Soumettez à nouveau le formulaire pour recevoir un code.",
+    exhausted: "Vous avez utilisé vos trois essais. Soumettez à nouveau le formulaire pour recevoir un code.",
+    exhaustedTitle: "Essais épuisés",
+    incorrect: "Code incorrect.",
     required: "Renseignez le nom de l'entreprise, votre e-mail et un mot de passe d'au moins 8 caractères.",
     termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer.", codeRequired: "Le code de vérification est requis.",
     failed: "L'inscription a échoué. Veuillez réessayer.", expired: "Le délai de vérification est expiré. Veuillez demander un nouveau code.",
@@ -39,9 +46,16 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     passwordHint: "Mínimo 8 caracteres", termsPrefix: "He leído y acepto los", termsLink: "términos de uso",
     termsTitle: "Términos de uso de CAMELEYON ERP", close: "Cerrar", cancel: "Cancelar",
     submit: "Crear mi cuenta", submitting: "Enviando código...", verificationTitle: "Confirmar correo del propietario",
-    verificationText: (email: string) => `Ingrese el código enviado a ${email}.`, verificationHint: "Tiene 3 intentos y 30 segundos.",
+    verificationText: (email: string) => `Ingrese el código enviado a ${email}.`,
     code: "Código de verificación", confirm: "Confirmar código", confirming: "Verificando...",
-    attempts: (count: number) => `Intentos restantes: ${count}`, time: (count: number) => `Tiempo restante: ${count}s`,
+    attempts: (count: number) => `Intentos restantes: ${count}`,
+    resend: "Reenviar el código", resent: "Se ha enviado un nuevo código.",
+    resendCooldown: "Espere un momento antes de solicitar otro código.",
+    resendLimit: "Se alcanzó el límite de reenvíos.", resendFailed: "No se pudo reenviar el código. Inténtelo de nuevo.",
+    restart: "Esta solicitud ya no es válida. Vuelva a enviar el formulario para recibir un código.",
+    exhausted: "Ha usado los tres intentos. Vuelva a enviar el formulario para recibir un código.",
+    exhaustedTitle: "Intentos agotados",
+    incorrect: "Código incorrecto.",
     required: "Ingrese el nombre de la empresa, su correo y una contraseña de al menos 8 caracteres.",
     termsRequired: "Debe aceptar los términos de uso para continuar.", codeRequired: "El código de verificación es obligatorio.",
     failed: "El registro falló. Inténtelo de nuevo.", expired: "El tiempo de verificación expiró. Solicite un nuevo código.",
@@ -60,9 +74,16 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     passwordHint: "At least 8 characters", termsPrefix: "I have read and accept the", termsLink: "terms of use",
     termsTitle: "CAMELEYON ERP Terms of Use", close: "Close", cancel: "Cancel",
     submit: "Create my account", submitting: "Sending code...", verificationTitle: "Confirm owner email",
-    verificationText: (email: string) => `Enter the code sent to ${email}.`, verificationHint: "You have 3 attempts and 30 seconds.",
+    verificationText: (email: string) => `Enter the code sent to ${email}.`,
     code: "Verification code", confirm: "Confirm code", confirming: "Verifying...",
-    attempts: (count: number) => `Attempts remaining: ${count}`, time: (count: number) => `Time remaining: ${count}s`,
+    attempts: (count: number) => `Attempts remaining: ${count}`,
+    resend: "Resend code", resent: "A new code was sent.",
+    resendCooldown: "Wait a moment before requesting another code.",
+    resendLimit: "The resend limit has been reached.", resendFailed: "Could not resend the code. Please try again.",
+    restart: "This request is no longer valid. Submit the form again to get a code.",
+    exhausted: "You have used all three attempts. Submit the form again to get a code.",
+    exhaustedTitle: "No attempts remaining",
+    incorrect: "Incorrect code.",
     required: "Enter the company name, your email and a password of at least 8 characters.",
     termsRequired: "You must accept the terms of use to continue.", codeRequired: "Verification code is required.",
     failed: "Signup failed. Please try again.", expired: "Verification expired. Please request a new code.",
@@ -84,16 +105,23 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resent, setResent] = useState(false)
+  const [codeExpired, setCodeExpired] = useState(false)
   const [error, setError] = useState("")
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [pending, setPending] = useState<PublicSignupVerificationStartResponse | null>(null)
-  const [secondsLeft, setSecondsLeft] = useState(0)
   const [showTerms, setShowTerms] = useState(false)
+  const [showExhausted, setShowExhausted] = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
   const verificationRef = useRef<HTMLDialogElement>(null)
+  const codeInputRef = useRef<HTMLInputElement>(null)
   const termsRef = useRef<HTMLDialogElement>(null)
+  const exhaustedRef = useRef<HTMLDialogElement>(null)
   const pendingSignupId = pending?.pendingSignupId
+  const verificationBusy = verifying || resending
+  const noAttemptsLeft = pending !== null && pending.attemptsRemaining <= 0
   const pageTracked = useRef(false)
   const attemptId = useRef<string | null>(null)
   const validationTracked = useRef(false)
@@ -110,7 +138,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     }
   }
   function cancelVerification() {
-    trackSignupEvent("CANCELLED", attemptId.current)
+    if (!noAttemptsLeft) trackSignupEvent("CANCELLED", attemptId.current)
     resetAttempt()
     setPending(null)
   }
@@ -122,21 +150,18 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   useEffect(() => { if (error) errorRef.current?.focus() }, [error])
   useEffect(() => { if (pendingSignupId) verificationRef.current?.showModal() }, [pendingSignupId])
   useEffect(() => { if (showTerms) termsRef.current?.showModal() }, [showTerms])
-  useEffect(() => {
-    if (!pending) return
-    function tick() {
-      const remaining = Math.max(0, Math.ceil((new Date(pending!.expiresAt).getTime() - Date.now()) / 1000))
-      setSecondsLeft(remaining)
-      if (!remaining) {
-        trackSignupEvent("CODE_EXPIRED", attemptId.current, "CODE_EXPIRED")
-        attemptId.current = null; validationTracked.current = false
-        setPending(null); setVerificationCode(""); setError(text.expired)
-      }
-    }
-    tick()
-    const timer = window.setInterval(tick, 1000)
-    return () => window.clearInterval(timer)
-  }, [pending, text.expired])
+  useEffect(() => { if (showExhausted) exhaustedRef.current?.showModal() }, [showExhausted])
+
+  function closeExhaustedNotice() {
+    setCompanyName("")
+    setEmail("")
+    setPassword("")
+    setTermsAccepted(false)
+    setVerificationCode("")
+    setVerificationError("")
+    setError("")
+    setShowExhausted(false)
+  }
 
   function message(err: unknown) {
     return err instanceof Error ? err.message === "ACTIVE_COMPANY_OWNER_EXISTS" ? text.activeOwner : err.message : text.failed
@@ -150,6 +175,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     trackSignupEvent("FORM_SUBMITTED", currentAttempt)
     try {
       setSaving(true); setError(""); setVerificationError(""); setVerificationCode("")
+      setResent(false); setCodeExpired(false)
       const response = await signupCompany({ companyName: companyName.trim(), adminEmail: email.trim(), adminPassword: password,
         termsAccepted, timeZoneId: getBrowserTimeZone() })
       setPending(response)
@@ -160,22 +186,59 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     finally { setSaving(false) }
   }
 
+  async function handleResend() {
+    if (!pending || verificationBusy || noAttemptsLeft) return
+    setResending(true); setResent(false); setVerificationError("")
+    try {
+      const response = await resendSignupCode(pending.pendingSignupId)
+      setPending(response)
+      setVerificationCode("")
+      setCodeExpired(false)
+      setResent(true)
+      codeInputRef.current?.focus()
+      trackSignupEvent("CODE_SENT", attemptId.current)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : ""
+      if (reason === "SIGNUP_VERIFICATION_UNAVAILABLE") {
+        resetAttempt()
+        setPending(null)
+        setError(text.restart)
+      } else if (reason === "SIGNUP_RESEND_COOLDOWN") {
+        setVerificationError(text.resendCooldown)
+      } else if (reason === "SIGNUP_RESEND_LIMIT") {
+        setVerificationError(text.resendLimit)
+      } else {
+        trackSignupEvent("VERIFICATION_ERROR", attemptId.current, signupErrorReason(err))
+        setVerificationError(text.resendFailed)
+      }
+    } finally { setResending(false) }
+  }
+
   async function handleConfirm(event: FormEvent) {
     event.preventDefault()
-    if (!pending) return
+    if (!pending || verificationBusy || codeExpired || noAttemptsLeft) return
     const currentAttempt = attemptId.current
     if (!verificationCode.trim()) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "VALIDATION"); setVerificationError(text.codeRequired); return }
     try {
-      setVerifying(true); setVerificationError("")
+      setVerifying(true); setVerificationError(""); setResent(false)
       const response = await confirmSignupCompany({ pendingSignupId: pending.pendingSignupId, verificationCode: verificationCode.trim() })
       if (!response.verified) {
-        if (response.expired || response.requiresRestart) {
+        if (response.expired || response.requiresRestart || response.attemptsRemaining <= 0) {
           trackSignupEvent(response.expired ? "CODE_EXPIRED" : "VERIFICATION_ERROR", currentAttempt,
             response.expired ? "CODE_EXPIRED" : "ATTEMPTS_EXHAUSTED")
-          resetAttempt(); setPending(null); setError(response.message || text.expired)
+          if (response.requiresRestart || response.attemptsRemaining <= 0) {
+            resetAttempt()
+            setPending(null)
+            if (response.expired) setError(text.restart)
+            else setShowExhausted(true)
+          } else {
+            setPending({ ...pending, attemptsRemaining: response.attemptsRemaining })
+            setCodeExpired(true); setVerificationCode(""); setVerificationError(text.expired)
+          }
         } else {
           trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_CODE")
-          setPending({ ...pending, attemptsRemaining: response.attemptsRemaining }); setVerificationError(response.message)
+          setPending({ ...pending, attemptsRemaining: response.attemptsRemaining })
+          setVerificationError(text.incorrect)
         }
         return
       }
@@ -204,16 +267,23 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
         </form>
         <SupportContact />
       </section>
-      {pending && <dialog ref={verificationRef} className="card signup-dialog" aria-labelledby="signup-verification-title" onCancel={event => { if (verifying) event.preventDefault(); else cancelVerification() }}>
+      {pending && <dialog ref={verificationRef} className="card signup-dialog" aria-labelledby="signup-verification-title" onCancel={event => { if (verificationBusy) event.preventDefault(); else cancelVerification() }}>
         <h2 id="signup-verification-title">{text.verificationTitle}</h2>
-        <p>{text.verificationText(pending.adminEmail)}</p><p>{text.verificationHint}</p>
-        <p><strong>{text.attempts(pending.attemptsRemaining)}</strong></p><p><strong>{text.time(secondsLeft)}</strong></p>
+        <p>{text.verificationText(pending.adminEmail)}</p>
+        <p><strong>{text.attempts(pending.attemptsRemaining)}</strong></p>
         <form onSubmit={handleConfirm} className="login-form">
-          <label>{text.code}<input autoFocus inputMode="numeric" autoComplete="one-time-code" value={verificationCode} onChange={event => setVerificationCode(event.target.value)} /></label>
+          <label>{text.code}<input ref={codeInputRef} autoFocus inputMode="numeric" autoComplete="one-time-code" disabled={noAttemptsLeft} value={verificationCode} onChange={event => setVerificationCode(event.target.value)} /></label>
           {verificationError && <div className="card error" role="alert">{verificationError}</div>}
-          <button type="submit" disabled={verifying || secondsLeft <= 0}>{verifying ? text.confirming : text.confirm}</button>
-          <button type="button" className="secondary-button" disabled={verifying} onClick={cancelVerification}>{text.cancel}</button>
+          {resent && <p role="status">{text.resent}</p>}
+          <button type="submit" disabled={verificationBusy || codeExpired || noAttemptsLeft}>{verifying ? text.confirming : text.confirm}</button>
+          <button type="button" className="secondary-button" disabled={verificationBusy || noAttemptsLeft} onClick={handleResend}>{resending ? text.submitting : text.resend}</button>
+          <button type="button" className="link-button" disabled={verificationBusy} onClick={cancelVerification}>{text.cancel}</button>
         </form>
+      </dialog>}
+      {showExhausted && <dialog ref={exhaustedRef} className="card signup-dialog" aria-labelledby="signup-exhausted-title" aria-describedby="signup-exhausted-message" onCancel={event => { event.preventDefault(); closeExhaustedNotice() }}>
+        <h2 id="signup-exhausted-title">{text.exhaustedTitle}</h2>
+        <p id="signup-exhausted-message">{text.exhausted}</p>
+        <button type="button" autoFocus onClick={closeExhaustedNotice}>{text.close}</button>
       </dialog>}
       {showTerms && <dialog ref={termsRef} className="card signup-dialog terms-dialog" aria-labelledby="signup-terms-title" onCancel={() => setShowTerms(false)}>
         <h2 id="signup-terms-title">{text.termsTitle}</h2>
