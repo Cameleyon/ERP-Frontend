@@ -15,7 +15,6 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const { language } = useI18n()
   const text = language === "fr" ? {
     title: "Inscription", home: "Retour à l'accueil", company: "Nom de l'entreprise", email: "Email du propriétaire", password: "Mot de passe",
-    trial: "90 jours d'essai gratuit, sans carte bancaire. Les autres informations pourront être complétées dans Profil.",
     passwordHint: "8 caractères minimum", termsPrefix: "J'ai lu et j'accepte les", termsLink: "conditions d'utilisation",
     termsTitle: "Conditions d'utilisation CAMELEYON ERP", close: "Fermer", cancel: "Annuler",
     submit: "Créer mon compte", submitting: "Envoi du code...", verificationTitle: "Confirmer l'e-mail du propriétaire",
@@ -37,7 +36,6 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     ],
   } : language === "es" ? {
     title: "Registro", home: "Volver al inicio", company: "Nombre de la empresa", email: "Correo del propietario", password: "Contraseña",
-    trial: "90 días de prueba gratis, sin tarjeta bancaria. Puede completar los demás datos en Perfil.",
     passwordHint: "Mínimo 8 caracteres", termsPrefix: "He leído y acepto los", termsLink: "términos de uso",
     termsTitle: "Términos de uso de CAMELEYON ERP", close: "Cerrar", cancel: "Cancelar",
     submit: "Crear mi cuenta", submitting: "Enviando código...", verificationTitle: "Confirmar correo del propietario",
@@ -59,7 +57,6 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     ],
   } : {
     title: "Sign Up", home: "Back to home", company: "Company name", email: "Owner email", password: "Password",
-    trial: "90-day free trial. No credit card required. Complete the remaining details in Profile later.",
     passwordHint: "At least 8 characters", termsPrefix: "I have read and accept the", termsLink: "terms of use",
     termsTitle: "CAMELEYON ERP Terms of Use", close: "Close", cancel: "Cancel",
     submit: "Create my account", submitting: "Sending code...", verificationTitle: "Confirm owner email",
@@ -197,7 +194,6 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
         <div className="login-language-row"><LanguageSwitcher /></div>
         <button type="button" className="secondary-button" onClick={onGoToHome}>{text.home}</button>
         <h1>{text.title}</h1>
-        <p>{text.trial}</p>
         <form onSubmit={handleSubmit} onInvalidCapture={trackValidationError} className="login-form">
           <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} /></label>
           <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
