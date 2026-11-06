@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config"
+import type { Language } from "../i18n/messages"
 
 async function handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
@@ -37,6 +38,7 @@ export type PublicSignupRequest = {
     adminLastName?: string
     adminEmail: string
     adminPassword: string
+    preferredLanguage?: Language
     planCode?: string
     billingCycle?: "MONTHLY" | "YEARLY"
     partnerCode?: string

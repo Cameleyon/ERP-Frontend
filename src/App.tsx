@@ -278,10 +278,10 @@ function getTermsGateText(language: "fr" | "en" | "es") {
 
 export default function App() {
   return (
-      <LanguageProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <LanguageProvider>
           <AppContent />
-        </AuthProvider>
-      </LanguageProvider>
+        </LanguageProvider>
+      </AuthProvider>
   )
 }

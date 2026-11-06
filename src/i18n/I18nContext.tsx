@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useAuth } from "../auth/AuthContext"
 import { messages, type AppMessages, type Language } from "./messages"
 
 type I18nContextValue = {
@@ -11,34 +12,32 @@ const STORAGE_KEY = "cameleyon-ui-language"
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined)
 
+function isSupportedLanguage(value: unknown): value is Language {
+  return value === "en" || value === "fr" || value === "es"
+}
+
 function detectInitialLanguage(): Language {
-  if (typeof window === "undefined") {
-    return "fr"
-  }
-
-  const stored = window.localStorage.getItem(STORAGE_KEY)
-  if (stored === "fr" || stored === "en" || stored === "es") {
-    return stored
-  }
-
-  const browserLanguage = window.navigator.language.toLowerCase()
-
-  if (browserLanguage.startsWith("fr")) {
-    return "fr"
-  }
-
-  if (browserLanguage.startsWith("es")) {
-    return "es"
-  }
-
+  const stored = typeof window === "undefined" ? null : window.localStorage.getItem(STORAGE_KEY)
+  if (isSupportedLanguage(stored)) return stored
   return "en"
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(detectInitialLanguage)
+  const { token, user } = useAuth()
+  const [browserLanguage, setBrowserLanguage] = useState<Language>(detectInitialLanguage)
+  const [sessionLanguage, setSessionLanguage] = useState<{ token: string; language: Language } | null>(null)
+  if (sessionLanguage && sessionLanguage.token !== token) setSessionLanguage(null)
+
+  const accountLanguage = token && isSupportedLanguage(user?.preferredLanguage) ? user.preferredLanguage : null
+  const language = accountLanguage && sessionLanguage?.token === token
+    ? sessionLanguage.language
+    : accountLanguage ?? browserLanguage
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, language)
+    window.localStorage.setItem(STORAGE_KEY, browserLanguage)
+  }, [browserLanguage])
+
+  useEffect(() => {
     document.documentElement.lang = language
     document.documentElement.translate = false
     document.body.translate = false
@@ -46,9 +45,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<I18nContextValue>(() => ({
     language,
-    setLanguage: setLanguageState,
+    setLanguage: (nextLanguage) => {
+      if (accountLanguage && token) setSessionLanguage({ token, language: nextLanguage })
+      else setBrowserLanguage(nextLanguage)
+    },
     copy: messages[language],
-  }), [language])
+  }), [accountLanguage, language, token])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

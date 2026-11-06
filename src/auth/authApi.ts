@@ -1,11 +1,13 @@
 import { API_BASE_URL } from "../api/config"
 import type { CompanyLocationResponse } from "../api/companyLocationsApi"
+import type { Language } from "../i18n/messages"
 
 export type AuthenticatedUserResponse = {
   id: number
   firstName: string
   lastName: string
   email: string
+  preferredLanguage?: Language | null
   role: string
   companyOwner: boolean
   companyId: number | null

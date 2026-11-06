@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
+import type { Language } from "../i18n/messages"
 import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
 import { getBrowserTimeZone } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
@@ -27,6 +28,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     restart: "Cette demande n'est plus valide. Soumettez à nouveau le formulaire pour recevoir un code.",
     exhausted: "Vous avez utilisé vos trois essais. Soumettez à nouveau le formulaire pour recevoir un code.",
     exhaustedTitle: "Essais épuisés",
+    accountLanguage: "Langue du compte",
     incorrect: "Code incorrect.",
     required: "Renseignez le nom de l'entreprise, votre e-mail et un mot de passe d'au moins 8 caractères.",
     termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer.", codeRequired: "Le code de vérification est requis.",
@@ -55,6 +57,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     restart: "Esta solicitud ya no es válida. Vuelva a enviar el formulario para recibir un código.",
     exhausted: "Ha usado los tres intentos. Vuelva a enviar el formulario para recibir un código.",
     exhaustedTitle: "Intentos agotados",
+    accountLanguage: "Idioma de la cuenta",
     incorrect: "Código incorrecto.",
     required: "Ingrese el nombre de la empresa, su correo y una contraseña de al menos 8 caracteres.",
     termsRequired: "Debe aceptar los términos de uso para continuar.", codeRequired: "El código de verificación es obligatorio.",
@@ -83,6 +86,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     restart: "This request is no longer valid. Submit the form again to get a code.",
     exhausted: "You have used all three attempts. Submit the form again to get a code.",
     exhaustedTitle: "No attempts remaining",
+    accountLanguage: "Account language",
     incorrect: "Incorrect code.",
     required: "Enter the company name, your email and a password of at least 8 characters.",
     termsRequired: "You must accept the terms of use to continue.", codeRequired: "Verification code is required.",
@@ -102,6 +106,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const [companyName, setCompanyName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>("en")
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
@@ -156,6 +161,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     setCompanyName("")
     setEmail("")
     setPassword("")
+    setPreferredLanguage("en")
     setTermsAccepted(false)
     setVerificationCode("")
     setVerificationError("")
@@ -177,7 +183,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
       setSaving(true); setError(""); setVerificationError(""); setVerificationCode("")
       setResent(false); setCodeExpired(false)
       const response = await signupCompany({ companyName: companyName.trim(), adminEmail: email.trim(), adminPassword: password,
-        termsAccepted, timeZoneId: getBrowserTimeZone() })
+        preferredLanguage, termsAccepted, timeZoneId: getBrowserTimeZone() })
       setPending(response)
       trackSignupEvent("CODE_SENT", currentAttempt)
     } catch (err) {
@@ -261,6 +267,13 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
           <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} /></label>
           <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
           <label>{text.password}<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} aria-describedby="signup-password-hint" /><small id="signup-password-hint">{text.passwordHint}</small></label>
+          <label>{text.accountLanguage}
+            <select value={preferredLanguage} onChange={event => setPreferredLanguage(event.target.value as Language)}>
+              <option value="en" lang="en">English</option>
+              <option value="fr" lang="fr">Français</option>
+              <option value="es" lang="es">Español</option>
+            </select>
+          </label>
           <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => { setTermsAccepted(event.target.checked); if (error === text.termsRequired) setError("") }} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
           {error && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{error}</div>}
           <button type="submit" disabled={saving}>{saving ? text.submitting : text.submit}</button>
