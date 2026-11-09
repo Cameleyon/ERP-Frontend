@@ -1212,6 +1212,18 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
   color: white;
 }
 
+a.language-switcher-button {
+  display: inline-block;
+  font-family: var(--heading-font);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+a.language-switcher-button:hover {
+  opacity: 0.92;
+}
+
 .public-language-switcher {
   margin-left: auto;
 }

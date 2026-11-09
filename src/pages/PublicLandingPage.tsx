@@ -501,7 +501,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
         </a>
 
         <nav className="public-header-nav" aria-label="Public navigation">
-          <LanguageSwitcher className="public-language-switcher" />
+          <LanguageSwitcher className="public-language-switcher" linkToHomepage />
           <button type="button" className="public-nav-button public-nav-primary" onClick={onGoToSignup}>
             {text.signUp}
           </button>
