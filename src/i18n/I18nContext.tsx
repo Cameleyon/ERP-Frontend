@@ -18,7 +18,7 @@ function isSupportedLanguage(value: unknown): value is Language {
 
 function detectInitialLanguage(): Language {
   if (typeof window === "undefined") return "en"
-  const pathLanguage = window.location.pathname.match(/^\/(en|fr|es)\/?$/)?.[1]
+  const pathLanguage = window.location.pathname.match(/^\/(en|fr|es)(?:\/privacy)?\/?$/)?.[1]
   if (isSupportedLanguage(pathLanguage)) return pathLanguage
 
   const stored = window.localStorage.getItem(STORAGE_KEY)

@@ -1241,6 +1241,13 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
 .marketing-preferences-panel h2 { font-size: 1.05rem; margin: 0; }
 .marketing-preferences-panel p { font-size: 0.875rem; margin: 8px 0 12px; }
 .marketing-preferences-panel a { color: #044975; }
+.marketing-privacy-page { max-width: 760px; overflow-wrap: anywhere; }
+.marketing-privacy-page header { margin-bottom: 24px; }
+.marketing-privacy-page h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 24px; }
+.marketing-privacy-page h2 { font-size: 1.2rem; margin-bottom: 6px; }
+.marketing-privacy-page section { margin-bottom: 22px; }
+.marketing-privacy-page p { margin: 0; }
+.marketing-privacy-page a { color: #044975; }
 .marketing-withdrawal-link {
   align-self: flex-start;
   border: 0;
@@ -2309,7 +2316,9 @@ a.language-switcher-button:hover {
 
 .public-footer-contact {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
 }
 

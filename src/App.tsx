@@ -16,6 +16,7 @@ import type { Page } from "./types/navigation"
 import PublicLandingPage from "./pages/PublicLandingPage"
 import PublicSignupPage from "./pages/PublicSignupPage"
 import ProfilePage from "./pages/ProfilePage"
+import MarketingPrivacyPage from "./pages/MarketingPrivacyPage"
 import PlatformRedirectPage from "./pages/PlatformRedirectPage"
 import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
 import MarketingConsent from "./components/common/MarketingConsent"
@@ -283,11 +284,16 @@ function getTermsGateText(language: "fr" | "en" | "es") {
 }
 
 export default function App() {
+  const isPrivacyPage = /^\/(?:(?:en|fr|es)\/)?privacy\/?$/.test(window.location.pathname)
   return (
       <AuthProvider>
         <LanguageProvider>
-          <AppContent />
-          <MarketingConsent />
+          {isPrivacyPage ? <MarketingPrivacyPage /> : (
+            <>
+              <AppContent />
+              <MarketingConsent />
+            </>
+          )}
         </LanguageProvider>
       </AuthProvider>
   )

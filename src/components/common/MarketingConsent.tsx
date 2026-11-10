@@ -33,7 +33,7 @@ function ConsentControls({ tracker }: { tracker: NonNullable<typeof metaPixel> }
     <aside className="marketing-preferences" aria-label={text.title}>
       <section className="marketing-preferences-panel" aria-labelledby="marketing-preferences-title">
         <h2 id="marketing-preferences-title">{text.title}</h2>
-        <p>{text.description} <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer">{text.privacy}</a></p>
+        <p>{text.description} <a href={`/${language}/privacy`} target="_blank" rel="noopener noreferrer">{text.privacy}</a></p>
         <div className="marketing-preferences-actions">
           <button type="button" onClick={() => tracker.chooseConsent("refused")}>{text.decline}</button>
           <button type="button" onClick={() => tracker.chooseConsent("accepted")}>{text.allow}</button>
