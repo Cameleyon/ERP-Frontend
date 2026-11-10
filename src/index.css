@@ -1248,14 +1248,13 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
 .marketing-privacy-page section { margin-bottom: 22px; }
 .marketing-privacy-page p { margin: 0; }
 .marketing-privacy-page a { color: #044975; }
-.marketing-withdrawal-link {
-  align-self: flex-start;
-  border: 0;
-  background: transparent;
-  color: #044975;
-  padding: 0;
-  text-align: left;
-  text-decoration: underline;
+.marketing-privacy-choice button,
+.marketing-privacy-choice p:not(:empty) {
+  margin-top: 12px;
+}
+.marketing-privacy-choice button {
+  max-width: 100%;
+  white-space: normal;
 }
 .marketing-preferences-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .marketing-preferences-actions button {
@@ -2324,7 +2323,13 @@ a.language-switcher-button:hover {
 
 .public-footer-contact .support-contact { align-items: flex-start; text-align: left; }
 .public-footer-contact .support-contact > span:first-child { display: flex; flex-direction: column; gap: 4px; }
-.public-footer-copyright { grid-column: 1 / -1; width: 100%; text-align: center; }
+.public-footer-legal {
+  display: grid;
+  grid-column: 1 / -1;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
 
 .public-footer a {
   color: #0d48d8;

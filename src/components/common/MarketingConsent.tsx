@@ -42,18 +42,3 @@ function ConsentControls({ tracker }: { tracker: NonNullable<typeof metaPixel> }
     </aside>
   )
 }
-
-export function MarketingConsentWithdrawal() {
-  if (!tracker?.isAvailable()) return null
-  return <WithdrawalLink tracker={tracker} />
-}
-
-function WithdrawalLink({ tracker }: { tracker: NonNullable<typeof metaPixel> }) {
-  const { language } = useI18n()
-  const choice = useSyncExternalStore(tracker.subscribe, tracker.readConsent, () => null)
-  if (choice !== "accepted") return null
-  const label = language === "fr" ? "Retirer le consentement marketing"
-    : language === "es" ? "Retirar el consentimiento de marketing"
-    : "Withdraw marketing consent"
-  return <button type="button" className="marketing-withdrawal-link" onClick={() => tracker.chooseConsent("refused")}>{label}</button>
-}

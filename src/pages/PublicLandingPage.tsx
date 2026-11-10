@@ -678,10 +678,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
 
         <div className="public-footer-contact">
           <SupportContact />
-          <a href={`/${language}/privacy`}>{language === "fr" ? "Confidentialité" : language === "es" ? "Privacidad" : "Privacy"}</a>
         </div>
 
-        <p className="public-footer-copyright">© 2024 CAMELEYON-ERP. {text.footerRights}</p>
+        <div className="public-footer-legal">
+          <p>© 2024 CAMELEYON-ERP. {text.footerRights}</p>
+          <a href={`/${language}/privacy`}>{language === "fr" ? "Confidentialité" : language === "es" ? "Privacidad" : "Privacy"}</a>
+        </div>
       </footer>
     </div>
   )

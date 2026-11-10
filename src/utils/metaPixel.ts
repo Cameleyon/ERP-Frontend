@@ -152,10 +152,17 @@ export function createMetaPixel(config: Config, browser: PixelWindow, doc: Docum
           listener()
         }
       }
+      const onPageShow = (event: PageTransitionEvent) => {
+        if (!event.persisted) return
+        sync()
+        listener()
+      }
       browser.addEventListener("storage", onStorage)
+      browser.addEventListener("pageshow", onPageShow)
       browser.addEventListener(CONSENT_EVENT, listener)
       return () => {
         browser.removeEventListener("storage", onStorage)
+        browser.removeEventListener("pageshow", onPageShow)
         browser.removeEventListener(CONSENT_EVENT, listener)
       }
     },

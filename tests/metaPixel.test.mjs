@@ -156,6 +156,25 @@ test("withdrawal stops new events after the SDK has already loaded", () => {
   ])
 })
 
+test("withdrawal on the privacy page persists and revokes tracking when the previous page is restored", () => {
+  const { tracker, browser, doc, events, scripts } = fixture()
+  tracker.setPublicView("landing")
+  tracker.chooseConsent("accepted")
+  const unsubscribe = tracker.subscribe(() => {})
+  const privacy = createMetaPixel(config, Object.assign(new EventTarget(), {
+    location: { href: origin + "/fr/privacy" }, sessionStorage: browser.sessionStorage, navigator: {},
+  }), doc)
+  assert.equal(privacy.readConsent(), "accepted")
+  privacy.chooseConsent("refused")
+  assert.equal(scripts.length, 1)
+
+  browser.dispatchEvent(Object.assign(new Event("pageshow"), { persisted: true }))
+  assert.equal(tracker.readConsent(), "refused")
+  assert.deepEqual(events(), [])
+  assert.deepEqual(browser.fbq.queue.at(-1), ["consent", "revoke"])
+  unsubscribe()
+})
+
 test("blocks unapproved URLs/referrers and allows narrowly scoped campaign identifiers", () => {
   const { tracker, browser, doc, scripts, events } = fixture()
   browser.location.href = origin + "/fr?email=private%40example.invalid"
