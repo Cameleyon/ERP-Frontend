@@ -1223,8 +1223,7 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
   pointer-events: none;
 }
 
-.marketing-preferences-panel,
-.marketing-preferences-toggle {
+.marketing-preferences-panel {
   pointer-events: auto;
   background: #fff;
   color: var(--text-color);
@@ -1242,7 +1241,15 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
 .marketing-preferences-panel h2 { font-size: 1.05rem; margin: 0; }
 .marketing-preferences-panel p { font-size: 0.875rem; margin: 8px 0 12px; }
 .marketing-preferences-panel a { color: #044975; }
-.marketing-preferences-toggle { font-size: 0.75rem; padding: 6px 10px; }
+.marketing-withdrawal-link {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #044975;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+}
 .marketing-preferences-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .marketing-preferences-actions button {
   border: 1px solid #044975;

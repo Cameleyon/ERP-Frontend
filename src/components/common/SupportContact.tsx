@@ -1,4 +1,5 @@
 import { useI18n } from "../../i18n/I18nContext"
+import { MarketingConsentWithdrawal } from "./MarketingConsent"
 
 export default function SupportContact() {
   const { language } = useI18n()
@@ -9,6 +10,7 @@ export default function SupportContact() {
     <p className="support-contact">
       <span>{label} : <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a></span>
       <span>{response}</span>
+      <MarketingConsentWithdrawal />
     </p>
   )
 }

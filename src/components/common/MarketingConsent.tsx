@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react"
+import { useSyncExternalStore } from "react"
 import { useAuth } from "../../auth/AuthContext"
 import { useI18n } from "../../i18n/I18nContext"
 import { metaPixel } from "../../utils/metaPixel"
@@ -14,49 +14,46 @@ function ConsentControls({ tracker }: { tracker: NonNullable<typeof metaPixel> }
   const { isAuthenticated, isLoading } = useAuth()
   const { language } = useI18n()
   const choice = useSyncExternalStore(tracker.subscribe, tracker.readConsent, () => null)
-  const [expanded, setExpanded] = useState(false)
+  if (isLoading || isAuthenticated || choice !== null) return null
   const text = language === "fr" ? {
-    title: "Préférences publicitaires",
-    description: "Avec votre accord, le pixel Meta utilise des cookies pour mesurer les visites et les inscriptions confirmées liées à nos publicités Facebook et Instagram. Vous pouvez refuser ou changer d’avis sans perdre l’accès à l’application.",
-    allow: "Accepter", decline: "Refuser", privacy: "Confidentialité de Meta",
-    accepted: "Mesure publicitaire autorisée.", refused: "Mesure publicitaire refusée.",
+    title: "Préférences marketing",
+    description: "Autoriser les cookies à des fins de mesure marketing ?",
+    allow: "Accepter", decline: "Refuser", privacy: "Confidentialité",
   } : language === "es" ? {
-    title: "Preferencias de publicidad",
-    description: "Con tu permiso, el píxel de Meta usa cookies para medir las visitas y los registros confirmados relacionados con nuestros anuncios de Facebook e Instagram. Puedes rechazarlo o cambiar de opinión sin perder el acceso a la aplicación.",
-    allow: "Aceptar", decline: "Rechazar", privacy: "Privacidad de Meta",
-    accepted: "Medición publicitaria permitida.", refused: "Medición publicitaria rechazada.",
+    title: "Preferencias de marketing",
+    description: "¿Permitir cookies para medir el rendimiento de marketing?",
+    allow: "Aceptar", decline: "Rechazar", privacy: "Privacidad",
   } : {
-    title: "Advertising preferences",
-    description: "With your permission, Meta Pixel uses cookies to measure visits and confirmed registrations related to our Facebook and Instagram ads. You can decline or change your choice without losing access to the app.",
-    allow: "Accept", decline: "Decline", privacy: "Meta privacy policy",
-    accepted: "Ad measurement allowed.", refused: "Ad measurement declined.",
-  }
-
-  if (isLoading) return null
-  const open = expanded || (!isAuthenticated && choice === null)
-
-  function choose(next: "accepted" | "refused") {
-    tracker.chooseConsent(next)
-    setExpanded(false)
+    title: "Marketing preferences",
+    description: "Allow cookies for marketing measurement?",
+    allow: "Accept", decline: "Decline", privacy: "Privacy details",
   }
 
   return (
     <aside className="marketing-preferences" aria-label={text.title}>
-      {open ? (
-        <section className="marketing-preferences-panel" aria-labelledby="marketing-preferences-title">
-          <h2 id="marketing-preferences-title">{text.title}</h2>
-          <p>{text.description} <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer">{text.privacy}</a></p>
-          {choice && <p>{choice === "accepted" ? text.accepted : text.refused}</p>}
-          <div className="marketing-preferences-actions">
-            <button type="button" onClick={() => choose("refused")}>{text.decline}</button>
-            <button type="button" onClick={() => choose("accepted")}>{text.allow}</button>
-          </div>
-        </section>
-      ) : (
-        <button type="button" className="marketing-preferences-toggle" onClick={() => setExpanded(true)}>
-          {text.title}
-        </button>
-      )}
+      <section className="marketing-preferences-panel" aria-labelledby="marketing-preferences-title">
+        <h2 id="marketing-preferences-title">{text.title}</h2>
+        <p>{text.description} <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noreferrer">{text.privacy}</a></p>
+        <div className="marketing-preferences-actions">
+          <button type="button" onClick={() => tracker.chooseConsent("refused")}>{text.decline}</button>
+          <button type="button" onClick={() => tracker.chooseConsent("accepted")}>{text.allow}</button>
+        </div>
+      </section>
     </aside>
   )
+}
+
+export function MarketingConsentWithdrawal() {
+  if (!tracker?.isAvailable()) return null
+  return <WithdrawalLink tracker={tracker} />
+}
+
+function WithdrawalLink({ tracker }: { tracker: NonNullable<typeof metaPixel> }) {
+  const { language } = useI18n()
+  const choice = useSyncExternalStore(tracker.subscribe, tracker.readConsent, () => null)
+  if (choice !== "accepted") return null
+  const label = language === "fr" ? "Retirer le consentement marketing"
+    : language === "es" ? "Retirar el consentimiento de marketing"
+    : "Withdraw marketing consent"
+  return <button type="button" className="marketing-withdrawal-link" onClick={() => tracker.chooseConsent("refused")}>{label}</button>
 }

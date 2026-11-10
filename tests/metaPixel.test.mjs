@@ -9,12 +9,17 @@ const success = { verified: true, signup: { companyId: 47, adminEmail: "private@
 
 function fixture(overrides = {}) {
   const values = new Map()
+  const sessionValues = new Map()
   const scripts = []
   const browser = Object.assign(new EventTarget(), {
     location: { href: origin + "/fr" },
     localStorage: {
       getItem: key => values.get(key) ?? null,
       setItem: (key, value) => values.set(key, value),
+    },
+    sessionStorage: {
+      getItem: key => sessionValues.get(key) ?? null,
+      setItem: (key, value) => sessionValues.set(key, value),
     },
     navigator: {},
     crypto: { randomUUID: () => "12345678-1234-4234-8234-123456789012" },
@@ -74,6 +79,18 @@ test("one PageView per rendered public navigation; no SDK auto-configuration", (
   assert.deepEqual(events().map(e => e[2]), ["PageView", "PageView", "PageView", "PageView"])
 })
 
+test("acceptance and withdrawal take effect in the current document if storage cannot be written", () => {
+  const { tracker, browser, scripts, events } = fixture()
+  tracker.setPublicView("landing")
+  browser.sessionStorage.setItem = () => { throw new Error("storage blocked") }
+  tracker.chooseConsent("accepted")
+  assert.equal(tracker.readConsent(), "accepted")
+  assert.equal(scripts.length, 1)
+  tracker.chooseConsent("refused")
+  assert.equal(tracker.readConsent(), "refused")
+  assert.deepEqual(events(), [])
+})
+
 test("only confirmed verification can convert, once across repeated responses and a reload", () => {
   const { tracker, browser, doc, events } = fixture()
   tracker.chooseConsent("accepted")
@@ -87,13 +104,23 @@ test("only confirmed verification can convert, once across repeated responses an
   tracker.confirmedRegistration(success)
   tracker.confirmedRegistration(success)
   const reload = createMetaPixel(config, Object.assign(new EventTarget(), {
-    location: browser.location, localStorage: browser.localStorage, navigator: {}, crypto: browser.crypto,
+    location: browser.location, localStorage: browser.localStorage, sessionStorage: browser.sessionStorage,
+    navigator: {}, crypto: browser.crypto,
   }), doc)
   reload.setPublicView("signup")
   reload.confirmedRegistration(success)
   assert.deepEqual(events().filter(e => e[2] === "CompleteRegistration"), [[
     "trackSingle", productionId, "CompleteRegistration", {}, { eventID: "12345678-1234-4234-8234-123456789012" },
   ]])
+})
+
+test("the choice survives reload in the same tab but not a fresh session", () => {
+  const { tracker, browser, doc } = fixture()
+  tracker.chooseConsent("refused")
+  assert.equal(createMetaPixel(config, browser, doc).readConsent(), "refused")
+  const freshSession = fixture()
+  freshSession.browser.localStorage = browser.localStorage
+  assert.equal(freshSession.tracker.readConsent(), null)
 })
 
 test("withdrawal clears unsent events and authentication suspends the tracker", () => {

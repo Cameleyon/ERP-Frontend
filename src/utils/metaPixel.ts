@@ -2,9 +2,8 @@ declare const __VERCEL_ENV__: string
 
 const PRODUCTION_ID = "1882145179608617"
 const PRODUCTION_ORIGIN = "https://erp.cameleyondynamics.com"
-const CONSENT_KEY = "cameleyon-marketing-consent-v1"
+const CONSENT_KEY = "cameleyon-marketing-consent-session-v1"
 const CONSENT_EVENT = "cameleyon:marketing-consent"
-const CONSENT_MAX_AGE = 180 * 24 * 60 * 60 * 1000
 
 type Consent = "accepted" | "refused"
 type PublicView = "landing" | "signup" | "login"
@@ -71,7 +70,7 @@ export function createMetaPixel(config: Config, browser: PixelWindow, doc: Docum
   let lastView: string | null = null
   let pixel: PixelQueue | null = null
   let granted = false
-  let memoryConsent: { choice: Consent; at: number } | null = null
+  let memoryConsent: Consent | null = null
 
   function pixelId() {
     if (browser.navigator.globalPrivacyControl || browser.navigator.doNotTrack === "1") return null
@@ -79,14 +78,11 @@ export function createMetaPixel(config: Config, browser: PixelWindow, doc: Docum
   }
 
   function readConsent(): Consent | null {
-    let saved = memoryConsent
+    if (memoryConsent) return memoryConsent
     try {
-      const raw = browser.localStorage.getItem(CONSENT_KEY)
-      saved = raw ? JSON.parse(raw) : null
-    } catch { /* Storage can be unavailable in restricted browsers. */ }
-    return saved && (saved.choice === "accepted" || saved.choice === "refused")
-      && Number.isFinite(saved.at) && saved.at <= Date.now()
-      && Date.now() - saved.at < CONSENT_MAX_AGE ? saved.choice : null
+      const saved = browser.sessionStorage.getItem(CONSENT_KEY)
+      return saved === "accepted" || saved === "refused" ? saved : null
+    } catch { return null }
   }
 
   function revoke() {
@@ -164,8 +160,11 @@ export function createMetaPixel(config: Config, browser: PixelWindow, doc: Docum
       }
     },
     chooseConsent(choice: Consent) {
-      memoryConsent = { choice, at: Date.now() }
-      try { browser.localStorage.setItem(CONSENT_KEY, JSON.stringify(memoryConsent)) } catch { /* This document only. */ }
+      memoryConsent = choice
+      try {
+        browser.sessionStorage.setItem(CONSENT_KEY, choice)
+        if (browser.sessionStorage.getItem(CONSENT_KEY) === choice) memoryConsent = null
+      } catch { /* Keep the new choice for this document if storage is blocked. */ }
       sync()
       browser.dispatchEvent(new Event(CONSENT_EVENT))
     },
