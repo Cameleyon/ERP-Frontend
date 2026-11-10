@@ -6,6 +6,7 @@ import type { Language } from "../i18n/messages"
 import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
 import { getBrowserTimeZone } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
+import { metaPixel } from "../utils/metaPixel"
 
 type Props = {
   onSignupComplete: (email: string) => void
@@ -250,6 +251,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
       }
       if (!response.signup) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_RESPONSE"); setVerificationError(text.failed); return }
       trackSignupEvent("COMPLETED", currentAttempt)
+      metaPixel?.confirmedRegistration(response)
       resetAttempt()
       setPending(null)
       onSignupComplete(response.signup.adminEmail)

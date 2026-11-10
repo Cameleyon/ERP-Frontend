@@ -1212,6 +1212,47 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
   color: white;
 }
 
+.marketing-preferences {
+  position: fixed;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 30;
+  width: min(420px, calc(100% - 24px));
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.marketing-preferences-panel,
+.marketing-preferences-toggle {
+  pointer-events: auto;
+  background: #fff;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(4, 73, 117, 0.12);
+}
+
+.marketing-preferences-panel {
+  padding: 16px;
+  max-height: 75dvh;
+  overflow: auto;
+}
+
+.marketing-preferences-panel h2 { font-size: 1.05rem; margin: 0; }
+.marketing-preferences-panel p { font-size: 0.875rem; margin: 8px 0 12px; }
+.marketing-preferences-panel a { color: #044975; }
+.marketing-preferences-toggle { font-size: 0.75rem; padding: 6px 10px; }
+.marketing-preferences-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.marketing-preferences-actions button {
+  border: 1px solid #044975;
+  background: #fff;
+  color: #044975;
+  border-radius: 8px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 a.language-switcher-button {
   display: inline-block;
   font-family: var(--heading-font);

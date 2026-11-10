@@ -18,9 +18,11 @@ import PublicSignupPage from "./pages/PublicSignupPage"
 import ProfilePage from "./pages/ProfilePage"
 import PlatformRedirectPage from "./pages/PlatformRedirectPage"
 import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
+import MarketingConsent from "./components/common/MarketingConsent"
+import { metaPixel } from "./utils/metaPixel"
 import { COMPANY_CURRENCY_REQUIRED_EVENT } from "./utils/companyCurrency"
 
-type PublicPage = "landing" | "signup" | "login" | "profile"
+type PublicPage = "landing" | "signup" | "login"
 const PLATFORM_APP_URL =
   (import.meta.env.VITE_PLATFORM_APP_URL as string | undefined)?.trim() ||
   "https://erp.platform.cameleyondynamics.com"
@@ -37,6 +39,10 @@ function AppContent() {
   const [termsError, setTermsError] = useState("")
   const [termsRequired, setTermsRequired] = useState(false)
   const [showTermsDetails, setShowTermsDetails] = useState(false)
+
+  useEffect(() => {
+    metaPixel?.setPublicView(!isLoading && !isAuthenticated ? publicPage : null)
+  }, [isLoading, isAuthenticated, publicPage])
 
   useEffect(() => {
     const isPlatformOwner = user?.role === "SUPER_ADMIN"
@@ -281,6 +287,7 @@ export default function App() {
       <AuthProvider>
         <LanguageProvider>
           <AppContent />
+          <MarketingConsent />
         </LanguageProvider>
       </AuthProvider>
   )
