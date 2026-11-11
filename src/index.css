@@ -147,39 +147,6 @@ td {
   white-space: nowrap;
 }
 
-.maintenance-notice {
-  padding: 8px 16px;
-  border-bottom: 1px solid #ebcf9d;
-  background: #fff4e3;
-  color: #5a370d;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.erp-shell:has(> .maintenance-notice + .app-shell) {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-}
-
-.maintenance-notice + .app-shell {
-  flex: 1;
-  min-height: 0;
-}
-
-@media (min-width: 769px) {
-  .maintenance-notice + .app-shell > .sidebar {
-    height: 100%;
-  }
-}
-
-@media print {
-  .maintenance-notice {
-    display: none;
-  }
-}
-
 .app-shell {
   display: flex;
   height: 100vh;
