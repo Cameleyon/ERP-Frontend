@@ -1,25 +1,19 @@
 import { API_BASE_URL } from "./config"
 import type { Language } from "../i18n/messages"
+import { SignupError, signupErrorCode, type SignupErrorCode } from "../errors/signupErrors"
+import { handleSignupResponse, isVerificationStart, isVerificationResult } from "../errors/signupResponse"
 
-async function handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-        const text = await response.text()
-        if (text) {
-            try {
-                const parsed = JSON.parse(text) as { message?: string }
-                if (parsed.message) {
-                    throw new Error(parsed.message)
-                }
-            } catch (error) {
-                if (error instanceof Error && error.message !== text) {
-                    throw error
-                }
-            }
-        }
-        throw new Error(text || `Request failed with status ${response.status}`)
+async function postSignup<T>(path: string, payload: unknown, valid: (value: unknown) => boolean): Promise<T> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/public/signup-company${path}`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload), signal: AbortSignal.timeout(60000),
+        })
+        return await handleSignupResponse<T>(response, valid)
+    } catch (error) {
+        if (error instanceof SignupError) throw error
+        throw new SignupError(signupErrorCode(error))
     }
-
-    return response.json()
 }
 
 export type PublicSignupRequest = {
@@ -78,42 +72,22 @@ export type PublicSignupVerificationConfirmResponse = {
     requiresRestart: boolean
     attemptsRemaining: number
     message: string
+    errorCode?: SignupErrorCode | null
     signup: PublicSignupResponse | null
 }
 
 export async function signupCompany(
     payload: PublicSignupRequest
 ): Promise<PublicSignupVerificationStartResponse> {
-    const response = await fetch(`${API_BASE_URL}/public/signup-company`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    })
-
-    return handleResponse<PublicSignupVerificationStartResponse>(response)
+    return postSignup("", payload, isVerificationStart)
 }
 
 export async function resendSignupCode(pendingSignupId: string): Promise<PublicSignupVerificationStartResponse> {
-    const response = await fetch(`${API_BASE_URL}/public/signup-company/resend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pendingSignupId }),
-    })
-    return handleResponse<PublicSignupVerificationStartResponse>(response)
+    return postSignup("/resend", { pendingSignupId }, isVerificationStart)
 }
 
 export async function confirmSignupCompany(
     payload: PublicSignupVerificationConfirmRequest
 ): Promise<PublicSignupVerificationConfirmResponse> {
-    const response = await fetch(`${API_BASE_URL}/public/signup-company/confirm`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    })
-
-    return handleResponse<PublicSignupVerificationConfirmResponse>(response)
+    return postSignup("/confirm", payload, isVerificationResult)
 }

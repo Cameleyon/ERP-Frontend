@@ -1248,6 +1248,9 @@ dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
 .marketing-privacy-page section { margin-bottom: 22px; }
 .marketing-privacy-page p { margin: 0; }
 .marketing-privacy-page a { color: #044975; }
+.signup-field-error { color: #b42318; overflow-wrap: anywhere; }
+.public-signup-form input[aria-invalid="true"] { border-color: #b42318; }
+.public-signup-form .error, .signup-dialog .error { overflow-wrap: anywhere; }
 .marketing-privacy-choice button,
 .marketing-privacy-choice p:not(:empty) {
   margin-top: 12px;

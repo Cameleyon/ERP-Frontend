@@ -1,15 +1,16 @@
+import { signupErrorCode, type SignupErrorCode } from "../errors/signupErrors"
+
 const VISITOR_KEY = "cameleyon-visitor-id"
 
 export type SignupEvent = "PAGE_VIEW" | "FORM_SUBMITTED" | "CODE_SENT" | "FORM_ERROR" | "VERIFICATION_ERROR" | "CODE_EXPIRED" | "CANCELLED" | "COMPLETED"
-export type SignupErrorReason = "VALIDATION" | "ACTIVE_OWNER_EXISTS" | "NETWORK" | "REQUEST_FAILED" | "INVALID_CODE" | "CODE_EXPIRED" | "ATTEMPTS_EXHAUSTED" | "INVALID_RESPONSE"
+export type SignupErrorReason = SignupErrorCode
 
 export function newSignupAttemptId() {
   try { return navigator.doNotTrack === "1" ? null : crypto.randomUUID() } catch { return null }
 }
 
 export function signupErrorReason(error: unknown): SignupErrorReason {
-  if (error instanceof Error && error.message === "ACTIVE_COMPANY_OWNER_EXISTS") return "ACTIVE_OWNER_EXISTS"
-  return error instanceof TypeError ? "NETWORK" : "REQUEST_FAILED"
+  return signupErrorCode(error)
 }
 
 export function trackSignupEvent(eventType: SignupEvent, attemptId: string | null = null, reasonCode?: SignupErrorReason) {

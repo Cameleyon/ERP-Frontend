@@ -1,5 +1,7 @@
 # Platform analytics
 
+For signup validation, fixed error codes and rollout order, see [Signup error contract](signup-errors.md).
+
 ## Deployment
 
 Three projects are involved: ERP-Backend (Render), ERP-Frontend (the business

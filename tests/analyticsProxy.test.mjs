@@ -1,6 +1,7 @@
 import handler from '../api/analytics/visit.js'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
+import signupErrors from '../shared/signup-errors.json' with { type: 'json' }
 process.env.VERCEL_ENV='production'
 process.env.ANALYTICS_INGEST_SECRET='a'.repeat(32)
 process.env.ANALYTICS_API_BASE_URL='https://backend.example/api'
@@ -17,6 +18,7 @@ assert.equal(calls.at(-1).url,'https://backend.example/api/public/analytics/visi
 assert.deepEqual(JSON.parse(calls.at(-1).body),{...base,countryCode:'HT'})
 const event={...base,eventType:'FORM_ERROR',attemptId:randomUUID(),reasonCode:'VALIDATION',countryCode:'CA',email:'private@example.com',password:'secret',verificationCode:'123456'}
 assert.equal(await invoke(event),204)
+for (const reasonCode of Object.keys(signupErrors)) assert.equal(await invoke({...event,reasonCode}),204)
 assert.equal(calls.at(-1).url,'https://backend.example/api/public/analytics/signup-events')
 assert.deepEqual(Object.keys(JSON.parse(calls.at(-1).body)).sort(),['visitId','visitorId','attemptId','eventType','reasonCode','countryCode'].sort())
 assert.equal(JSON.parse(calls.at(-1).body).countryCode,'HT')

@@ -1,7 +1,9 @@
+import signupErrors from "../../shared/signup-errors.json" with { type: "json" }
+
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 const SIGNUP_EVENTS = new Set(["PAGE_VIEW", "FORM_SUBMITTED", "CODE_SENT", "FORM_ERROR", "VERIFICATION_ERROR", "CODE_EXPIRED", "CANCELLED", "COMPLETED"])
 const ERROR_EVENTS = new Set(["FORM_ERROR", "VERIFICATION_ERROR", "CODE_EXPIRED"])
-const ERROR_REASONS = new Set(["VALIDATION", "ACTIVE_OWNER_EXISTS", "NETWORK", "REQUEST_FAILED", "INVALID_CODE", "CODE_EXPIRED", "ATTEMPTS_EXHAUSTED", "INVALID_RESPONSE"])
+const ERROR_REASONS = new Set(Object.keys(signupErrors))
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store")

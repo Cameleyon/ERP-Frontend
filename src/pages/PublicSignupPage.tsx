@@ -7,6 +7,7 @@ import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignu
 import { getBrowserTimeZone } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
 import { metaPixel } from "../utils/metaPixel"
+import { SignupError, isSignupErrorCode, signupErrorCode, signupErrorMessage, validateSignup, validateSignupCode, type SignupErrorCode, type SignupIssue } from "../errors/signupErrors"
 
 type Props = {
   onSignupComplete: (email: string) => void
@@ -24,17 +25,9 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     code: "Code de vérification", confirm: "Confirmer le code", confirming: "Vérification...",
     attempts: (count: number) => `Essais restants : ${count}`,
     resend: "Renvoyer le code", resent: "Un nouveau code a été envoyé.",
-    resendCooldown: "Patientez un instant avant de demander un autre code.",
-    resendLimit: "La limite de renvois est atteinte.", resendFailed: "Impossible de renvoyer le code. Veuillez réessayer.",
-    restart: "Cette demande n'est plus valide. Soumettez à nouveau le formulaire pour recevoir un code.",
-    exhausted: "Vous avez utilisé vos trois essais. Soumettez à nouveau le formulaire pour recevoir un code.",
+    resendHint: "Utilisez le code correspondant à votre dernière demande. Après un renvoi, les codes précédents ne sont plus valides.",
     exhaustedTitle: "Essais épuisés",
     accountLanguage: "Langue du compte",
-    incorrect: "Code incorrect.",
-    required: "Renseignez le nom de l'entreprise, votre e-mail et un mot de passe d'au moins 8 caractères.",
-    termsRequired: "Vous devez accepter les conditions d'utilisation pour continuer.", codeRequired: "Le code de vérification est requis.",
-    failed: "L'inscription a échoué. Veuillez réessayer.", expired: "Le délai de vérification est expiré. Veuillez demander un nouveau code.",
-    activeOwner: "Vous possédez déjà une entreprise active avec cet e-mail. Connectez-vous comme propriétaire ou contactez l'assistance technique : contact@cameleyondynamics.com.",
     paragraphs: [
       "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise à gérer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses opérations.",
       "L'entreprise confirme que les informations fournies lors de l'inscription sont exactes et que l'administrateur principal est responsable de la gestion des utilisateurs, des accès et des données de l'entreprise.",
@@ -53,17 +46,9 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     code: "Código de verificación", confirm: "Confirmar código", confirming: "Verificando...",
     attempts: (count: number) => `Intentos restantes: ${count}`,
     resend: "Reenviar el código", resent: "Se ha enviado un nuevo código.",
-    resendCooldown: "Espere un momento antes de solicitar otro código.",
-    resendLimit: "Se alcanzó el límite de reenvíos.", resendFailed: "No se pudo reenviar el código. Inténtelo de nuevo.",
-    restart: "Esta solicitud ya no es válida. Vuelva a enviar el formulario para recibir un código.",
-    exhausted: "Ha usado los tres intentos. Vuelva a enviar el formulario para recibir un código.",
+    resendHint: "Use el código de su última solicitud. Después de un reenvío, los códigos anteriores dejan de ser válidos.",
     exhaustedTitle: "Intentos agotados",
     accountLanguage: "Idioma de la cuenta",
-    incorrect: "Código incorrecto.",
-    required: "Ingrese el nombre de la empresa, su correo y una contraseña de al menos 8 caracteres.",
-    termsRequired: "Debe aceptar los términos de uso para continuar.", codeRequired: "El código de verificación es obligatorio.",
-    failed: "El registro falló. Inténtelo de nuevo.", expired: "El tiempo de verificación expiró. Solicite un nuevo código.",
-    activeOwner: "Ya tiene una empresa activa con este correo. Inicie sesión como propietario o contacte con asistencia técnica: contact@cameleyondynamics.com.",
     paragraphs: [
       "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
       "La empresa confirma que la información enviada durante el registro es correcta y que el administrador principal es responsable de gestionar usuarios, accesos y datos de la empresa.",
@@ -82,17 +67,9 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     code: "Verification code", confirm: "Confirm code", confirming: "Verifying...",
     attempts: (count: number) => `Attempts remaining: ${count}`,
     resend: "Resend code", resent: "A new code was sent.",
-    resendCooldown: "Wait a moment before requesting another code.",
-    resendLimit: "The resend limit has been reached.", resendFailed: "Could not resend the code. Please try again.",
-    restart: "This request is no longer valid. Submit the form again to get a code.",
-    exhausted: "You have used all three attempts. Submit the form again to get a code.",
+    resendHint: "Use the code from your latest request. After resending, previous codes are no longer valid.",
     exhaustedTitle: "No attempts remaining",
     accountLanguage: "Account language",
-    incorrect: "Incorrect code.",
-    required: "Enter the company name, your email and a password of at least 8 characters.",
-    termsRequired: "You must accept the terms of use to continue.", codeRequired: "Verification code is required.",
-    failed: "Signup failed. Please try again.", expired: "Verification expired. Please request a new code.",
-    activeOwner: "You already own an active business with this email. Sign in as an owner or contact technical support: contact@cameleyondynamics.com.",
     paragraphs: [
       "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
       "The company confirms that the information submitted during signup is accurate and that the main administrator is responsible for managing users, access, and company data.",
@@ -115,6 +92,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const [resent, setResent] = useState(false)
   const [codeExpired, setCodeExpired] = useState(false)
   const [error, setError] = useState("")
+  const [issues, setIssues] = useState<SignupIssue[]>([])
   const [verificationError, setVerificationError] = useState("")
   const [verificationCode, setVerificationCode] = useState("")
   const [pending, setPending] = useState<PublicSignupVerificationStartResponse | null>(null)
@@ -130,17 +108,18 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const noAttemptsLeft = pending !== null && pending.attemptsRemaining <= 0
   const pageTracked = useRef(false)
   const attemptId = useRef<string | null>(null)
-  const validationTracked = useRef(false)
+  const validationTracked = useRef(new Set<SignupErrorCode>())
 
   function getAttemptId() {
     if (!attemptId.current) attemptId.current = newSignupAttemptId()
     return attemptId.current
   }
-  function resetAttempt() { attemptId.current = null; validationTracked.current = false }
-  function trackValidationError() {
-    if (!validationTracked.current) {
-      trackSignupEvent("FORM_ERROR", getAttemptId(), "VALIDATION")
-      validationTracked.current = true
+  function resetAttempt() { attemptId.current = null; validationTracked.current.clear() }
+  function trackValidationErrors(errors: SignupIssue[]) {
+    for (const issue of errors) {
+      if (validationTracked.current.has(issue.code)) continue
+      trackSignupEvent("FORM_ERROR", getAttemptId(), issue.code)
+      validationTracked.current.add(issue.code)
     }
   }
   function cancelVerification() {
@@ -153,7 +132,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     if (!pageTracked.current) { pageTracked.current = true; trackSignupEvent("PAGE_VIEW") }
   }, [])
 
-  useEffect(() => { if (error) errorRef.current?.focus() }, [error])
+  useEffect(() => { if (error || issues.length) errorRef.current?.focus() }, [error, issues])
   useEffect(() => { if (pendingSignupId) verificationRef.current?.showModal() }, [pendingSignupId])
   useEffect(() => { if (showTerms) termsRef.current?.showModal() }, [showTerms])
   useEffect(() => { if (showExhausted) exhaustedRef.current?.showModal() }, [showExhausted])
@@ -167,17 +146,27 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     setVerificationCode("")
     setVerificationError("")
     setError("")
+    setIssues([])
     setShowExhausted(false)
   }
 
+  function describe(code: SignupErrorCode, reference?: string) {
+    return `${signupErrorMessage(code, language)} [${code}]${reference ? ` · Ref: ${reference}` : ""}`
+  }
   function message(err: unknown) {
-    return err instanceof Error ? err.message === "ACTIVE_COMPANY_OWNER_EXISTS" ? text.activeOwner : err.message : text.failed
+    return describe(signupErrorCode(err), err instanceof SignupError ? err.reference : undefined)
+  }
+  function fieldError(field: SignupIssue["field"]) {
+    const issue = issues.find(item => item.field === field)
+    return issue ? <small id={`signup-${field}-error`} className="signup-field-error">{describe(issue.code)}</small> : null
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!companyName.trim() || !email.trim() || password.length < 8) { trackValidationError(); setError(text.required); return }
-    if (!termsAccepted) { trackValidationError(); setError(text.termsRequired); return }
+    if (saving) return
+    const invalid = validateSignup({ companyName, email, password, termsAccepted, preferredLanguage })
+    setIssues(invalid); setError("")
+    if (invalid.length) { trackValidationErrors(invalid); return }
     const currentAttempt = getAttemptId()
     trackSignupEvent("FORM_SUBMITTED", currentAttempt)
     try {
@@ -205,18 +194,14 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
       codeInputRef.current?.focus()
       trackSignupEvent("CODE_SENT", attemptId.current)
     } catch (err) {
-      const reason = err instanceof Error ? err.message : ""
-      if (reason === "SIGNUP_VERIFICATION_UNAVAILABLE") {
+      const reason = signupErrorReason(err)
+      trackSignupEvent("VERIFICATION_ERROR", attemptId.current, reason)
+      if (reason === "VERIFICATION_UNAVAILABLE") {
         resetAttempt()
         setPending(null)
-        setError(text.restart)
-      } else if (reason === "SIGNUP_RESEND_COOLDOWN") {
-        setVerificationError(text.resendCooldown)
-      } else if (reason === "SIGNUP_RESEND_LIMIT") {
-        setVerificationError(text.resendLimit)
+        setError(message(err))
       } else {
-        trackSignupEvent("VERIFICATION_ERROR", attemptId.current, signupErrorReason(err))
-        setVerificationError(text.resendFailed)
+        setVerificationError(message(err))
       }
     } finally { setResending(false) }
   }
@@ -225,31 +210,33 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     event.preventDefault()
     if (!pending || verificationBusy || codeExpired || noAttemptsLeft) return
     const currentAttempt = attemptId.current
-    if (!verificationCode.trim()) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "VALIDATION"); setVerificationError(text.codeRequired); return }
+    const codeIssue = validateSignupCode(verificationCode)
+    if (codeIssue) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, codeIssue); setVerificationError(describe(codeIssue)); return }
     try {
       setVerifying(true); setVerificationError(""); setResent(false)
       const response = await confirmSignupCompany({ pendingSignupId: pending.pendingSignupId, verificationCode: verificationCode.trim() })
       if (!response.verified) {
         if (response.expired || response.requiresRestart || response.attemptsRemaining <= 0) {
-          trackSignupEvent(response.expired ? "CODE_EXPIRED" : "VERIFICATION_ERROR", currentAttempt,
-            response.expired ? "CODE_EXPIRED" : "ATTEMPTS_EXHAUSTED")
+          const reason = isSignupErrorCode(response.errorCode) ? response.errorCode
+            : response.expired ? response.requiresRestart ? "VERIFICATION_UNAVAILABLE" : "CODE_EXPIRED" : "ATTEMPTS_EXHAUSTED"
+          trackSignupEvent(reason === "CODE_EXPIRED" ? "CODE_EXPIRED" : "VERIFICATION_ERROR", currentAttempt, reason)
           if (response.requiresRestart || response.attemptsRemaining <= 0) {
             resetAttempt()
             setPending(null)
-            if (response.expired) setError(text.restart)
+            if (response.expired) setError(describe("VERIFICATION_UNAVAILABLE"))
             else setShowExhausted(true)
           } else {
             setPending({ ...pending, attemptsRemaining: response.attemptsRemaining })
-            setCodeExpired(true); setVerificationCode(""); setVerificationError(text.expired)
+            setCodeExpired(true); setVerificationCode(""); setVerificationError(describe("CODE_EXPIRED"))
           }
         } else {
           trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_CODE")
           setPending({ ...pending, attemptsRemaining: response.attemptsRemaining })
-          setVerificationError(text.incorrect)
+          setVerificationError(describe("INVALID_CODE"))
         }
         return
       }
-      if (!response.signup) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_RESPONSE"); setVerificationError(text.failed); return }
+      if (!response.signup) { trackSignupEvent("VERIFICATION_ERROR", currentAttempt, "INVALID_RESPONSE"); setVerificationError(describe("INVALID_RESPONSE")); return }
       trackSignupEvent("COMPLETED", currentAttempt)
       metaPixel?.confirmedRegistration(response)
       resetAttempt()
@@ -265,19 +252,21 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
         <div className="login-language-row"><LanguageSwitcher /></div>
         <button type="button" className="secondary-button" onClick={onGoToHome}>{text.home}</button>
         <h1>{text.title}</h1>
-        <form onSubmit={handleSubmit} onInvalidCapture={trackValidationError} className="login-form">
-          <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} /></label>
-          <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
-          <label>{text.password}<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} aria-describedby="signup-password-hint" /><small id="signup-password-hint">{text.passwordHint}</small></label>
+        <form onSubmit={handleSubmit} noValidate className="login-form">
+          <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} aria-invalid={issues.some(issue => issue.field === "companyName")} aria-describedby={issues.some(issue => issue.field === "companyName") ? "signup-companyName-error" : undefined} />{fieldError("companyName")}</label>
+          <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} aria-invalid={issues.some(issue => issue.field === "email")} aria-describedby={issues.some(issue => issue.field === "email") ? "signup-email-error" : undefined} />{fieldError("email")}</label>
+          <label>{text.password}<input required type="password" minLength={8} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} aria-invalid={issues.some(issue => issue.field === "password")} aria-describedby={`signup-password-hint${issues.some(issue => issue.field === "password") ? " signup-password-error" : ""}`} /><small id="signup-password-hint">{text.passwordHint}</small>{fieldError("password")}</label>
           <label>{text.accountLanguage}
-            <select value={preferredLanguage} onChange={event => setPreferredLanguage(event.target.value as Language)}>
+            <select value={preferredLanguage} onChange={event => setPreferredLanguage(event.target.value as Language)} aria-invalid={issues.some(issue => issue.field === "language")} aria-describedby={issues.some(issue => issue.field === "language") ? "signup-language-error" : undefined}>
               <option value="en" lang="en">English</option>
               <option value="fr" lang="fr">Français</option>
               <option value="es" lang="es">Español</option>
             </select>
+            {fieldError("language")}
           </label>
-          <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => { setTermsAccepted(event.target.checked); if (error === text.termsRequired) setError("") }} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
-          {error && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{error}</div>}
+          <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => setTermsAccepted(event.target.checked)} aria-invalid={issues.some(issue => issue.field === "terms")} aria-describedby={issues.some(issue => issue.field === "terms") ? "signup-terms-error" : undefined} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
+          {fieldError("terms")}
+          {(error || issues.length > 0) && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{error || issues.map(issue => <p key={issue.code}>{describe(issue.code)}</p>)}</div>}
           <button type="submit" disabled={saving}>{saving ? text.submitting : text.submit}</button>
         </form>
         <SupportContact />
@@ -291,13 +280,14 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
           {verificationError && <div className="card error" role="alert">{verificationError}</div>}
           {resent && <p role="status">{text.resent}</p>}
           <button type="submit" disabled={verificationBusy || codeExpired || noAttemptsLeft}>{verifying ? text.confirming : text.confirm}</button>
-          <button type="button" className="secondary-button" disabled={verificationBusy || noAttemptsLeft} onClick={handleResend}>{resending ? text.submitting : text.resend}</button>
+          <button type="button" className="secondary-button" disabled={verificationBusy || noAttemptsLeft} onClick={handleResend} aria-describedby="signup-resend-hint">{resending ? text.submitting : text.resend}</button>
+          <small id="signup-resend-hint">{text.resendHint}</small>
           <button type="button" className="link-button" disabled={verificationBusy} onClick={cancelVerification}>{text.cancel}</button>
         </form>
       </dialog>}
       {showExhausted && <dialog ref={exhaustedRef} className="card signup-dialog" aria-labelledby="signup-exhausted-title" aria-describedby="signup-exhausted-message" onCancel={event => { event.preventDefault(); closeExhaustedNotice() }}>
         <h2 id="signup-exhausted-title">{text.exhaustedTitle}</h2>
-        <p id="signup-exhausted-message">{text.exhausted}</p>
+        <p id="signup-exhausted-message">{describe("ATTEMPTS_EXHAUSTED")}</p>
         <button type="button" autoFocus onClick={closeExhaustedNotice}>{text.close}</button>
       </dialog>}
       {showTerms && <dialog ref={termsRef} className="card signup-dialog terms-dialog" aria-labelledby="signup-terms-title" onCancel={() => setShowTerms(false)}>
