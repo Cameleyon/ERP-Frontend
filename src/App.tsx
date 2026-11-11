@@ -20,6 +20,7 @@ import MarketingPrivacyPage from "./pages/MarketingPrivacyPage"
 import PlatformRedirectPage from "./pages/PlatformRedirectPage"
 import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
 import MarketingConsent from "./components/common/MarketingConsent"
+import MaintenanceNotice from "./components/common/MaintenanceNotice"
 import { metaPixel } from "./utils/metaPixel"
 import { COMPANY_CURRENCY_REQUIRED_EVENT } from "./utils/companyCurrency"
 
@@ -289,10 +290,11 @@ export default function App() {
       <AuthProvider>
         <LanguageProvider>
           {isPrivacyPage ? <MarketingPrivacyPage /> : (
-            <>
+            <div className="erp-shell">
+              <MaintenanceNotice />
               <AppContent />
               <MarketingConsent />
-            </>
+            </div>
           )}
         </LanguageProvider>
       </AuthProvider>
