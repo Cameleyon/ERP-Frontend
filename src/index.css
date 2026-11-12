@@ -129,6 +129,21 @@ textarea {
   background: rgba(4, 73, 117, 0.14);
 }
 
+.inventory-cost-field {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.inventory-cost-field .quantity-input {
+  max-width: 100%;
+}
+
+.inventory-cost-field input {
+  min-width: 0;
+}
+
 textarea {
   min-height: 110px;
   resize: vertical;
@@ -749,6 +764,84 @@ td {
   border-radius: 14px;
 }
 
+.scrollable-table,
+.inventory-receipt-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table-scroll-actions {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-sticky-actions {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    padding-inline: 6px;
+    background: #fff;
+    box-shadow: -2px 0 0 var(--border-color);
+  }
+
+  .inventory-receipt-scroll .mobile-sticky-actions {
+    background: #f9fafb;
+  }
+
+  .mobile-sticky-actions .inventory-receipt-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mobile-sticky-actions .inventory-receipt-actions button {
+    min-height: 40px;
+  }
+
+  .mobile-sticky-actions .sales-history-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: min(128px, 40vw);
+    min-width: 0;
+  }
+
+  .mobile-sticky-actions .sales-history-actions button {
+    min-height: 40px;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-sticky-actions .inventory-inline-actions {
+    width: min(170px, 50vw);
+  }
+
+  .mobile-sticky-actions .inventory-inline-actions input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .mobile-sticky-actions .inventory-inline-actions .quantity-input {
+    width: 100%;
+  }
+
+  .table-scroll-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .table-scroll-actions button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 8px;
+  }
+}
+
 .csv-import-actions {
   display: flex;
   flex-wrap: wrap;
@@ -840,6 +933,13 @@ td {
 
 .company-user-warning strong {
   color: #044975;
+}
+
+.cost-rubric-description {
+  min-width: 10rem;
+  max-width: 28rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .company-user-consent {
@@ -950,11 +1050,12 @@ td {
 .public-signup-form .login-form label { min-width: 0; }
 .public-signup-form input { min-width: 0; box-sizing: border-box; }
 .public-signup-form .error { margin: 0; overflow-wrap: anywhere; }
-.signup-dialog, .currency-required-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; margin: auto; box-sizing: border-box; border-radius: 8px; }
-dialog.signup-dialog, dialog.currency-required-dialog { background: #fff; }
-.signup-dialog::backdrop, .currency-required-dialog::backdrop { background: rgba(10, 30, 40, 0.45); }
-.signup-dialog h2, .currency-required-dialog h2 { font-size: 22px; line-height: 1.3; overflow-wrap: anywhere; }
-.signup-dialog button, .currency-required-dialog button { max-width: 100%; white-space: normal; }
+.signup-dialog, .currency-required-dialog, .product-confirmation-dialog { width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow: auto; margin: auto; box-sizing: border-box; border-radius: 8px; }
+dialog.signup-dialog, dialog.currency-required-dialog, dialog.product-confirmation-dialog { background: #fff; }
+.signup-dialog::backdrop, .currency-required-dialog::backdrop, .product-confirmation-dialog::backdrop { background: rgba(10, 30, 40, 0.45); }
+.signup-dialog h2, .currency-required-dialog h2, .product-confirmation-dialog h2 { font-size: 22px; line-height: 1.3; overflow-wrap: anywhere; }
+.signup-dialog button, .currency-required-dialog button, .product-confirmation-dialog button { max-width: 100%; white-space: normal; }
+.product-confirmation-dialog p { overflow-wrap: anywhere; }
 
 .account-type-selector {
   display: grid;
@@ -2511,6 +2612,7 @@ a.language-switcher-button:hover {
   border: 1px solid rgba(4, 73, 117, 0.12);
   background: #ffffff;
   padding: 24px;
+  overflow-wrap: anywhere;
 }
 
 .invoice-header {
@@ -2545,7 +2647,7 @@ a.language-switcher-button:hover {
 
 .invoice-meta-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -2574,6 +2676,42 @@ a.language-switcher-button:hover {
   margin-bottom: 20px;
 }
 
+.sale-line-table,
+.cart-line-table {
+  table-layout: fixed;
+}
+
+.sale-line-table :is(th, td),
+.cart-line-table :is(th, td),
+.cart-total {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sale-line-table th:first-child {
+  width: 34%;
+}
+
+.sale-line-table th:nth-child(2) {
+  width: 16%;
+}
+
+.sale-line-table :is(th, td):not(:first-child) {
+  text-align: right;
+}
+
+.cart-line-table th:first-child {
+  width: 26%;
+}
+
+.cart-line-table button {
+  max-width: 100%;
+}
+
+.cart-mobile-label {
+  display: none;
+}
+
 .invoice-summary {
   margin-left: auto;
   width: min(100%, 320px);
@@ -2584,6 +2722,14 @@ a.language-switcher-button:hover {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+}
+
+.invoice-summary p > * {
+  min-width: 0;
+}
+
+.invoice-summary strong {
+  text-align: right;
 }
 
 .invoice-total-row {
@@ -2613,6 +2759,64 @@ a.language-switcher-button:hover {
   letter-spacing: 0.2em;
   font-size: 13px;
   color: #111111;
+}
+
+@media screen and (max-width: 600px) {
+  .printable-invoice {
+    padding: 12px;
+  }
+
+  .sale-line-table :is(th, td) {
+    padding-inline: 4px;
+    font-size: 0.85rem;
+  }
+
+  .cart-line-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .cart-line-table,
+  .cart-line-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .cart-item-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding-block: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .cart-item-row td {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .cart-item-row td:first-child {
+    grid-column: span 2;
+    font-weight: 700;
+  }
+
+  .cart-mobile-label {
+    display: block;
+    font-size: 0.75rem;
+  }
+
+  .cart-line-total {
+    font-weight: 700;
+  }
+
+  .cart-line-actions {
+    grid-column: 1 / -1;
+    text-align: right;
+  }
 }
 
 body.invoice-printing .topbar,

@@ -1,17 +1,21 @@
 type Props = {
   value: string
-  min: number
+  min?: number
   step: number
+  buttonStep?: number
   onChange: (value: string) => void
+  inputId?: string
   ariaLabel?: string
+  arrowLabels?: { increase: string; decrease: string }
 }
 
-export default function QuantityInput({ value, min, step, onChange, ariaLabel }: Props) {
+export default function QuantityInput({ value, step, min = step, buttonStep = step, onChange, inputId, ariaLabel, arrowLabels }: Props) {
   function adjust(direction: 1 | -1) {
     const currentValue = value.trim() === "" ? 0 : Number(value)
     const safeCurrentValue = Number.isFinite(currentValue) ? currentValue : 0
-    const nextValue = Math.max(min, safeCurrentValue + direction * step)
+    const nextValue = Math.max(min, safeCurrentValue + direction * buttonStep)
 
+    if (value === "" && nextValue === 0) return
     onChange(formatQuantity(nextValue))
   }
 
@@ -21,11 +25,12 @@ export default function QuantityInput({ value, min, step, onChange, ariaLabel }:
         type="button"
         className="quantity-step-button"
         onClick={() => adjust(-1)}
-        aria-label="Decrease quantity"
+        aria-label={arrowLabels?.decrease ?? "Decrease quantity"}
       >
-        -
+        {arrowLabels ? "↓" : "-"}
       </button>
       <input
+        id={inputId}
         type="number"
         min={min}
         step={step}
@@ -38,9 +43,9 @@ export default function QuantityInput({ value, min, step, onChange, ariaLabel }:
         type="button"
         className="quantity-step-button"
         onClick={() => adjust(1)}
-        aria-label="Increase quantity"
+        aria-label={arrowLabels?.increase ?? "Increase quantity"}
       >
-        +
+        {arrowLabels ? "↑" : "+"}
       </button>
     </div>
   )

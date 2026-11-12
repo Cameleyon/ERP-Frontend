@@ -3,6 +3,8 @@ import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 
+export class DuplicateCostRubricNameError extends Error {}
+
 function buildAuthHeaders() {
   const token = localStorage.getItem(TOKEN_KEY)
 
@@ -15,8 +17,12 @@ function buildAuthHeaders() {
 async function handleResponse<T>(response: Response): Promise<T> {
   await checkCompanyCurrencyResponse(response)
   if (!response.ok) {
+    const error = await response.clone().json().catch(() => null)
+    if (response.status === 400 && error?.message === "COST_RUBRIC_NAME_ALREADY_EXISTS") {
+      throw new DuplicateCostRubricNameError()
+    }
     const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
+    throw new Error(error?.message || text || `Request failed with status ${response.status}`)
   }
 
   return response.json()
@@ -26,6 +32,7 @@ export type CompanyCostRubricResponse = {
   id: number
   code: string
   name: string
+  description?: string | null
   active: boolean
   system: boolean
   displayOrder: number
@@ -33,7 +40,7 @@ export type CompanyCostRubricResponse = {
 
 export type CreateCompanyCostRubricRequest = {
   name: string
-  displayOrder: number
+  description?: string
 }
 
 export async function getCostRubrics(): Promise<CompanyCostRubricResponse[]> {

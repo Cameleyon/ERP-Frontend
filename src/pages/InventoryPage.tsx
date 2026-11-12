@@ -72,7 +72,6 @@ export default function InventoryPage() {
         setLocations(activeLocations)
         setLocationId(defaultLocationId)
         setRubrics(activeRubrics)
-        setCostAmounts(createInitialCostAmounts(activeRubrics))
 
         if (defaultLocationId) {
           await loadOpenReceipts(Number(defaultLocationId))
@@ -122,6 +121,7 @@ export default function InventoryPage() {
       setSuccess("")
       const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
       setSelectedProduct(product)
+      setQuantity("1")
     } catch (err) {
       console.error(err)
       setSelectedProduct(null)
@@ -140,6 +140,10 @@ export default function InventoryPage() {
 
     if (quantityValue <= 0) {
       setError(text.quantityPositive)
+      return
+    }
+    if (selectedProduct.quantityType === "INTEGER" && !Number.isInteger(quantityValue)) {
+      setError(copy.common.wholeNumberQuantity)
       return
     }
     if (rubrics.length === 0) {
@@ -166,7 +170,7 @@ export default function InventoryPage() {
       setSelectedProduct({ ...selectedProduct, currentStock: selectedProduct.currentStock + response.receivedQuantity })
       setQuantity("1")
       setNotes("")
-      setCostAmounts(createInitialCostAmounts(rubrics))
+      setCostAmounts({})
       if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
@@ -181,6 +185,10 @@ export default function InventoryPage() {
 
     if (withdrawalQuantityValue <= 0) {
       setError(text.quantityPositive)
+      return
+    }
+    if (receipt.quantityType === "INTEGER" && !Number.isInteger(withdrawalQuantityValue)) {
+      setError(copy.common.wholeNumberQuantity)
       return
     }
 
@@ -211,6 +219,10 @@ export default function InventoryPage() {
 
     if (editedReceiptQuantityValue <= 0) {
       setError(text.quantityPositive)
+      return
+    }
+    if (receipt.quantityType === "INTEGER" && !Number.isInteger(editedReceiptQuantityValue)) {
+      setError(copy.common.wholeNumberQuantity)
       return
     }
 
@@ -262,7 +274,7 @@ export default function InventoryPage() {
     setProductCode("")
     setQuantity("1")
     setNotes("")
-    setCostAmounts(createInitialCostAmounts(rubrics))
+    setCostAmounts({})
     setError("")
     setSuccess("")
   }
@@ -340,8 +352,7 @@ export default function InventoryPage() {
             <label>
               {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitName})` : ""}
               <QuantityInput
-                min={0.0001}
-                step={0.0001}
+                step={selectedProduct.quantityType === "INTEGER" ? 1 : 0.0001}
                 value={quantity}
                 onChange={setQuantity}
                 ariaLabel={text.receivedQuantity}
@@ -367,18 +378,27 @@ export default function InventoryPage() {
               <p>{text.rubricsEmpty}</p>
             ) : (
               <div className="inventory-form-grid">
-                {rubrics.map((rubric) => (
-                  <label key={rubric.id}>
-                    {getLocalizedCostRubricName(rubric.code, rubric.name, language)}
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.0001"
-                      value={costAmounts[rubric.id] ?? "0"}
-                      onChange={(event) => updateCostAmount(rubric.id, event.target.value)}
-                    />
-                  </label>
-                ))}
+                {rubrics.map((rubric) => {
+                  const name = getLocalizedCostRubricName(rubric.code, rubric.name, language)
+                  const inputId = `receipt-cost-${rubric.id}`
+                  return (
+                    <div className="inventory-cost-field" key={rubric.id}>
+                      <label htmlFor={inputId}>{name}</label>
+                      <QuantityInput
+                        inputId={inputId}
+                        min={0}
+                        step={0.0001}
+                        buttonStep={1}
+                        value={costAmounts[rubric.id] ?? ""}
+                        onChange={(value) => updateCostAmount(rubric.id, value)}
+                        arrowLabels={{
+                          decrease: text.decreaseCost(name),
+                          increase: text.increaseCost(name),
+                        }}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             )}
             <div className="receipt-summary">
@@ -389,7 +409,7 @@ export default function InventoryPage() {
 
           <div className="form-actions">
             <button onClick={handleReceipt} disabled={saveLoading}>
-              {saveLoading ? text.submitting : text.createReceipt}
+              {saveLoading ? text.submitting : text.receiveStock}
             </button>
             <button type="button" className="secondary-button" onClick={cancelReceiptCreation}>
               {text.cancel}
@@ -421,14 +441,6 @@ export default function InventoryPage() {
 
     </div>
   )
-}
-
-function createInitialCostAmounts(rubrics: CompanyCostRubricResponse[]) {
-  const initial: CostAmountMap = {}
-  rubrics.forEach((rubric) => {
-    initial[rubric.id] = "0"
-  })
-  return initial
 }
 
 function ActiveReceiptTable({
@@ -513,7 +525,7 @@ function ActiveReceiptTable({
 
   return (
     <div className="nested-card inventory-open-receipts">
-      <h3>{text.activeReceipts}</h3>
+      <h3 id="active-receipts-heading">{text.activeReceipts}</h3>
       <label className="inventory-receipt-filter">
         {text.filter}
         <input
@@ -523,103 +535,103 @@ function ActiveReceiptTable({
           placeholder={text.productFilterPlaceholder}
         />
       </label>
-      <table>
-        <thead>
-          <tr>
-            <SortableHeader label={text.product} sortKey="productName" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader
-              label={text.receivedQuantity}
-              sortKey="receivedQuantity"
-              activeKey={sortKey}
-              direction={sortDirection}
-              onSort={handleSort}
-              className="inventory-quantity-header"
-            />
-            <SortableHeader
-              label={text.remainingQuantity}
-              sortKey="remainingQuantity"
-              activeKey={sortKey}
-              direction={sortDirection}
-              onSort={handleSort}
-              className="inventory-quantity-header"
-            />
-            <SortableHeader label={text.totalCost} sortKey="totalCostAmount" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader label={text.createdAt} sortKey="createdAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader label={text.updatedAt} sortKey="updatedAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <SortableHeader label={text.lastAction} sortKey="lastAction" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-            <th aria-label={text.actions} />
-          </tr>
-        </thead>
-        <tbody>
-          {visibleRows.length === 0 ? (
-            <tr><td colSpan={8}>{text.noActiveReceipts}</td></tr>
-          ) : (
-            paginatedRows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.productName}</td>
-                <td>{formatNumber(row.receivedQuantity)}</td>
-                <td>{formatNumber(row.remainingQuantity)}</td>
-                <td>{formatCurrency(row.totalCostAmount)}</td>
-                <td>{formatDateTime(row.createdAt)}</td>
-                <td>{row.updatedAt ? formatDateTime(row.updatedAt) : "-"}</td>
-                <td>{formatReceiptAction(row.lastAction, text)}</td>
-                <td>
-                  {withdrawalReceiptId === row.id ? (
-                    <div className="inventory-inline-actions">
-                      <QuantityInput
-                        min={0.0001}
-                        step={0.0001}
-                        value={withdrawalQuantity}
-                        onChange={onWithdrawalQuantityChange}
-                      />
-                      <input
-                        type="text"
-                        value={withdrawalReason}
-                        onChange={(event) => onWithdrawalReasonChange(event.target.value)}
-                        placeholder={text.reasonPlaceholder}
-                      />
-                      <button type="button" onClick={() => void onSubmitWithdrawal(row)} disabled={saveLoading}>
-                        {text.confirm}
-                      </button>
-                      <button type="button" className="secondary-button" onClick={onCancelWithdrawal}>
-                        {text.cancel}
-                      </button>
-                    </div>
-                  ) : editingReceiptId === row.id ? (
-                    <div className="inventory-inline-actions">
-                      <QuantityInput
-                        min={0.0001}
-                        step={0.0001}
-                        value={editedReceiptQuantity}
-                        onChange={onEditedQuantityChange}
-                      />
-                      <button type="button" onClick={() => void onSubmitEdit(row)} disabled={saveLoading}>
-                        {text.save}
-                      </button>
-                      <button type="button" className="secondary-button" onClick={onCancelEdit}>
-                        {text.cancel}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="inventory-receipt-actions">
-                      <button type="button" className="compact-action-button" onClick={() => onStartWithdrawal(row)}>
-                        {text.withdraw}
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary-button compact-action-button"
-                        onClick={() => onStartEdit(row)}
-                      >
-                        {text.edit}
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+      <div className="inventory-receipt-scroll" role="region" aria-labelledby="active-receipts-heading" tabIndex={0}>
+        <table>
+          <thead>
+            <tr>
+              <SortableHeader label={text.product} sortKey="productName" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader
+                label={text.receivedQuantity}
+                sortKey="receivedQuantity"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={handleSort}
+                className="inventory-quantity-header"
+              />
+              <SortableHeader
+                label={text.remainingQuantity}
+                sortKey="remainingQuantity"
+                activeKey={sortKey}
+                direction={sortDirection}
+                onSort={handleSort}
+                className="inventory-quantity-header"
+              />
+              <SortableHeader label={text.totalCost} sortKey="totalCostAmount" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader label={text.createdAt} sortKey="createdAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader label={text.updatedAt} sortKey="updatedAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader label={text.lastAction} sortKey="lastAction" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <th className="mobile-sticky-actions" scope="col" aria-label={text.actions} />
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.length === 0 ? (
+              <tr><td colSpan={8}>{text.noActiveReceipts}</td></tr>
+            ) : (
+              paginatedRows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.productName}</td>
+                  <td>{formatNumber(row.receivedQuantity)}</td>
+                  <td>{formatNumber(row.remainingQuantity)}</td>
+                  <td>{formatCurrency(row.totalCostAmount)}</td>
+                  <td>{formatDateTime(row.createdAt)}</td>
+                  <td>{row.updatedAt ? formatDateTime(row.updatedAt) : "-"}</td>
+                  <td>{formatReceiptAction(row.lastAction, text)}</td>
+                  <td className="mobile-sticky-actions">
+                    {withdrawalReceiptId === row.id ? (
+                      <div className="inventory-inline-actions">
+                        <QuantityInput
+                          step={row.quantityType === "INTEGER" ? 1 : 0.0001}
+                          value={withdrawalQuantity}
+                          onChange={onWithdrawalQuantityChange}
+                        />
+                        <input
+                          type="text"
+                          value={withdrawalReason}
+                          onChange={(event) => onWithdrawalReasonChange(event.target.value)}
+                          placeholder={text.reasonPlaceholder}
+                        />
+                        <button type="button" onClick={() => void onSubmitWithdrawal(row)} disabled={saveLoading}>
+                          {text.confirm}
+                        </button>
+                        <button type="button" className="secondary-button" onClick={onCancelWithdrawal}>
+                          {text.cancel}
+                        </button>
+                      </div>
+                    ) : editingReceiptId === row.id ? (
+                      <div className="inventory-inline-actions">
+                        <QuantityInput
+                          step={row.quantityType === "INTEGER" ? 1 : 0.0001}
+                          value={editedReceiptQuantity}
+                          onChange={onEditedQuantityChange}
+                        />
+                        <button type="button" onClick={() => void onSubmitEdit(row)} disabled={saveLoading}>
+                          {text.save}
+                        </button>
+                        <button type="button" className="secondary-button" onClick={onCancelEdit}>
+                          {text.cancel}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="inventory-receipt-actions">
+                        <button type="button" className="compact-action-button" onClick={() => onStartWithdrawal(row)}>
+                          {text.withdraw}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button compact-action-button"
+                          onClick={() => onStartEdit(row)}
+                        >
+                          {text.edit}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
       {visibleRows.length > RECEIPTS_PER_PAGE && (
         <TablePagination
           currentPage={currentPage}

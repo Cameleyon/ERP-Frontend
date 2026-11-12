@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config"
+import type { ProductQuantityType } from "./productApi"
 import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
@@ -35,6 +36,7 @@ export type ProductResponse = {
   minimumStock: number
   active: boolean
   unitName: string | null
+  quantityType?: ProductQuantityType
   priceTiers: ProductPriceTier[]
 }
 
@@ -46,6 +48,7 @@ export type ProductPriceTier = {
 }
 
 export type CreateProductRequest = {
+  quantityType?: ProductQuantityType
   barcode: string
   name: string
   description: string

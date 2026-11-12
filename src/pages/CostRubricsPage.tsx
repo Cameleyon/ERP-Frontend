@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import {
   createCostRubric,
   deleteCostRubric,
+  DuplicateCostRubricNameError,
   getCostRubrics,
   updateCostRubricStatus,
   type CompanyCostRubricResponse,
@@ -11,12 +12,15 @@ import { getLocalizedCostRubricName } from "../utils/costRubrics"
 
 type FormState = {
   name: string
-  displayOrder: string
+  description: string
 }
+
+type SortKey = "name" | "description" | "type" | "status"
+type Sort = { key: SortKey; direction: "asc" | "desc" }
 
 const emptyForm: FormState = {
   name: "",
-  displayOrder: "0",
+  description: "",
 }
 
 export default function CostRubricsPage() {
@@ -27,12 +31,15 @@ export default function CostRubricsPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [sort, setSort] = useState<Sort | null>(null)
 
   const text = language === "fr"
     ? {
         title: "Rubriques de cout",
         loadError: "Echec du chargement des rubriques de cout",
         nameRequired: "Le nom est requis",
+        duplicateName: "Une rubrique de coût porte déjà ce nom. Vérifiez le nom ou utilisez la rubrique existante. Si elle est inactive, réactivez-la dans la liste.",
+        inactiveDuplicateName: "Une rubrique de coût inactive porte déjà ce nom. Cliquez sur « Activer » dans la liste pour la réutiliser au lieu d’en créer une autre.",
         createSuccess: "La rubrique de cout a ete creee avec succes",
         createError: "Echec de la creation de la rubrique de cout",
         deactivateSuccess: "La rubrique de cout a ete desactivee avec succes",
@@ -44,7 +51,9 @@ export default function CostRubricsPage() {
         newTitle: "Nouvelle rubrique de cout",
         name: "Nom",
         customNamePlaceholder: "Saisir le nom de la rubrique",
-        displayOrder: "Ordre d'affichage",
+        description: "Description (facultative)",
+        descriptionHeading: "Description",
+        duplicateWarning: "Avant de créer une rubrique, vérifiez si une rubrique existante couvre déjà le même type de coût. Utilisez-la pour éviter de suivre le même coût dans deux rubriques.",
         create: "Creer la rubrique de cout",
         creating: "Creation...",
         listTitle: "Liste des rubriques de cout",
@@ -60,10 +69,46 @@ export default function CostRubricsPage() {
         deactivate: "Desactiver",
         delete: "Supprimer",
       }
-    : {
+    : language === "es" ? {
+        title: "Rúbricas de costo",
+        loadError: "No se pudieron cargar las rúbricas de costo",
+        nameRequired: "El nombre es obligatorio",
+        duplicateName: "Ya existe una rúbrica de costo con ese nombre. Revisa el nombre o usa la rúbrica existente. Si está inactiva, actívala en la lista.",
+        inactiveDuplicateName: "Ya existe una rúbrica de costo inactiva con ese nombre. Selecciona «Activar» en la lista para reutilizarla en lugar de crear otra.",
+        createSuccess: "Rúbrica de costo creada",
+        createError: "No se pudo crear la rúbrica de costo",
+        deactivateSuccess: "Rúbrica de costo desactivada",
+        activateSuccess: "Rúbrica de costo activada",
+        statusError: "No se pudo actualizar el estado de la rúbrica de costo",
+        deleteConfirm: (name: string) => `¿Eliminar definitivamente la rúbrica de costo ${name}?`,
+        deleteSuccess: "Rúbrica de costo eliminada definitivamente",
+        deleteError: "No se pudo eliminar la rúbrica de costo",
+        newTitle: "Nueva rúbrica de costo",
+        name: "Nombre",
+        customNamePlaceholder: "Escribe el nombre de la rúbrica",
+        description: "Descripción (opcional)",
+        descriptionHeading: "Descripción",
+        duplicateWarning: "Antes de crear una rúbrica, comprueba si ya existe una para el mismo tipo de costo. Úsala para evitar registrar el mismo costo en dos rúbricas.",
+        create: "Crear rúbrica de costo",
+        creating: "Creando...",
+        listTitle: "Lista de rúbricas de costo",
+        loading: "Cargando rúbricas de costo...",
+        status: "Estado",
+        type: "Tipo",
+        empty: "No se encontraron rúbricas de costo.",
+        system: "Sistema",
+        custom: "Personalizada",
+        active: "Activa",
+        inactive: "Inactiva",
+        activate: "Activar",
+        deactivate: "Desactivar",
+        delete: "Eliminar",
+      } : {
         title: "Cost rubrics",
         loadError: "Failed to load cost rubrics",
         nameRequired: "Name is required",
+        duplicateName: "A cost rubric with this name already exists. Check the name or use the existing rubric. If it’s inactive, activate it in the list.",
+        inactiveDuplicateName: "An inactive cost rubric with this name already exists. Click Activate in the list to reuse it instead of creating a new one.",
         createSuccess: "Cost rubric created successfully",
         createError: "Failed to create the cost rubric",
         deactivateSuccess: "Cost rubric deactivated successfully",
@@ -75,7 +120,9 @@ export default function CostRubricsPage() {
         newTitle: "New cost rubric",
         name: "Name",
         customNamePlaceholder: "Enter the rubric name",
-        displayOrder: "Display order",
+        description: "Description (optional)",
+        descriptionHeading: "Description",
+        duplicateWarning: "Before creating a cost rubric, check whether an existing one already covers the same type of cost. Reuse it to avoid tracking the same cost in two rubrics.",
         create: "Create cost rubric",
         creating: "Creating...",
         listTitle: "Cost rubric list",
@@ -91,6 +138,27 @@ export default function CostRubricsPage() {
         deactivate: "Deactivate",
         delete: "Delete",
       }
+
+  const columns: { key: SortKey; label: string }[] = [
+    { key: "name", label: text.name },
+    { key: "description", label: text.descriptionHeading },
+    { key: "type", label: text.type },
+    { key: "status", label: text.status },
+  ]
+  const rows = rubrics.map((rubric) => ({
+    rubric,
+    name: getLocalizedCostRubricName(rubric.code, rubric.name, language),
+    description: rubric.description ?? "",
+    type: rubric.system ? text.system : text.custom,
+    status: rubric.active ? text.active : text.inactive,
+  }))
+  if (sort) {
+    const { key, direction } = sort
+    const collator = new Intl.Collator(language, { sensitivity: "accent", numeric: true })
+    rows.sort((left, right) => (
+      collator.compare(left[key], right[key]) * (direction === "asc" ? 1 : -1)
+    ))
+  }
 
   useEffect(() => {
     loadRubrics()
@@ -120,8 +188,18 @@ export default function CostRubricsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!form.name.trim()) {
+    const name = form.name.trim()
+    if (!name) {
       setError(text.nameRequired)
+      return
+    }
+    const normalizedName = name.toLowerCase()
+    const duplicate = rows.find((row) =>
+      row.name.trim().toLowerCase() === normalizedName ||
+      row.rubric.name.trim().toLowerCase() === normalizedName,
+    )
+    if (duplicate) {
+      setError(duplicate.rubric.active ? text.duplicateName : text.inactiveDuplicateName)
       return
     }
 
@@ -131,8 +209,8 @@ export default function CostRubricsPage() {
       setSuccess("")
 
       await createCostRubric({
-        name: form.name.trim(),
-        displayOrder: Number(form.displayOrder || "0"),
+        name,
+        description: form.description.trim() || undefined,
       })
 
       setSuccess(text.createSuccess)
@@ -140,8 +218,12 @@ export default function CostRubricsPage() {
       await loadRubrics()
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.createError)
+      if (err instanceof DuplicateCostRubricNameError) {
+        setError(text.duplicateName)
+      } else {
+        console.error(err)
+        setError(err instanceof Error ? err.message : text.createError)
+      }
     } finally {
       setSaving(false)
     }
@@ -187,13 +269,14 @@ export default function CostRubricsPage() {
     <div>
       <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <div className="card error" role="alert">{error}</div>}
       {success && <div className="card success">{success}</div>}
 
       <div className="card">
         <h3>{text.newTitle}</h3>
 
-        <form onSubmit={handleSubmit} className="product-form-grid">
+        <p id="cost-rubric-duplicate-warning" className="company-user-warning">{text.duplicateWarning}</p>
+        <form onSubmit={handleSubmit} className="product-form-grid" aria-describedby="cost-rubric-duplicate-warning">
           <label>
             {text.name}
             <input
@@ -205,12 +288,12 @@ export default function CostRubricsPage() {
           </label>
 
           <label>
-            {text.displayOrder}
-            <input
-              type="number"
-              min={0}
-              value={form.displayOrder}
-              onChange={(e) => updateForm("displayOrder", e.target.value)}
+            {text.description}
+            <textarea
+              rows={3}
+              maxLength={500}
+              value={form.description}
+              onChange={(e) => updateForm("description", e.target.value)}
             />
           </label>
 
@@ -231,10 +314,20 @@ export default function CostRubricsPage() {
           <table>
             <thead>
               <tr>
-                <th>{text.name}</th>
-                <th>{text.displayOrder}</th>
-                <th>{text.type}</th>
-                <th>{text.status}</th>
+                {columns.map(({ key, label }) => {
+                  const direction = sort?.key === key ? sort.direction : null
+                  return (
+                    <th key={key} scope="col" aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : undefined}>
+                      <button type="button" className="table-sort-button" onClick={() => setSort({
+                        key,
+                        direction: direction === "asc" ? "desc" : "asc",
+                      })}>
+                        <span>{label}</span>
+                        <span aria-hidden="true">{direction === "asc" ? "↑" : direction === "desc" ? "↓" : "↕"}</span>
+                      </button>
+                    </th>
+                  )
+                })}
                 <th></th>
               </tr>
             </thead>
@@ -244,12 +337,12 @@ export default function CostRubricsPage() {
                   <td colSpan={5}>{text.empty}</td>
                 </tr>
               ) : (
-                rubrics.map((rubric) => (
+                rows.map(({ rubric, name, description, type, status }) => (
                   <tr key={rubric.id}>
-                    <td>{getLocalizedCostRubricName(rubric.code, rubric.name, language)}</td>
-                    <td>{rubric.displayOrder}</td>
-                    <td>{rubric.system ? text.system : text.custom}</td>
-                    <td>{rubric.active ? text.active : text.inactive}</td>
+                    <td>{name}</td>
+                    <td className="cost-rubric-description">{description || "\u2014"}</td>
+                    <td>{type}</td>
+                    <td>{status}</td>
                     <td>
                       <div className="table-actions">
                         <button

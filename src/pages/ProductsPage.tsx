@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   createProduct,
   getProducts,
@@ -6,9 +6,11 @@ import {
   type CreateProductRequest,
   type ProductResponse,
 } from "../api/productManagementApi"
+import type { ProductQuantityType } from "../api/productApi"
 import { useI18n } from "../i18n/I18nContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
+import ScrollableTable from "../components/common/ScrollableTable"
 import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
 import { parseCsvText } from "../utils/csv"
 
@@ -21,6 +23,7 @@ type ProductFormState = {
   minimumStock: string
   active: boolean
   unitName: string
+  quantityType: ProductQuantityType
   priceTiers: PriceTierFormState[]
 }
 
@@ -39,6 +42,7 @@ const emptyForm: ProductFormState = {
   minimumStock: "0",
   active: true,
   unitName: "",
+  quantityType: "DECIMAL",
   priceTiers: [],
 }
 
@@ -57,6 +61,9 @@ type ImportRunResult = {
   createdCount: number
   failedRows: Array<{ rowNumber: number; message: string }>
 }
+
+type ProductSortKey = "name" | "sku" | "barcode" | "category" | "unitName" |
+  "unitPrice" | "costPrice" | "currentStock" | "minimumStock" | "active"
 
 function normalizeCsvHeader(value: string) {
   return value.trim().replace(/[\s_-]+/g, "").toLowerCase()
@@ -84,6 +91,8 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [createdProductName, setCreatedProductName] = useState<string | null>(null)
+  const confirmationDialog = useRef<HTMLDialogElement>(null)
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [form, setForm] = useState<ProductFormState>(emptyForm)
   const [showScanner, setShowScanner] = useState(false)
@@ -96,6 +105,20 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("ALL")
   const [categorySelection, setCategorySelection] = useState("")
+  const [sort, setSort] = useState<{ key: ProductSortKey; direction: "asc" | "desc" } | null>(null)
+
+  const productColumns: { key: ProductSortKey; label: string }[] = [
+    { key: "name", label: text.name },
+    { key: "sku", label: text.sku },
+    { key: "barcode", label: text.barcode },
+    { key: "category", label: text.category },
+    { key: "unitName", label: text.unit },
+    { key: "unitPrice", label: text.unitPrice },
+    { key: "costPrice", label: text.referenceCost },
+    { key: "currentStock", label: text.stock },
+    { key: "minimumStock", label: text.minimumStock },
+    { key: "active", label: text.status },
+  ]
 
   const isEditMode = editingProductId !== null
 
@@ -107,6 +130,11 @@ export default function ProductsPage() {
   useEffect(() => {
     void loadProducts()
   }, [])
+
+  useEffect(() => {
+    const dialog = confirmationDialog.current
+    if (createdProductName !== null && dialog && !dialog.open) dialog.showModal()
+  }, [createdProductName])
 
   useEffect(() => {
     if (!categorySelection || categorySelection === "OTHER") {
@@ -153,7 +181,7 @@ export default function ProductsPage() {
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
-    return products.filter((product) => {
+    const matches = products.filter((product) => {
       const matchesCategory =
         selectedCategory === "ALL" || (product.category ?? "") === selectedCategory
 
@@ -168,7 +196,22 @@ export default function ProductsPage() {
 
       return matchesCategory && matchesSearch
     })
-  }, [products, searchTerm, selectedCategory])
+    if (!sort) return matches
+
+    const { key, direction } = sort
+    const collator = new Intl.Collator(language, { numeric: true, sensitivity: "accent" })
+    return matches.sort((left, right) => {
+      const a = left[key]
+      const b = right[key]
+      if (a == null || a === "") return b == null || b === "" ? 0 : 1
+      if (b == null || b === "") return -1
+
+      const comparison = typeof a === "number" && typeof b === "number" ? a - b
+        : typeof a === "boolean" && typeof b === "boolean" ? Number(b) - Number(a)
+        : collator.compare(String(a), String(b))
+      return direction === "asc" ? comparison : -comparison
+    })
+  }, [products, searchTerm, selectedCategory, sort, language])
 
   const unitSuggestions = useMemo(() => {
     const values = products
@@ -434,6 +477,7 @@ export default function ProductsPage() {
       minimumStock: String(product.minimumStock),
       active: product.active,
       unitName: product.unitName || "",
+      quantityType: product.quantityType ?? "DECIMAL",
       priceTiers: (product.priceTiers ?? []).map((tier) => ({
         label: tier.label ?? "",
         minQuantity: String(tier.minQuantity),
@@ -545,6 +589,9 @@ export default function ProductsPage() {
       if (!Number.isFinite(minQuantity) || minQuantity <= 1) {
         throw new Error(text.invalidWholesaleMinimum)
       }
+      if (form.quantityType === "INTEGER" && !Number.isInteger(minQuantity)) {
+        throw new Error(copy.common.wholeNumberQuantity)
+      }
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
         throw new Error(text.invalidWholesalePrice)
       }
@@ -578,6 +625,10 @@ export default function ProductsPage() {
       setError(text.unitRequired)
       return
     }
+    if (form.quantityType === "INTEGER" && !Number.isInteger(Number(form.minimumStock))) {
+      setError(copy.common.wholeNumberQuantity)
+      return
+    }
 
     try {
       setSaving(true)
@@ -602,8 +653,8 @@ export default function ProductsPage() {
         await updateProduct(editingProductId, payload)
         setSuccess(text.updateSuccess)
       } else {
-        await createProduct(payload)
-        setSuccess(text.createSuccess)
+        const product = await createProduct({ ...payload, quantityType: form.quantityType })
+        setCreatedProductName(product.name)
       }
 
       setEditingProductId(null)
@@ -611,7 +662,7 @@ export default function ProductsPage() {
       setCategorySelection("")
       setShowScanner(false)
       await loadProducts()
-      window.scrollTo({ top: 0, behavior: "smooth" })
+      if (isEditMode) window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.saveError)
@@ -626,6 +677,22 @@ export default function ProductsPage() {
 
       {error && <div className="card error">{error}</div>}
       {success && <div className="card success">{success}</div>}
+
+      {createdProductName !== null && (
+        <dialog
+          ref={confirmationDialog}
+          className="card product-confirmation-dialog"
+          aria-labelledby="product-confirmation-title"
+          aria-describedby="product-confirmation-name"
+          onClose={() => setCreatedProductName(null)}
+        >
+          <h2 id="product-confirmation-title">{text.createSuccess}</h2>
+          <p id="product-confirmation-name">{createdProductName}</p>
+          <form method="dialog" className="form-actions">
+            <button type="submit" autoFocus>{copy.common.close}</button>
+          </form>
+        </dialog>
+      )}
 
       <div className="card">
         <div className="scanner-header">
@@ -843,6 +910,18 @@ export default function ProductsPage() {
           </label>
 
           <label>
+            {text.quantityType}
+            <select
+              value={form.quantityType}
+              disabled={isEditMode}
+              onChange={(e) => updateForm("quantityType", e.target.value === "INTEGER" ? "INTEGER" : "DECIMAL")}
+            >
+              <option value="INTEGER">{text.quantityInteger}</option>
+              <option value="DECIMAL">{text.quantityDecimal}</option>
+            </select>
+          </label>
+
+          <label>
             {text.unitPrice}
             <input
               type="number"
@@ -891,7 +970,7 @@ export default function ProductsPage() {
                       <input
                         type="number"
                         min={2}
-                        step="0.0001"
+                        step={form.quantityType === "INTEGER" ? 1 : 0.0001}
                         value={tier.minQuantity}
                         onChange={(e) => handleUpdatePriceTier(index, "minQuantity", e.target.value)}
                         placeholder="3"
@@ -930,7 +1009,7 @@ export default function ProductsPage() {
             <input
               type="number"
               min={0}
-              step="0.0001"
+              step={form.quantityType === "INTEGER" ? 1 : 0.0001}
               value={form.minimumStock}
               onChange={(e) => updateForm("minimumStock", e.target.value)}
             />
@@ -966,7 +1045,7 @@ export default function ProductsPage() {
       </div>
 
       <div className="card">
-        <h3>{text.listTitle}</h3>
+        <h3 id="product-list-heading">{text.listTitle}</h3>
 
         <div className="product-filters">
           <label>
@@ -1004,58 +1083,64 @@ export default function ProductsPage() {
         {loading ? (
           <p>{text.loading}</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>{text.name}</th>
-                <th>{text.sku}</th>
-                <th>{text.barcode}</th>
-                <th>{text.category}</th>
-                <th>{text.unit}</th>
-                <th>{text.unitPrice}</th>
-                <th>{text.referenceCost}</th>
-                <th>{text.stock}</th>
-                <th>{text.minimumStock}</th>
-                <th>{text.status}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.length === 0 ? (
+          <ScrollableTable headingId="product-list-heading">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={11}>
-                    {products.length === 0 ? text.empty : text.emptyFiltered}
-                  </td>
+                  {productColumns.map(({ key, label }) => {
+                    const direction = sort?.key === key ? sort.direction : undefined
+                    return (
+                      <th key={key} scope="col" aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : undefined}>
+                        <button type="button" className="table-sort-button" onClick={() => setSort({
+                          key,
+                          direction: direction === "asc" ? "desc" : "asc",
+                        })}>
+                          <span>{label}</span>
+                          <span aria-hidden="true">{direction === "asc" ? "↑" : direction === "desc" ? "↓" : "↕"}</span>
+                        </button>
+                      </th>
+                    )
+                  })}
+                  <th className="mobile-sticky-actions" scope="col" aria-label={text.edit} />
                 </tr>
-              ) : (
-                filteredProducts.map((product) => (
-                  <tr key={product.id}>
-                    <td>{product.name}</td>
-                    <td>{product.sku}</td>
-                    <td>{product.barcode || "-"}</td>
-                    <td>{product.category || "-"}</td>
-                    <td>{product.unitName || "-"}</td>
-                    <td>{formatCurrency(product.unitPrice)}</td>
-                    <td>
-                      {product.costPrice === null ? "-" : formatCurrency(product.costPrice)}
-                    </td>
-                    <td>
-                      {formatNumber(product.currentStock)}
-                      {product.unitName ? ` ${product.unitName}` : ""}
-                    </td>
-                    <td>
-                      {formatNumber(product.minimumStock)}
-                      {product.unitName ? ` ${product.unitName}` : ""}
-                    </td>
-                    <td>{product.active ? text.active : text.inactive}</td>
-                    <td>
-                      <button onClick={() => handleEdit(product)}>{text.edit}</button>
+              </thead>
+              <tbody>
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={11}>
+                      {products.length === 0 ? text.empty : text.emptyFiltered}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <tr key={product.id}>
+                      <td>{product.name}</td>
+                      <td>{product.sku}</td>
+                      <td>{product.barcode || "-"}</td>
+                      <td>{product.category || "-"}</td>
+                      <td>{product.unitName || "-"}</td>
+                      <td>{formatCurrency(product.unitPrice)}</td>
+                      <td>
+                        {product.costPrice === null ? "-" : formatCurrency(product.costPrice)}
+                      </td>
+                      <td>
+                        {formatNumber(product.currentStock)}
+                        {product.unitName ? ` ${product.unitName}` : ""}
+                      </td>
+                      <td>
+                        {formatNumber(product.minimumStock)}
+                        {product.unitName ? ` ${product.unitName}` : ""}
+                      </td>
+                      <td>{product.active ? text.active : text.inactive}</td>
+                      <td className="mobile-sticky-actions">
+                        <button type="button" onClick={() => handleEdit(product)}>{text.edit}</button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </ScrollableTable>
         )}
       </div>
     </div>

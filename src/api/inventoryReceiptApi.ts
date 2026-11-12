@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config"
+import type { ProductQuantityType } from "./productApi"
 import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
@@ -29,6 +30,7 @@ export type InventoryReceiptResponse = {
   locationName: string | null
   productId: number
   productName: string
+  quantityType?: ProductQuantityType
   receivedQuantity: number
   remainingQuantity: number
   totalCostAmount: number

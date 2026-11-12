@@ -15,6 +15,7 @@ import { getCompanySubscription } from "../api/companySubscriptionApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import StatusBadge from "../components/common/StatusBadge"
 import TablePagination from "../components/common/TablePagination"
+import ScrollableTable from "../components/common/ScrollableTable"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
@@ -409,7 +410,7 @@ export default function SalesHistoryPage() {
       )}
 
       <div className="card">
-        <h3>{text.sales}</h3>
+        <h3 id="sales-history-list-heading">{text.sales}</h3>
 
         <form className="product-filters" onSubmit={handleApplyFilter}>
           <label>
@@ -443,73 +444,75 @@ export default function SalesHistoryPage() {
         {loading ? (
           <p>{text.loadingSales}</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>{text.saleNumber}</th>
-                <th>{text.date}</th>
-                <th>{text.location}</th>
-                <th>{text.customer}</th>
-                <th>{text.payment}</th>
-                <th>{text.total}</th>
-                <th>{text.status}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.length === 0 ? (
+          <ScrollableTable headingId="sales-history-list-heading">
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={8}>{text.emptySales}</td>
+                  <th>{text.saleNumber}</th>
+                  <th>{text.date}</th>
+                  <th>{text.location}</th>
+                  <th>{text.customer}</th>
+                  <th>{text.payment}</th>
+                  <th>{text.total}</th>
+                  <th>{text.status}</th>
+                  <th className="mobile-sticky-actions" scope="col" aria-label={copy.common.actions} />
                 </tr>
-              ) : (
-                paginatedSales.map((sale) => (
-                  <tr key={sale.id}>
-                    <td>{sale.saleNumber}</td>
-                    <td>{formatDateTime(sale.soldAt)}</td>
-                    <td>{sale.locationName || "-"}</td>
-                    <td>{sale.customerName || "-"}</td>
-                    <td>{sale.paymentMethod || "-"}</td>
-                    <td>{formatCurrency(sale.totalAmount)}</td>
-                    <td className="sales-history-actions-cell">
-                      <StatusBadge value={sale.status} />
-                    </td>
-                    <td>
-                      <div className="table-actions sales-history-actions">
-                        <button className="compact-action-button" onClick={() => handleViewDetails(sale.id)}>
-                          {text.viewDetails}
-                        </button>
-
-                        {isAdmin && sale.status === "COMPLETED" && (
-                          <button
-                            className="danger-button compact-action-button"
-                            onClick={() => handleCancelSale(sale.id)}
-                          >
-                            {text.cancel}
-                          </button>
-                        )}
-
-                        {isCashier && cancellationApprovalEnabled && sale.status === "COMPLETED" && (
-                          <button
-                            className="secondary-button"
-                            onClick={() => handleRequestCancellationApproval(sale.id)}
-                            disabled={
-                              requestActionLoading === sale.id || sale.cancellationRequestStatus === "PENDING"
-                            }
-                          >
-                            {sale.cancellationRequestStatus === "PENDING"
-                              ? text.cancellationRequested
-                              : requestActionLoading === sale.id
-                                ? text.processing
-                                : text.requestCancellation}
-                          </button>
-                        )}
-                      </div>
-                    </td>
+              </thead>
+              <tbody>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td colSpan={8}>{text.emptySales}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  paginatedSales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td>{sale.saleNumber}</td>
+                      <td>{formatDateTime(sale.soldAt)}</td>
+                      <td>{sale.locationName || "-"}</td>
+                      <td>{sale.customerName || "-"}</td>
+                      <td>{sale.paymentMethod || "-"}</td>
+                      <td>{formatCurrency(sale.totalAmount)}</td>
+                      <td className="sales-history-actions-cell">
+                        <StatusBadge value={sale.status} />
+                      </td>
+                      <td className="mobile-sticky-actions">
+                        <div className="table-actions sales-history-actions">
+                          <button className="compact-action-button" onClick={() => handleViewDetails(sale.id)}>
+                            {text.viewDetails}
+                          </button>
+
+                          {isAdmin && sale.status === "COMPLETED" && (
+                            <button
+                              className="danger-button compact-action-button"
+                              onClick={() => handleCancelSale(sale.id)}
+                            >
+                              {text.cancel}
+                            </button>
+                          )}
+
+                          {isCashier && cancellationApprovalEnabled && sale.status === "COMPLETED" && (
+                            <button
+                              className="secondary-button"
+                              onClick={() => handleRequestCancellationApproval(sale.id)}
+                              disabled={
+                                requestActionLoading === sale.id || sale.cancellationRequestStatus === "PENDING"
+                              }
+                            >
+                              {sale.cancellationRequestStatus === "PENDING"
+                                ? text.cancellationRequested
+                                : requestActionLoading === sale.id
+                                  ? text.processing
+                                  : text.requestCancellation}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </ScrollableTable>
         )}
         {!loading && sales.length > SALES_PER_PAGE && (
           <TablePagination
@@ -553,7 +556,7 @@ export default function SalesHistoryPage() {
               <p><strong>{text.totalProfit}:</strong> {formatCurrency(selectedSale.totalProfitAmount)}</p>
             </div>
 
-            <table>
+            <table className="sale-line-table">
               <thead>
                 <tr>
                   <th>{text.product}</th>

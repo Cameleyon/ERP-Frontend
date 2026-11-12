@@ -141,6 +141,14 @@ export default function NewSalePage() {
       setError(text.quantityPositive)
       return
     }
+    if (selectedProduct.quantityType === "INTEGER" && !Number.isInteger(quantityValue)) {
+      setError(copy.common.wholeNumberQuantity)
+      return
+    }
+    if (Number(quantityValue.toFixed(2)) !== quantityValue) {
+      setError(copy.common.saleQuantityPrecision)
+      return
+    }
 
     if (quantityValue > selectedProduct.currentStock) {
       setError(text.quantityExceedsStock)
@@ -150,7 +158,7 @@ export default function NewSalePage() {
     const existing = cartItems.find((item) => item.productId === selectedProduct.id)
 
     if (existing) {
-      const newQuantity = existing.quantity + quantityValue
+      const newQuantity = Number((existing.quantity + quantityValue).toFixed(2))
       const pricing = resolveUnitPrice(selectedProduct, newQuantity)
 
       if (newQuantity > selectedProduct.currentStock) {
@@ -404,8 +412,8 @@ export default function NewSalePage() {
             <label>
               {text.quantity} {selectedProduct.unitName ? `(${selectedProduct.unitName})` : ""}
               <QuantityInput
-                min={1}
-                step={1}
+                step={selectedProduct.quantityType === "INTEGER" ? 1 : 0.01}
+                buttonStep={1}
                 value={quantity}
                 onChange={setQuantity}
                 ariaLabel={text.quantity}

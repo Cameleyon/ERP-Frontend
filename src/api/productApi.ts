@@ -1,5 +1,7 @@
 import { apiGet } from "./client"
 
+export type ProductQuantityType = "INTEGER" | "DECIMAL"
+
 export type ProductLookupResponse = {
   id: number
   sku: string
@@ -13,6 +15,7 @@ export type ProductLookupResponse = {
   minimumStock: number
   active: boolean
   unitName: string | null
+  quantityType?: ProductQuantityType
   priceTiers: ProductPriceTier[]
 }
 

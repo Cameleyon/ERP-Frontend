@@ -226,7 +226,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
           </div>
         </div>
 
-        <table className="invoice-table">
+        <table className="invoice-table sale-line-table">
           <thead>
             <tr>
               <th>{text.product}</th>
