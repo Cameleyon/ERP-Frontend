@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import ErrorMessage from "./components/common/ErrorMessage"
 import { AuthProvider, useAuth } from "./auth/AuthContext"
 import { COMPANY_TERMS_REQUIRED_EVENT } from "./api/client"
 import { acceptCompanyTerms } from "./api/companyTermsApi"
@@ -158,7 +159,7 @@ function AppContent() {
             </button>
           </p>
 
-          {termsError && <div className="card error">{termsError}</div>}
+          {termsError && <ErrorMessage message={termsError} onDismiss={() => setTermsError("")} />}
 
           <div className="form-actions">
             {isAdmin && (

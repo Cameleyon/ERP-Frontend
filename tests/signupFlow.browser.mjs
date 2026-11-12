@@ -59,7 +59,7 @@ try {
             ? { status: 500, json: { message: "SQL secret password=hidden owner@example.com", code: "INTERNAL_ERROR", reference: token } }
             : { status: 201, json: { pendingSignupId: token, adminEmail: "owner@example.com", attemptsRemaining: 3, expiresAt: "2026-11-10T12:00:00" } })
         }
-        if (url.pathname.includes("/api/")) return route.fulfill({ json: [] })
+        if (url.pathname.startsWith("/api/")) return route.fulfill({ json: [] })
         if (url.origin !== origin) return route.abort()
         return route.continue()
       })
@@ -80,12 +80,15 @@ try {
       await page.locator('input[type="password"]').fill("password123")
       await page.locator('input[type="checkbox"]').check()
       await page.getByRole("button", { name: labels[language].submit, exact: true }).click()
-      await page.waitForFunction(() => document.querySelector("[role=alert]")?.textContent.includes("INTERNAL_ERROR"))
-      assert.ok((await alert.innerText()).includes(token))
-      assert.ok(!(await alert.innerText()).includes("SQL secret"))
+      const errorDialog = page.getByRole("alertdialog").filter({ hasText: "INTERNAL_ERROR" })
+      await errorDialog.waitFor()
+      assert.ok((await errorDialog.innerText()).includes(token))
+      assert.ok(!(await errorDialog.innerText()).includes("SQL secret"))
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       await page.screenshot({ path: join(screenshots, language + "-" + width + "-internal.png"), fullPage: true })
       assert.equal(await page.locator('input[autocomplete="organization"]').inputValue(), "Example business")
+      await page.keyboard.press("Escape")
+      await errorDialog.waitFor({ state: "detached" })
       mode = "success"
       await page.getByRole("button", { name: labels[language].submit, exact: true }).click()
       const dialog = page.locator("dialog[open]")
@@ -112,7 +115,11 @@ try {
       assert.ok((await dialog.locator("strong").innerText()).includes("2"))
       confirmation = "success"
       await dialog.locator('input[autocomplete="one-time-code"]').fill("123456")
-      await dialog.getByRole("button", { name: labels[language].confirm, exact: true }).click()
+      await Promise.all([
+        page.waitForResponse(response => new URL(response.url()).pathname === "/api/analytics/visit"
+          && response.request().postDataJSON()?.eventType === "COMPLETED"),
+        dialog.getByRole("button", { name: labels[language].confirm, exact: true }).click(),
+      ])
       await page.locator(".login-card, .login-page").first().waitFor()
       assert.equal(await page.locator('input[type=email]').inputValue(), "owner@example.com")
       assert.equal(events.filter(event => event.eventType === "COMPLETED").length, 1)

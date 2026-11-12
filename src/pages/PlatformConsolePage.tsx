@@ -21,6 +21,7 @@ import {
   type SubscriptionPlanResponse,
 } from "../api/platformAdminApi"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import { formatCurrency } from "../utils/format"
 
 type PlanFormState = {
@@ -726,8 +727,16 @@ export default function PlatformConsolePage() {
     }
   }
 
+  const error = [plansError, subscriptionError, subscriptionSearchError, usersError].filter(Boolean).join("\n")
+
   return (
     <div className="platform-page">
+      {error && <ErrorMessage message={error} onDismiss={() => {
+        setPlansError("")
+        setSubscriptionError("")
+        setSubscriptionSearchError("")
+        setUsersError("")
+      }} />}
       <section className="platform-toolbar card">
         <div>
           <div className="platform-badge">{text.platformConsole}</div>
@@ -754,7 +763,6 @@ export default function PlatformConsolePage() {
           </div>
 
           {planSuccess && <div className="card success">{planSuccess}</div>}
-          {plansError && <div className="card error">{plansError}</div>}
 
           <div className="platform-plan-grid">
             {plansLoading ? (
@@ -966,7 +974,6 @@ export default function PlatformConsolePage() {
             </div>
           </div>
 
-          {subscriptionError && <div className="card error">{subscriptionError}</div>}
           {actionSuccess && <div className="card success">{actionSuccess}</div>}
 
           <form className="platform-subscription-search" onSubmit={handleSearchSubscriptions}>
@@ -982,7 +989,6 @@ export default function PlatformConsolePage() {
             </button>
           </form>
 
-          {subscriptionSearchError && <div className="card error">{subscriptionSearchError}</div>}
           {subscriptionResults.length > 0 ? (
             <div className="platform-subscription-results">
               <table>
@@ -1112,7 +1118,6 @@ export default function PlatformConsolePage() {
               </button>
             </div>
 
-            {usersError && <div className="card error">{usersError}</div>}
             {userSuccess && <div className="card success">{userSuccess}</div>}
 
             <form className="platform-form-grid" onSubmit={handleCreateCompanyUser}>

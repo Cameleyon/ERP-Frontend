@@ -21,6 +21,8 @@ import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
+import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 
 type SaleItemWithOptionalUnit = {
   productId: number
@@ -194,7 +196,9 @@ export default function SalesHistoryPage() {
       }
     } catch (err) {
       console.error("handleCancelSale error:", err)
-      setError(err instanceof Error ? err.message : text.cancelError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.cancelError)
+      }
     }
   }
 
@@ -216,7 +220,9 @@ export default function SalesHistoryPage() {
       }
     } catch (err) {
       console.error("handleRequestCancellationApproval error:", err)
-      setError(err instanceof Error ? err.message : text.cancellationRequestError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.cancellationRequestError)
+      }
     } finally {
       setRequestActionLoading(null)
     }
@@ -240,7 +246,9 @@ export default function SalesHistoryPage() {
       }
     } catch (err) {
       console.error("handleApproveCancellationRequest error:", err)
-      setError(err instanceof Error ? err.message : text.cancellationApproveError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.cancellationApproveError)
+      }
     } finally {
       setRequestActionLoading(null)
     }
@@ -257,7 +265,9 @@ export default function SalesHistoryPage() {
       await loadSales()
     } catch (err) {
       console.error("handleRejectCancellationRequest error:", err)
-      setError(err instanceof Error ? err.message : text.cancellationRejectError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.cancellationRejectError)
+      }
     } finally {
       setRequestActionLoading(null)
     }
@@ -355,7 +365,7 @@ export default function SalesHistoryPage() {
         )}
       </div>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       {isAdmin && cancellationApprovalEnabled && (

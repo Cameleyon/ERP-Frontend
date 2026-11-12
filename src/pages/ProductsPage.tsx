@@ -8,9 +8,12 @@ import {
 } from "../api/productManagementApi"
 import type { ProductQuantityType } from "../api/productApi"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
+import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import ScrollableTable from "../components/common/ScrollableTable"
+import TablePagination from "../components/common/TablePagination"
 import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
 import { parseCsvText } from "../utils/csv"
 
@@ -47,6 +50,7 @@ const emptyForm: ProductFormState = {
 }
 
 const MAX_PRICE_TIERS = 3
+const PRODUCTS_PER_PAGE = 12
 const PRODUCT_CSV_REQUIRED_HEADERS = ["name", "category", "unit", "unitPrice"] as const
 const PRODUCT_CSV_OPTIONAL_HEADERS = ["description", "barcode", "minimumStock", "active"] as const
 
@@ -106,6 +110,7 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("ALL")
   const [categorySelection, setCategorySelection] = useState("")
   const [sort, setSort] = useState<{ key: ProductSortKey; direction: "asc" | "desc" } | null>(null)
+  const [page, setPage] = useState(1)
 
   const productColumns: { key: ProductSortKey; label: string }[] = [
     { key: "name", label: text.name },
@@ -212,6 +217,10 @@ export default function ProductsPage() {
       return direction === "asc" ? comparison : -comparison
     })
   }, [products, searchTerm, selectedCategory, sort, language])
+
+  const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE))
+  const currentPage = Math.min(page, pageCount)
+  const visibleProducts = filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE)
 
   const unitSuggestions = useMemo(() => {
     const values = products
@@ -432,6 +441,7 @@ export default function ProductsPage() {
       setSuccess("")
 
       let createdCount = 0
+      let blockedByCurrency = false
       const failedRows: Array<{ rowNumber: number; message: string }> = []
 
       for (const row of validRows) {
@@ -444,6 +454,10 @@ export default function ProductsPage() {
             rowNumber: row.rowNumber,
             message: err instanceof Error ? err.message : text.csvImportRowFailed,
           })
+          if (err instanceof CompanyCurrencyRequiredError) {
+            blockedByCurrency = true
+            break
+          }
         }
       }
 
@@ -451,7 +465,7 @@ export default function ProductsPage() {
       if (failedRows.length === 0) {
         setSuccess(text.csvImportSuccess(createdCount))
         resetCsvImportState()
-      } else {
+      } else if (!blockedByCurrency) {
         setError(text.csvImportPartial(createdCount, failedRows.length))
       }
 
@@ -499,6 +513,7 @@ export default function ProductsPage() {
   function handleClearFilters() {
     setSearchTerm("")
     setSelectedCategory("ALL")
+    setPage(1)
   }
 
   function handleDetectedBarcode(value: string) {
@@ -665,7 +680,9 @@ export default function ProductsPage() {
       if (isEditMode) window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.saveError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.saveError)
+      }
     } finally {
       setSaving(false)
     }
@@ -675,7 +692,7 @@ export default function ProductsPage() {
     <div>
       <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       {createdProductName !== null && (
@@ -1044,7 +1061,7 @@ export default function ProductsPage() {
         </form>
       </div>
 
-      <div className="card">
+      <div className="card product-list-card">
         <h3 id="product-list-heading">{text.listTitle}</h3>
 
         <div className="product-filters">
@@ -1054,7 +1071,10 @@ export default function ProductsPage() {
               type="text"
               placeholder={text.searchPlaceholder}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setPage(1)
+              }}
             />
           </label>
 
@@ -1062,7 +1082,10 @@ export default function ProductsPage() {
             {text.category}
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value)
+                setPage(1)
+              }}
             >
               <option value="ALL">{text.allCategories}</option>
               {categories.map((category) => (
@@ -1091,10 +1114,10 @@ export default function ProductsPage() {
                     const direction = sort?.key === key ? sort.direction : undefined
                     return (
                       <th key={key} scope="col" aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : undefined}>
-                        <button type="button" className="table-sort-button" onClick={() => setSort({
-                          key,
-                          direction: direction === "asc" ? "desc" : "asc",
-                        })}>
+                        <button type="button" className="table-sort-button" onClick={() => {
+                          setSort({ key, direction: direction === "asc" ? "desc" : "asc" })
+                          setPage(1)
+                        }}>
                           <span>{label}</span>
                           <span aria-hidden="true">{direction === "asc" ? "↑" : direction === "desc" ? "↓" : "↕"}</span>
                         </button>
@@ -1112,7 +1135,7 @@ export default function ProductsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product) => (
+                  visibleProducts.map((product) => (
                     <tr key={product.id}>
                       <td>{product.name}</td>
                       <td>{product.sku}</td>
@@ -1141,6 +1164,18 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </ScrollableTable>
+        )}
+        {!loading && (
+          <TablePagination
+            currentPage={currentPage}
+            pageCount={pageCount}
+            paginationLabel={text.paginationLabel}
+            firstPageLabel={text.firstPage}
+            previousPageLabel={text.previousPage}
+            nextPageLabel={text.nextPage}
+            lastPageLabel={text.lastPage}
+            onPageChange={setPage}
+          />
         )}
       </div>
     </div>

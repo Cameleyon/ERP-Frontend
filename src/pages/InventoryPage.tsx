@@ -14,6 +14,8 @@ import BarcodeScanner from "../components/sales/BarcodeScanner"
 import QuantityInput from "../components/common/QuantityInput"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
+import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { messages } from "../i18n/messages"
 import { getLocalizedCostRubricName } from "../utils/costRubrics"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
@@ -174,7 +176,9 @@ export default function InventoryPage() {
       if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.receiptError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.receiptError)
+      }
     } finally {
       setSaveLoading(false)
     }
@@ -208,7 +212,9 @@ export default function InventoryPage() {
       if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.withdrawalError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.withdrawalError)
+      }
     } finally {
       setSaveLoading(false)
     }
@@ -239,7 +245,9 @@ export default function InventoryPage() {
       if (locationId) await loadOpenReceipts(Number(locationId))
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.receiptUpdateError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.receiptUpdateError)
+      }
     } finally {
       setSaveLoading(false)
     }
@@ -309,7 +317,7 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       <div className="card">

@@ -5,6 +5,7 @@ import {
   type CompanyUserResponse,
 } from "../api/companyUsersApi"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 
 type FormState = {
   firstName: string
@@ -242,7 +243,7 @@ export default function CompanyUsersPage() {
       <h1>{text.title}</h1>
       <p>{text.subtitle}</p>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       <div className="card">

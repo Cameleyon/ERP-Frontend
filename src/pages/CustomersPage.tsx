@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import {
   createCustomer,
   deleteCustomer,
@@ -161,7 +162,7 @@ export default function CustomersPage() {
     <div>
       <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       <div className="card">

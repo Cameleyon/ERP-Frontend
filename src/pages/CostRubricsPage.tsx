@@ -8,6 +8,8 @@ import {
   type CompanyCostRubricResponse,
 } from "../api/costRubricManagementApi"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
+import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getLocalizedCostRubricName } from "../utils/costRubrics"
 
 type FormState = {
@@ -187,6 +189,7 @@ export default function CostRubricsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setSuccess("")
 
     const name = form.name.trim()
     if (!name) {
@@ -206,8 +209,6 @@ export default function CostRubricsPage() {
     try {
       setSaving(true)
       setError("")
-      setSuccess("")
-
       await createCostRubric({
         name,
         description: form.description.trim() || undefined,
@@ -222,7 +223,9 @@ export default function CostRubricsPage() {
         setError(text.duplicateName)
       } else {
         console.error(err)
-        setError(err instanceof Error ? err.message : text.createError)
+        if (!(err instanceof CompanyCurrencyRequiredError)) {
+          setError(err instanceof Error ? err.message : text.createError)
+        }
       }
     } finally {
       setSaving(false)
@@ -241,7 +244,9 @@ export default function CostRubricsPage() {
       await loadRubrics()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.statusError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.statusError)
+      }
     }
   }
 
@@ -261,7 +266,9 @@ export default function CostRubricsPage() {
       await loadRubrics()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.deleteError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.deleteError)
+      }
     }
   }
 
@@ -269,14 +276,14 @@ export default function CostRubricsPage() {
     <div>
       <h1>{text.title}</h1>
 
-      {error && <div className="card error" role="alert">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       <div className="card">
         <h3>{text.newTitle}</h3>
 
         <p id="cost-rubric-duplicate-warning" className="company-user-warning">{text.duplicateWarning}</p>
-        <form onSubmit={handleSubmit} className="product-form-grid" aria-describedby="cost-rubric-duplicate-warning">
+        <form onSubmit={handleSubmit} className="product-form-grid cost-rubric-form" aria-describedby="cost-rubric-duplicate-warning">
           <label>
             {text.name}
             <input
@@ -344,7 +351,7 @@ export default function CostRubricsPage() {
                     <td>{type}</td>
                     <td>{status}</td>
                     <td>
-                      <div className="table-actions">
+                      <div className="cost-rubric-actions">
                         <button
                           type="button"
                           className="secondary-button"

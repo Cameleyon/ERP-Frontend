@@ -23,6 +23,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import StripePaymentMethodForm from "../components/billing/StripePaymentMethodForm"
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
@@ -1107,7 +1108,7 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
     <div>
       <h1>{text.title}</h1>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       {loading ? (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import {
   getLowStockProducts,
   getSalesTrend,
@@ -129,41 +130,10 @@ export default function DashboardPage() {
   }
 
   if (loading) return <div>{text.loading}</div>
-  if (error) {
-    return (
-      <div>
-        <div className="page-title-row">
-          <h1>{text.title}</h1>
-
-          {locations.length > 0 && (
-            <label className="page-title-site-filter">
-              <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-                <option value="">{copy.dashboardFilters.allLocations}</option>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-        <DashboardFilters
-          preset={preset}
-          startDate={startDate}
-          endDate={endDate}
-          onPresetChange={handlePresetChange}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
-          onApply={handleApply}
-        />
-        <div className="card error">{error}</div>
-      </div>
-    )
-  }
 
   return (
     <div>
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       <div className="page-title-row">
         <h1>{text.title}</h1>
 

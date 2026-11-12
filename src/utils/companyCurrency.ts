@@ -1,6 +1,8 @@
 export const COMPANY_CURRENCY_REQUIRED_EVENT = "cameleyon:company-currency-required"
 export const COMPANY_CURRENCY_REQUIRED_CODE = "COMPANY_CURRENCY_REQUIRED"
 
+export class CompanyCurrencyRequiredError extends Error {}
+
 export function currencyRequiredText(language: string) {
   return language === "fr" ? {
     title: "Devise de l'entreprise non renseignée",
@@ -26,5 +28,5 @@ export async function checkCompanyCurrencyResponse(response: Response) {
   try { body = await response.clone().json() } catch { return }
   if (body?.code !== COMPANY_CURRENCY_REQUIRED_CODE && body?.message !== COMPANY_CURRENCY_REQUIRED_CODE) return
   window.dispatchEvent(new CustomEvent(COMPANY_CURRENCY_REQUIRED_EVENT))
-  throw new Error(currencyRequiredText(document.documentElement.lang).message)
+  throw new CompanyCurrencyRequiredError(currencyRequiredText(document.documentElement.lang).message)
 }

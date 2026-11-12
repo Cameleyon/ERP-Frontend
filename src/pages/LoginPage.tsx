@@ -9,6 +9,7 @@ import {
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 
 type Props = {
   onGoToHome?: () => void
@@ -367,7 +368,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup, registeredEmail, o
           ))}
         </fieldset>
 
-        {error && <div className="card error" role="alert">{error}</div>}
+        {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
         {success && <div className="card success">{success}</div>}
 
         {accountType && <><form onSubmit={handleSubmit} className="login-form">

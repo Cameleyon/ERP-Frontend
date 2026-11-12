@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import { getPublicPlans, type PublicPlanResponse } from "../api/publicPlansApi"
 import {
   getPublicPromotions,
@@ -585,7 +586,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
           </div>
         </section>
 
-        {error && <div className="card error">{error}</div>}
+        {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
 
         <section className="public-band" aria-labelledby="public-features-title">
           <div className="section-heading">

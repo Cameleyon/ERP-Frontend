@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
 import type { Language } from "../i18n/messages"
 import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
 import { getBrowserTimeZone } from "../utils/companyLocalization"
@@ -132,7 +133,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     if (!pageTracked.current) { pageTracked.current = true; trackSignupEvent("PAGE_VIEW") }
   }, [])
 
-  useEffect(() => { if (error || issues.length) errorRef.current?.focus() }, [error, issues])
+  useEffect(() => { if (issues.length) errorRef.current?.focus() }, [issues])
   useEffect(() => { if (pendingSignupId) verificationRef.current?.showModal() }, [pendingSignupId])
   useEffect(() => { if (showTerms) termsRef.current?.showModal() }, [showTerms])
   useEffect(() => { if (showExhausted) exhaustedRef.current?.showModal() }, [showExhausted])
@@ -252,6 +253,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
         <div className="login-language-row"><LanguageSwitcher /></div>
         <button type="button" className="secondary-button" onClick={onGoToHome}>{text.home}</button>
         <h1>{text.title}</h1>
+        {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
         <form onSubmit={handleSubmit} noValidate className="login-form">
           <label>{text.company}<input required maxLength={255} autoComplete="organization" value={companyName} onChange={event => setCompanyName(event.target.value)} aria-invalid={issues.some(issue => issue.field === "companyName")} aria-describedby={issues.some(issue => issue.field === "companyName") ? "signup-companyName-error" : undefined} />{fieldError("companyName")}</label>
           <label>{text.email}<input required type="email" maxLength={255} autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} aria-invalid={issues.some(issue => issue.field === "email")} aria-describedby={issues.some(issue => issue.field === "email") ? "signup-email-error" : undefined} />{fieldError("email")}</label>
@@ -266,7 +268,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
           </label>
           <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => setTermsAccepted(event.target.checked)} aria-invalid={issues.some(issue => issue.field === "terms")} aria-describedby={issues.some(issue => issue.field === "terms") ? "signup-terms-error" : undefined} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
           {fieldError("terms")}
-          {(error || issues.length > 0) && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{error || issues.map(issue => <p key={issue.code}>{describe(issue.code)}</p>)}</div>}
+          {issues.length > 0 && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{issues.map(issue => <p key={issue.code}>{describe(issue.code)}</p>)}</div>}
           <button type="submit" disabled={saving}>{saving ? text.submitting : text.submit}</button>
         </form>
         <SupportContact />

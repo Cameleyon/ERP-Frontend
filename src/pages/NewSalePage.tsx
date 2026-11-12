@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
+import ErrorMessage from "../components/common/ErrorMessage"
+import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
@@ -268,7 +270,9 @@ export default function NewSalePage() {
       }, 4000)
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.saleError)
+      if (!(err instanceof CompanyCurrencyRequiredError)) {
+        setError(err instanceof Error ? err.message : text.saleError)
+      }
     } finally {
       setSaleLoading(false)
     }
@@ -356,7 +360,7 @@ export default function NewSalePage() {
         )}
       </div>
 
-      {error && <div className="card error">{error}</div>}
+      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
       <div className="card nested-card scanner-toggle-card">
