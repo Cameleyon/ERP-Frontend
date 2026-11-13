@@ -21,6 +21,7 @@ const BARCODE_HEIGHT = 72
 export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const { language } = useI18n()
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const printRef = useRef<HTMLElement | null>(null)
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailSuccess, setEmailSuccess] = useState("")
   const [emailError, setEmailError] = useState("")
@@ -82,10 +83,10 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
 
   useEffect(() => {
     function clearPrintState() {
+      if (!printRef.current) return
+      printRef.current.remove()
+      printRef.current = null
       document.body.classList.remove("invoice-printing")
-      document.querySelectorAll(".print-target").forEach((node) => {
-        node.classList.remove("print-target")
-      })
     }
 
     window.addEventListener("afterprint", clearPrintState)
@@ -127,14 +128,55 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const barcodeBars = useMemo(() => buildPseudoBarcode(`*${sale.saleNumber.toUpperCase()}*`), [sale.saleNumber])
 
   function handlePrintInvoice() {
-    document.querySelectorAll(".print-target").forEach((node) => {
-      node.classList.remove("print-target")
-    })
+    if (!containerRef.current || printRef.current) return
 
-    if (containerRef.current) {
-      containerRef.current.classList.add("print-target")
+    const printTarget = containerRef.current.cloneNode(true) as HTMLElement
+    const printWindow = window.open("", "_blank")
+    if (printWindow) {
+      printWindow.opener = null
+      const printDocument = printWindow.document
+      printDocument.title = `${text.title} ${sale.saleNumber}`
+      printDocument.documentElement.lang = language
+
+      const viewport = printDocument.createElement("meta")
+      viewport.name = "viewport"
+      viewport.content = "width=device-width, initial-scale=1"
+      printDocument.head.appendChild(viewport)
+
+      const stylesReady = Array.from(document.querySelectorAll("link[rel='stylesheet'], style")).map(source => {
+        const stylesheet = printDocument.importNode(source, true)
+        if (source instanceof HTMLLinkElement) {
+          const link = stylesheet as HTMLLinkElement
+          link.href = source.href
+          return new Promise<void>(resolve => {
+            link.onload = link.onerror = () => resolve()
+            printDocument.head.appendChild(link)
+          })
+        }
+        printDocument.head.appendChild(stylesheet)
+        return Promise.resolve()
+      })
+
+      const printButton = printDocument.createElement("button")
+      printButton.type = "button"
+      printButton.textContent = text.print
+      printButton.className = "invoice-print-button"
+      printButton.addEventListener("click", () => printWindow.print())
+      printDocument.body.className = "invoice-print-window"
+      printDocument.body.append(printButton, printTarget)
+
+      void Promise.all(stylesReady).then(() => {
+        if (!printWindow.closed) {
+          printWindow.focus()
+          printWindow.print()
+        }
+      })
+      return
     }
 
+    printTarget.classList.add("invoice-print-target")
+    printRef.current = printTarget
+    document.body.appendChild(printTarget)
     document.body.classList.add("invoice-printing")
     window.print()
   }
@@ -226,27 +268,27 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
           </div>
         </div>
 
-        <table className="invoice-table sale-line-table">
-          <thead>
-            <tr>
-              <th>{text.product}</th>
-              <th>{text.quantity}</th>
-              <th>{text.unitPrice}</th>
-              <th>{text.lineTotal}</th>
+        <table className="invoice-table sale-line-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader">{text.product}</th>
+              <th scope="col" role="columnheader">{text.quantity}</th>
+              <th scope="col" role="columnheader">{text.unitPrice}</th>
+              <th scope="col" role="columnheader">{text.lineTotal}</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {sale.items.length === 0 ? (
-              <tr>
-                <td colSpan={4}>{text.empty}</td>
+              <tr role="row">
+                <td colSpan={4} role="cell">{text.empty}</td>
               </tr>
             ) : (
               sale.items.map((item, index) => (
-                <tr key={`${item.productId}-${index}`}>
-                  <td>{item.productName || "-"}</td>
-                  <td>{formatNumber(item.quantity)}</td>
-                  <td>{formatCurrency(item.unitPrice)}</td>
-                  <td>{formatCurrency(item.lineTotal)}</td>
+                <tr key={`${item.productId}-${index}`} className="invoice-item-row" role="row">
+                  <td role="cell">{item.productName || "-"}</td>
+                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.quantity}</span>{formatNumber(item.quantity)}</td>
+                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.unitPrice}</span>{formatCurrency(item.unitPrice)}</td>
+                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.lineTotal}</span><strong>{formatCurrency(item.lineTotal)}</strong></td>
                 </tr>
               ))
             )}
