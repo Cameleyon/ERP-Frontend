@@ -33,7 +33,7 @@ export type PublicSignupRequest = {
     adminEmail: string
     adminPassword: string
     preferredLanguage?: Language
-    emailConsentAddress?: string
+    emailProductUpdatesAccepted?: boolean
     planCode?: string
     billingCycle?: "MONTHLY" | "YEARLY"
     partnerCode?: string

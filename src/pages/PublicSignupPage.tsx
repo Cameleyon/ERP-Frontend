@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { EmailConsentCheckbox } from "../components/common/EmailConsent"
-import { getEmailConsentAddress } from "../api/emailConsentApi"
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
@@ -89,8 +88,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const [password, setPassword] = useState("")
   const [preferredLanguage, setPreferredLanguage] = useState<Language>("en")
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [emailConsentAddress, setEmailConsentAddress] = useState("")
-  const [emailConsentAccepted, setEmailConsentAccepted] = useState(false)
+  const [emailProductUpdatesAccepted, setEmailProductUpdatesAccepted] = useState(false)
   const [saving, setSaving] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [resending, setResending] = useState(false)
@@ -137,12 +135,6 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     if (!pageTracked.current) { pageTracked.current = true; trackSignupEvent("PAGE_VIEW") }
   }, [])
 
-  useEffect(() => {
-    let active = true
-    getEmailConsentAddress().then(address => { if (active) setEmailConsentAddress(address) }).catch(() => {})
-    return () => { active = false }
-  }, [])
-
   useEffect(() => { if (issues.length) errorRef.current?.focus() }, [issues])
   useEffect(() => { if (pendingSignupId) verificationRef.current?.showModal() }, [pendingSignupId])
   useEffect(() => { if (showTerms) termsRef.current?.showModal() }, [showTerms])
@@ -154,7 +146,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     setPassword("")
     setPreferredLanguage("en")
     setTermsAccepted(false)
-    setEmailConsentAccepted(false)
+    setEmailProductUpdatesAccepted(false)
     setVerificationCode("")
     setVerificationError("")
     setError("")
@@ -186,7 +178,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
       setResent(false); setCodeExpired(false)
       const response = await signupCompany({ companyName: companyName.trim(), adminEmail: email.trim(), adminPassword: password,
         preferredLanguage, termsAccepted, timeZoneId: getBrowserTimeZone(),
-        emailConsentAddress: emailConsentAccepted ? emailConsentAddress : undefined })
+        emailProductUpdatesAccepted })
       setPending(response)
       trackSignupEvent("CODE_SENT", currentAttempt)
     } catch (err) {
@@ -280,8 +272,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
           </label>
           <label className="terms-acceptance"><input type="checkbox" checked={termsAccepted} onChange={event => setTermsAccepted(event.target.checked)} aria-invalid={issues.some(issue => issue.field === "terms")} aria-describedby={issues.some(issue => issue.field === "terms") ? "signup-terms-error" : undefined} /><span>{text.termsPrefix} <button className="link-button" type="button" onClick={() => setShowTerms(true)}>{text.termsLink}</button>.</span></label>
           {fieldError("terms")}
-          {emailConsentAddress && <EmailConsentCheckbox address={emailConsentAddress} checked={emailConsentAccepted}
-            disabled={saving} onChange={setEmailConsentAccepted} />}
+          <EmailConsentCheckbox checked={emailProductUpdatesAccepted} disabled={saving} onChange={setEmailProductUpdatesAccepted} />
           {issues.length > 0 && <div ref={errorRef} className="card error" role="alert" tabIndex={-1}>{issues.map(issue => <p key={issue.code}>{describe(issue.code)}</p>)}</div>}
           <button type="submit" disabled={saving}>{saving ? text.submitting : text.submit}</button>
         </form>
