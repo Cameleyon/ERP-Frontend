@@ -24,6 +24,7 @@ import StripePaymentMethodForm from "../components/billing/StripePaymentMethodFo
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
+import { EmailConsentPreferences } from "../components/common/EmailConsent"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
@@ -1139,6 +1140,8 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
               {renderPasswordRow()}
             </div>
           </div>
+
+          {user?.companyOwner && <EmailConsentPreferences key={user.email} />}
 
           {isAdmin && (
             <>
