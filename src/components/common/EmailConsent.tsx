@@ -40,7 +40,7 @@ export function EmailConsentCheckbox({ checked, onChange, disabled }: Props) {
         onChange={event => onChange(event.target.checked)} />
       <div>
         <label htmlFor={id}>{text.productUpdates}</label>
-        <small id={`${id}-withdrawal`}>{text.withdrawal} · <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a></small>
+        <small id={`${id}-withdrawal`}>{text.withdrawal}</small>
       </div>
     </div>
   )
