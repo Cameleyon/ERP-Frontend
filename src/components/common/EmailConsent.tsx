@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { getEmailConsentPreference, updateEmailConsentPreference } from "../../api/emailConsentApi"
 import { useI18n } from "../../i18n/I18nContext"
 import ErrorMessage from "./ErrorMessage"
@@ -7,19 +7,19 @@ const copy = {
   fr: {
     title: "Préférences de courriel",
     productUpdates: "J’accepte de recevoir les nouvelles du produit et les offres de CAMELEYON Dynamics par courriel.",
-    withdrawal: "Vous pouvez retirer ce consentement dans Profil ou via le lien de désabonnement.",
+    withdrawal: "Vous pouvez retirer votre consentement dans Profil.",
     save: "Enregistrer", saved: "Préférences enregistrées.", error: "Impossible de charger ou d’enregistrer vos préférences de courriel.",
   },
   en: {
     title: "Email preferences",
     productUpdates: "I agree to receive product updates and offers from CAMELEYON Dynamics by email.",
-    withdrawal: "You can withdraw your consent in Profile or using the unsubscribe link.",
+    withdrawal: "You can withdraw your consent in Profile.",
     save: "Save", saved: "Preferences saved.", error: "Could not load or save your email preferences.",
   },
   es: {
     title: "Preferencias de correo electrónico",
     productUpdates: "Acepto recibir novedades del producto y ofertas de CAMELEYON Dynamics por correo electrónico.",
-    withdrawal: "Puedes retirar tu consentimiento en Perfil o mediante el enlace para cancelar la suscripción.",
+    withdrawal: "Puedes retirar tu consentimiento en Perfil.",
     save: "Guardar", saved: "Preferencias guardadas.", error: "No se pudieron cargar o guardar tus preferencias de correo electrónico.",
   },
 }
@@ -32,15 +32,16 @@ type Props = {
 
 export function EmailConsentCheckbox({ checked, onChange, disabled }: Props) {
   const { language } = useI18n()
+  const id = useId()
   const text = copy[language]
   return (
-    <div>
-      <label className="terms-acceptance">
-        <input type="checkbox" checked={checked} disabled={disabled}
-          onChange={event => onChange(event.target.checked)} />
-        <span>{text.productUpdates}</span>
-      </label>
-      <small>{text.withdrawal} · <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a></small>
+    <div className="email-consent">
+      <input id={id} type="checkbox" checked={checked} disabled={disabled} aria-describedby={`${id}-withdrawal`}
+        onChange={event => onChange(event.target.checked)} />
+      <div>
+        <label htmlFor={id}>{text.productUpdates}</label>
+        <small id={`${id}-withdrawal`}>{text.withdrawal} · <a href="mailto:contact@cameleyondynamics.com">contact@cameleyondynamics.com</a></small>
+      </div>
     </div>
   )
 }

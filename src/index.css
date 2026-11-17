@@ -723,9 +723,24 @@ td {
   line-height: 1.5;
 }
 
-.terms-acceptance input {
+.terms-acceptance input,
+.email-consent input {
+  flex-shrink: 0;
   margin-top: 4px;
   width: auto;
+}
+
+.email-consent {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  column-gap: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.email-consent small {
+  display: block;
 }
 
 .link-button {
