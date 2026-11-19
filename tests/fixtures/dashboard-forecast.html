@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dashboard forecast test</title></head>
+<body>
+  <main id="root" style="max-width:1500px;margin:20px auto;padding:0 16px"></main>
+  <script type="module">
+    import React from "react"
+    import { createRoot } from "react-dom/client"
+    import { AuthProvider } from "/src/auth/AuthContext.tsx"
+    import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+    import DashboardPage from "/src/pages/DashboardPage.tsx"
+    import LanguageSwitcher from "/src/components/common/LanguageSwitcher.tsx"
+    import "/src/index.css"
+    const demo = import.meta.env.DEV && ["127.0.0.1", "localhost"].includes(location.hostname)
+      && new URLSearchParams(location.search).get("demo") === "1"
+    if (demo) {
+      const { createForecastDemo } = await import("./forecast-demo.mjs")
+      window.fetch = createForecastDemo()
+      const storage = window.localStorage
+      let demoToken = "local-isolated-forecast-demo"
+      Object.defineProperty(window, "localStorage", { value: {
+        getItem: key => key === "camelyon_token" ? demoToken : storage.getItem(key),
+        setItem: (key, value) => { if (key === "camelyon_token") demoToken = value; else storage.setItem(key, value) },
+        removeItem: key => { if (key === "camelyon_token") demoToken = null; else storage.removeItem(key) },
+      } })
+      document.title = "Local forecast demo"
+    }
+    createRoot(document.getElementById("root")).render(
+      React.createElement(AuthProvider, null,
+        React.createElement(LanguageProvider, null,
+          React.createElement(LanguageSwitcher), React.createElement(DashboardPage))))
+  </script>
+</body>
+</html>

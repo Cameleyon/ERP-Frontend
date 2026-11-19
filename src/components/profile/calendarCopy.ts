@@ -1,0 +1,32 @@
+export const calendarCopy = {
+  en: {
+    settings: "Settings", back: "Back to Profile", site: "Site", hours: "Opening days and hours",
+    calendar: "Events and closures", zone: "Time zone",
+    effective: "Effective from", day: "Day", open: "Open", opens: "Opens", closes: "Closes",
+    nextDay: "Closes next day", saveHours: "Save opening hours", saveDate: "Save date", saved: "Saved.",
+    event: "Special event", description: "What happened?", date: "Date", type: "Day status",
+    REGULAR: "Use regular schedule", CLOSED: "Closed", OPEN: "Open exceptionally",
+    month: "Month", recorded: "Recorded dates", noDates: "No events or date overrides this month.",
+    loading: "Loading…", error: "Could not load or save calendar settings.", noSites: "No accessible active site.",
+  },
+  fr: {
+    settings: "Paramètres", back: "Retour au profil", site: "Site", hours: "Jours et heures d’ouverture",
+    calendar: "Événements et fermetures", zone: "Fuseau horaire",
+    effective: "En vigueur à partir du", day: "Jour", open: "Ouvert", opens: "Ouverture", closes: "Fermeture",
+    nextDay: "Ferme le lendemain", saveHours: "Enregistrer les horaires", saveDate: "Enregistrer la date", saved: "Enregistré.",
+    event: "Événement particulier", description: "Que s’est-il passé ?", date: "Date", type: "Statut du jour",
+    REGULAR: "Horaire habituel", CLOSED: "Fermé", OPEN: "Ouverture exceptionnelle",
+    month: "Mois", recorded: "Dates renseignées", noDates: "Aucun événement ni exception ce mois-ci.",
+    loading: "Chargement…", error: "Impossible de charger ou d’enregistrer les paramètres du calendrier.", noSites: "Aucun site actif accessible.",
+  },
+  es: {
+    settings: "Configuración", back: "Volver al perfil", site: "Sede", hours: "Días y horas de apertura",
+    calendar: "Eventos y cierres", zone: "Zona horaria",
+    effective: "Vigente desde", day: "Día", open: "Abierto", opens: "Apertura", closes: "Cierre",
+    nextDay: "Cierra al día siguiente", saveHours: "Guardar horario", saveDate: "Guardar fecha", saved: "Guardado.",
+    event: "Evento especial", description: "¿Qué ocurrió?", date: "Fecha", type: "Estado del día",
+    REGULAR: "Horario habitual", CLOSED: "Cerrado", OPEN: "Apertura excepcional",
+    month: "Mes", recorded: "Fechas registradas", noDates: "No hay eventos ni excepciones este mes.",
+    loading: "Cargando…", error: "No se pudo cargar o guardar la configuración del calendario.", noSites: "No hay sedes activas accesibles.",
+  },
+}

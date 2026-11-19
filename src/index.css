@@ -616,7 +616,29 @@ td {
   font-size: 24px;
   font-weight: bold;
   margin-top: 8px;
+  overflow-wrap: anywhere;
 }
+
+.summary-card { min-width: 0; }
+.summary-forecast { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; }
+.summary-forecast-label, .summary-forecast small { font-size: 12px; line-height: 1.4; color: #4b5563; }
+.summary-forecast-value { margin-top: 4px; font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
+.summary-forecast-sales .summary-forecast-value { color: #2563eb; }
+.summary-forecast-profit .summary-forecast-value { color: #16a34a; }
+.sales-trend-card { min-width: 0; }
+.sales-trend-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.sales-trend-header h3 { margin: 0; }
+.forecast-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.forecast-toggle input { width: 18px; height: 18px; margin: 0; flex: 0 0 18px; }
+.forecast-notice { margin: 10px 0 0; color: #4b5563; font-size: 13px; line-height: 1.5; }
+.forecast-chart-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; padding-top: 10px; font-size: 13px; }
+.forecast-chart-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-line-key { display: inline-block; width: 20px; border-top: 3px solid; margin-right: 5px; vertical-align: middle; flex: 0 0 20px; }
+.chart-line-key.is-forecast { border-top-style: dashed; border-top-width: 2px; }
+.forecast-chart-tooltip { max-width: min(300px, 75vw); padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #111; font-size: 13px; box-shadow: 0 2px 8px #00000014; }
+.forecast-chart-tooltip > strong { display: block; margin-bottom: 6px; }
+.forecast-chart-tooltip > div { margin-top: 4px; }
+.forecast-chart-tooltip small { display: block; margin-top: 8px; color: #4b5563; }
 
 .summary-card-danger .summary-title {
   color: #991b1b;
@@ -713,6 +735,87 @@ td {
 .timezone-preview {
   font-size: 0.92rem;
   color: var(--muted-text, #37556f);
+}
+
+.profile-settings-entry { margin: 16px 0; }
+.settings-site-select, .calendar-month-select { display: grid; gap: 6px; max-width: 320px; }
+.settings-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0; border-bottom: 1px solid #cfdde4; }
+.settings-tabs button { background: transparent; color: var(--text-color); border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 12px; }
+.settings-tabs button[aria-pressed="true"] { border-bottom-color: var(--primary-color); color: var(--primary-color); }
+.calendar-settings-panel { border-top: 1px solid #d8e3e9; padding-top: 16px; }
+.calendar-settings-panel h2 { font-size: 22px; }
+.calendar-settings-panel > h3 { margin-top: 24px; }
+.calendar-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
+.calendar-fields label { display: grid; gap: 6px; min-width: 0; }
+.calendar-fields input, .calendar-fields select, .calendar-fields textarea { box-sizing: border-box; min-width: 0; width: 100%; }
+.calendar-fields .terms-acceptance input { width: auto; }
+.calendar-fields textarea { resize: vertical; }
+.calendar-month-select { margin-bottom: 20px; }
+.business-calendar-layout { display: grid; grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.business-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.calendar-weekday { font-size: 12px; text-align: center; padding: 5px 0; overflow: hidden; }
+.business-calendar button { aspect-ratio: 1; width: 100%; min-width: 0; padding: 0; border-radius: 4px; border: 1px solid #c9d9e1; color: var(--text-color); background: white; }
+.business-calendar button.calendar-event-day { border: 2px solid #168477; }
+.business-calendar button.calendar-closed-day { background: #e8ecef; text-decoration: line-through; }
+.business-calendar button[aria-pressed="true"] { background: var(--primary-color); color: white; }
+.calendar-recorded-dates { padding: 0; list-style: none; }
+.calendar-recorded-dates li { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 12px; border-bottom: 1px solid #d8e3e9; padding: 12px 0; }
+.calendar-recorded-dates span { overflow-wrap: anywhere; }
+.opening-hours-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(130px, 1fr); gap: 16px; align-items: center; border-bottom: 1px solid #d8e3e9; padding-bottom: 14px; }
+@media (max-width: 700px) {
+  .business-calendar-layout { grid-template-columns: minmax(0, 1fr); }
+  .opening-hours-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .opening-hours-row > label:first-child, .opening-hours-row > label:last-child { grid-column: 1 / -1; }
+}
+
+.history-coverage-fields {
+  border: 0;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.history-date-range,
+.history-exception {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.history-date-range label,
+.history-exception label {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.history-coverage-fields input,
+.history-coverage-fields select {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.top-products-card {
+  min-width: 0;
+}
+
+.top-products-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.top-products-scroll table {
+  min-width: 540px;
+}
+
+.top-products-section th {
+  background: #edf5f7;
+  text-align: left;
 }
 
 .terms-acceptance {

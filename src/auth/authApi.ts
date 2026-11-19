@@ -12,6 +12,8 @@ export type AuthenticatedUserResponse = {
   companyOwner: boolean
   companyId: number | null
   companyName: string | null
+  companyTimeZoneId?: string | null
+  companyCurrencyCode?: string | null
   companySidebarColor: string | null
   companyPrimaryColor: string | null
   companyLogoUrl: string | null

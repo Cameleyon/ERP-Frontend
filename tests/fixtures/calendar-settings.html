@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Settings test</title></head>
+<body>
+  <main id="root" style="max-width:1100px;margin:24px auto;padding:0 16px"></main>
+  <script type="module">
+    import React from "react"
+    import { createRoot } from "react-dom/client"
+    import { AuthProvider } from "/src/auth/AuthContext.tsx"
+    import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+    import SettingsPage from "/src/pages/SettingsPage.tsx"
+    import LanguageSwitcher from "/src/components/common/LanguageSwitcher.tsx"
+    import "/src/index.css"
+    const demo = import.meta.env.DEV && ["127.0.0.1", "localhost"].includes(location.hostname)
+      && new URLSearchParams(location.search).get("demo") === "1"
+    if (demo) {
+      const { createCalendarDemoFetch } = await import("./calendar-demo.mjs")
+      window.fetch = createCalendarDemoFetch()
+      document.title = "Local settings demo"
+    }
+    createRoot(document.getElementById("root")).render(
+      React.createElement(AuthProvider, null,
+        React.createElement(LanguageProvider, null,
+          demo && React.createElement("div", { style: { marginBottom: 24 } },
+            React.createElement("p", null, "Demo / Démonstration / Demostración"),
+            React.createElement(LanguageSwitcher)),
+          React.createElement(SettingsPage, { onBack: () => { document.title = "Back to Profile" } }))))
+  </script>
+</body>
+</html>

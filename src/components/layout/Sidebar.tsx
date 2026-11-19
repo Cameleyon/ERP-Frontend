@@ -131,7 +131,7 @@ export default function Sidebar({
             </button>
 
             <button
-              className={`sidebar-button sidebar-footer-button ${page === "profile" ? "active" : ""}`}
+              className={`sidebar-button sidebar-footer-button ${page === "profile" || page === "settings" ? "active" : ""}`}
               onClick={() => onNavigate("profile")}
             >
               {copy.common.profile}

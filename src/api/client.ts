@@ -53,9 +53,11 @@ async function parseResponseBody<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+export async function apiGet<T>(path: string, options: { signal?: AbortSignal; cache?: RequestCache } = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: getAuthHeaders(),
+    signal: options.signal,
+    cache: options.cache,
   })
 
   return parseResponseBody<T>(response)

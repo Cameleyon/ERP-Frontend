@@ -7,3 +7,4 @@ export type Page =
   | "sales-history"
   | "inventory"
   | "profile"
+  | "settings"

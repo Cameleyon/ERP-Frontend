@@ -1,6 +1,21 @@
-export const DEFAULT_COMPANY_TIME_ZONE = "America/Port-au-Prince"
+export const DEFAULT_COMPANY_TIME_ZONE = "Etc/GMT+5"
+
+export function formatTimeZoneLabel(timeZoneId: string) {
+  return timeZoneId === DEFAULT_COMPANY_TIME_ZONE ? "UTC-05:00" : timeZoneId
+}
+
+export function lastCompleteCompanyDate(timeZoneId: string, now = new Date()) {
+  if (!isValidTimeZone(timeZoneId)) return undefined
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en", {
+    timeZone: timeZoneId, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now).map(part => [part.type, part.value]))
+  const date = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)))
+  date.setUTCDate(date.getUTCDate() - 1)
+  return date.toISOString().slice(0, 10)
+}
 
 const FALLBACK_TIME_ZONES: string[] = [
+  DEFAULT_COMPANY_TIME_ZONE,
   "UTC",
   "America/Port-au-Prince",
   "America/New_York",

@@ -17,6 +17,7 @@ import type { Page } from "./types/navigation"
 import PublicLandingPage from "./pages/PublicLandingPage"
 import PublicSignupPage from "./pages/PublicSignupPage"
 import ProfilePage from "./pages/ProfilePage"
+import SettingsPage from "./pages/SettingsPage"
 import MarketingPrivacyPage from "./pages/MarketingPrivacyPage"
 import PlatformRedirectPage from "./pages/PlatformRedirectPage"
 import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
@@ -198,7 +199,8 @@ function AppContent() {
       !isAdmin &&
       (page === "inventory" ||
           page === "cost-rubrics" ||
-          page === "products")
+          page === "products" ||
+          page === "settings")
           ? "dashboard"
           : page
 
@@ -211,7 +213,8 @@ function AppContent() {
         {safePage === "new-sale" && <NewSalePage />}
         {safePage === "sales-history" && <SalesHistoryPage />}
         {safePage === "inventory" && isAdmin && <InventoryPage />}
-        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} />}
+        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} onOpenSettings={() => setPage("settings")} />}
+        {safePage === "settings" && isAdmin && <SettingsPage onBack={() => setPage("profile")} />}
         {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
           onConfigure={() => { setCurrencyRequired(false); setConfigureCurrency(true); setPage("profile") }} />}
       </AppLayout>

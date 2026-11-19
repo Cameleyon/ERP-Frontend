@@ -28,7 +28,7 @@ export default function DashboardFilters({
     <div className="card dashboard-filters">
       <label>
         <span>{text.title}</span>
-        <select value={preset} onChange={(e) => onPresetChange(e.target.value as Preset)}>
+        <select aria-label={text.title} value={preset} onChange={(e) => onPresetChange(e.target.value as Preset)}>
           <option value="today">{text.today}</option>
           <option value="this-week">{text.thisWeek}</option>
           <option value="this-month">{text.thisMonth}</option>

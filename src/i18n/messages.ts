@@ -79,6 +79,10 @@ export const messages = {
     },
     topProductsTable: {
       title: "Top produits",
+      lowestTitle: "Produits les moins vendus et les moins rentables",
+      bySales: "Par ventes",
+      byProfit: "Par bénéfice",
+      profitAmount: "Bénéfice",
       product: "Produit",
       sku: "SKU",
       quantitySold: "Quantité vendue",
@@ -524,6 +528,10 @@ export const messages = {
     },
     topProductsTable: {
       title: "Top products",
+      lowestTitle: "Lowest-selling and least profitable products",
+      bySales: "By sales",
+      byProfit: "By profit",
+      profitAmount: "Profit",
       product: "Product",
       sku: "SKU",
       quantitySold: "Quantity sold",
@@ -969,6 +977,10 @@ export const messages = {
     },
     topProductsTable: {
       title: "Productos principales",
+      lowestTitle: "Productos menos vendidos y menos rentables",
+      bySales: "Por ventas",
+      byProfit: "Por beneficio",
+      profitAmount: "Beneficio",
       product: "Producto",
       sku: "SKU",
       quantitySold: "Cantidad vendida",

@@ -24,6 +24,7 @@ export type TopProductResponse = {
   sku: string
   totalQuantitySold: number
   totalSalesAmount: number
+  totalProfitAmount: number
 }
 
 export type LowStockProductResponse = {
@@ -51,9 +52,9 @@ export function getSalesTrend(startDate: string, endDate: string, locationId?: n
   )
 }
 
-export function getTopProducts(startDate: string, endDate: string, limit = 5, locationId?: number | null) {
+export function getTopProducts(startDate: string, endDate: string, limit = 5, locationId?: number | null, ranking: "SALES" | "PROFIT" | "LOWEST_SALES" | "LOWEST_PROFIT" = "SALES") {
   return apiGet<TopProductResponse[]>(
-    `/dashboard/top-products?startDate=${startDate}&endDate=${endDate}&limit=${limit}${locationQuery(locationId)}`
+    `/dashboard/top-products?startDate=${startDate}&endDate=${endDate}&limit=${limit}&ranking=${ranking}${locationQuery(locationId)}`
   )
 }
 

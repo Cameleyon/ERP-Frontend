@@ -4,15 +4,19 @@ import { formatCurrency, formatNumber } from "../../utils/format"
 
 type Props = {
   rows: TopProductResponse[]
+  profitRows: TopProductResponse[]
+  lowest?: boolean
 }
 
-export default function TopProductsTable({ rows }: Props) {
+export default function TopProductsTable({ rows, profitRows, lowest = false }: Props) {
   const { copy } = useI18n()
   const text = copy.topProductsTable
+  const title = lowest ? text.lowestTitle : text.title
 
   return (
-    <div className="card">
-      <h3>{text.title}</h3>
+    <div className="card top-products-card">
+      <h3>{title}</h3>
+      <div className="top-products-scroll" role="region" aria-label={title} tabIndex={0}>
       <table>
         <thead>
           <tr>
@@ -20,25 +24,33 @@ export default function TopProductsTable({ rows }: Props) {
             <th>{text.sku}</th>
             <th>{text.quantitySold}</th>
             <th>{text.salesAmount}</th>
+            <th>{text.profitAmount}</th>
           </tr>
         </thead>
-        <tbody>
-          {rows.length === 0 ? (
+        {[{ title: text.bySales, products: rows }, { title: text.byProfit, products: profitRows }].map(section => (
+        <tbody key={section.title}>
+          <tr className="top-products-section">
+            <th colSpan={5} scope="rowgroup">{section.title}</th>
+          </tr>
+          {section.products.length === 0 ? (
             <tr>
-              <td colSpan={4}>{text.empty}</td>
+              <td colSpan={5}>{text.empty}</td>
             </tr>
           ) : (
-            rows.map((row) => (
+            section.products.map((row) => (
               <tr key={row.productId}>
                 <td>{row.productName}</td>
                 <td>{row.sku}</td>
                 <td>{formatNumber(row.totalQuantitySold)}</td>
                 <td>{formatCurrency(row.totalSalesAmount)}</td>
+                <td>{formatCurrency(row.totalProfitAmount)}</td>
               </tr>
             ))
           )}
         </tbody>
+        ))}
       </table>
+      </div>
     </div>
   )
 }

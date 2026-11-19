@@ -25,6 +25,7 @@ import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { EmailConsentPreferences } from "../components/common/EmailConsent"
+import { calendarCopy } from "../components/profile/calendarCopy"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
@@ -35,7 +36,8 @@ import {
 import {
   composeStructuredAddress,
   formatCurrentTimeInTimeZone,
-  getBrowserTimeZone,
+  DEFAULT_COMPANY_TIME_ZONE,
+  formatTimeZoneLabel,
   getCountryOptions,
   getTimeZoneOptions,
   isValidTimeZone,
@@ -101,7 +103,7 @@ const emptyForm: FormState = {
   city: "",
   postalCode: "",
   country: "",
-  timeZoneId: getBrowserTimeZone(),
+  timeZoneId: DEFAULT_COMPANY_TIME_ZONE,
   currencyCode: "",
 }
 
@@ -137,7 +139,7 @@ const emptyCompanyLocationForm: CompanyLocationFormState = {
   city: "",
   postalCode: "",
   country: "",
-  timeZoneId: getBrowserTimeZone(),
+  timeZoneId: DEFAULT_COMPANY_TIME_ZONE,
   feeConsentAccepted: false,
 }
 
@@ -159,7 +161,7 @@ function buildFormState(profile: CompanyProfileResponse | null): FormState {
     city: profile.city || "",
     postalCode: profile.postalCode || "",
     country: profile.country || "",
-    timeZoneId: profile.timeZoneId || getBrowserTimeZone(),
+    timeZoneId: profile.timeZoneId || DEFAULT_COMPANY_TIME_ZONE,
     currencyCode: profile.currencyCode || "",
   }
 }
@@ -177,7 +179,7 @@ function cleanSubscriptionNotes(notes: string | null | undefined) {
   return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
 }
 
-export default function ProfilePage({ configureCurrency = false }: { configureCurrency?: boolean }) {
+export default function ProfilePage({ configureCurrency = false, onOpenSettings }: { configureCurrency?: boolean; onOpenSettings?: () => void }) {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
@@ -1142,6 +1144,9 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
           </div>
 
           {user?.companyOwner && <EmailConsentPreferences key={user.email} />}
+          {isAdmin && onOpenSettings && <div className="profile-settings-entry">
+            <button type="button" onClick={onOpenSettings}>{calendarCopy[language].settings}</button>
+          </div>}
 
           {isAdmin && (
             <>
@@ -1243,7 +1248,7 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
                 >
                   {timeZoneOptions.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {formatTimeZoneLabel(option)}
                     </option>
                   ))}
                 </select>
@@ -1284,7 +1289,7 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
                     <td>{location.name}</td>
                     <td>{location.businessType || "-"}</td>
                     <td>{location.address || location.addressLine1 || "-"}</td>
-                    <td>{location.timeZoneId || "-"}</td>
+                    <td>{location.timeZoneId ? formatTimeZoneLabel(location.timeZoneId) : "-"}</td>
                     <td>{location.active ? text.active : text.inactive}</td>
                     <td>{location.feeConsentAccepted ? text.yes : text.no}</td>
                     <td>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</td>
@@ -1569,7 +1574,7 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
                 >
                   {timeZoneOptions.map((timeZoneId) => (
                     <option key={timeZoneId} value={timeZoneId}>
-                      {timeZoneId}
+                      {formatTimeZoneLabel(timeZoneId)}
                     </option>
                   ))}
                 </select>

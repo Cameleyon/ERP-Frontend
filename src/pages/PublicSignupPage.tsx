@@ -6,7 +6,7 @@ import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import type { Language } from "../i18n/messages"
 import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
-import { getBrowserTimeZone } from "../utils/companyLocalization"
+import { DEFAULT_COMPANY_TIME_ZONE } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
 import { metaPixel } from "../utils/metaPixel"
 import { SignupError, isSignupErrorCode, signupErrorCode, signupErrorMessage, validateSignup, validateSignupCode, type SignupErrorCode, type SignupIssue } from "../errors/signupErrors"
@@ -177,7 +177,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
       setSaving(true); setError(""); setVerificationError(""); setVerificationCode("")
       setResent(false); setCodeExpired(false)
       const response = await signupCompany({ companyName: companyName.trim(), adminEmail: email.trim(), adminPassword: password,
-        preferredLanguage, termsAccepted, timeZoneId: getBrowserTimeZone(),
+        preferredLanguage, termsAccepted, timeZoneId: DEFAULT_COMPANY_TIME_ZONE,
         emailProductUpdatesAccepted })
       setPending(response)
       trackSignupEvent("CODE_SENT", currentAttempt)
