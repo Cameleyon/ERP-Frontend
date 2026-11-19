@@ -7,15 +7,17 @@ const origin = process.env.HISTORY_PREVIEW_URL || "http://127.0.0.1:5203"
 const browser = await chromium.launch({ headless: true, channel: "msedge" })
 try {
   for (const [language, width, title, tab, monday, opens, closes, overnight, saveHours, event, type, saveDate, saved] of [
-    ["en", 1100, "Settings", "Opening days and hours", "Monday", "Opens", "Closes", "Closes next day", "Save opening hours", "Special event", "Day status", "Save date", "Saved."],
-    ["fr", 390, "Paramètres", "Jours et heures d’ouverture", "lundi", "Ouverture", "Fermeture", "Ferme le lendemain", "Enregistrer les horaires", "Événement particulier", "Statut du jour", "Enregistrer la date", "Enregistré."],
-    ["es", 390, "Configuración", "Días y horas de apertura", "lunes", "Apertura", "Cierre", "Cierra al día siguiente", "Guardar horario", "Evento especial", "Estado del día", "Guardar fecha", "Guardado."],
+    ["en", 1100, "Settings", "Opening days and hours", "Monday", "Opens", "Closes", "Closing time is on the following day", "Save opening hours", "Special event", "Day status", "Save date", "Saved."],
+    ["fr", 390, "Paramètres", "Jours et heures d’ouverture", "lundi", "Ouverture", "Fermeture", "L’heure de fermeture est le lendemain", "Enregistrer les horaires", "Événement particulier", "Statut du jour", "Enregistrer la date", "Enregistré."],
+    ["es", 390, "Configuración", "Días y horas de apertura", "lunes", "Apertura", "Cierre", "La hora de cierre corresponde al día siguiente", "Guardar horario", "Evento especial", "Estado del día", "Guardar fecha", "Guardado."],
   ]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } })
     await page.addInitScript(lang => localStorage.setItem("cameleyon-ui-language", lang), language)
     const settings = { locationId: 9, effectiveFrom: null, weekdays: [], dates: [], schedules: [] }
     let hoursPayload
     let datePayload
+    let hoursWrites = 0
+    let failNextHours = false
     await page.route("**/api/**", async route => {
       const request = route.request()
       const path = new URL(request.url()).pathname
@@ -27,10 +29,14 @@ try {
       if (request.method() === "PUT") {
         status = 204
         if (path.endsWith("/hours")) {
+          hoursWrites++
           hoursPayload = request.postDataJSON()
-          settings.effectiveFrom = hoursPayload.effectiveFrom
-          settings.weekdays = hoursPayload.weekdays
-          settings.schedules = [hoursPayload]
+          if (failNextHours) { failNextHours = false; status = 500 }
+          else {
+            settings.effectiveFrom = hoursPayload.effectiveFrom
+            settings.weekdays = hoursPayload.weekdays
+            settings.schedules = [hoursPayload]
+          }
         } else {
           datePayload = request.postDataJSON()
           const date = path.split("/").at(-1)
@@ -72,6 +78,48 @@ try {
     assert.deepEqual(hoursPayload.weekdays[0], { weekday: 1, open: true, opensAt: "22:00", closesAt: "02:00", closesNextDay: true })
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
     await page.getByRole("checkbox", { name: monday, exact: true }).waitFor()
+    const edit = language === "fr" ? "Modifier les horaires" : language === "es" ? "Editar horario" : "Edit opening hours"
+    const cancel = language === "fr" ? "Annuler" : language === "es" ? "Cancelar" : "Cancel"
+    const close = language === "fr" ? "Fermer" : language === "es" ? "Cerrar" : "Close"
+    const mondayCheckbox = page.getByRole("checkbox", { name: monday, exact: true })
+    const opensInput = page.getByLabel(monday + " " + opens, { exact: true })
+    const saveButton = page.getByRole("button", { name: saveHours, exact: true })
+    await page.getByRole("button", { name: edit, exact: true }).waitFor()
+    assert.equal(await mondayCheckbox.isDisabled(), true)
+    assert.equal(await opensInput.isDisabled(), true)
+    assert.equal(await page.locator("input[type=date]").isDisabled(), true)
+    assert.equal(await saveButton.isDisabled(), true)
+    await page.getByRole("button", { name: edit, exact: true }).click()
+    assert.equal(await mondayCheckbox.isDisabled(), false)
+    assert.equal(await saveButton.isDisabled(), true)
+    await opensInput.fill("21:00")
+    assert.equal(await saveButton.isDisabled(), false)
+    await opensInput.fill("22:00")
+    assert.equal(await saveButton.isDisabled(), true)
+    await opensInput.fill("21:00")
+    await page.getByRole("button", { name: cancel, exact: true }).click()
+    assert.equal(await opensInput.inputValue(), "22:00")
+    assert.equal(await opensInput.isDisabled(), true)
+    assert.equal(hoursWrites, 1)
+    await page.getByRole("button", { name: edit, exact: true }).click()
+    await opensInput.fill("21:00")
+    failNextHours = true
+    await saveButton.click()
+    await page.getByRole("alertdialog").waitFor()
+    await page.getByRole("button", { name: close, exact: true }).click()
+    assert.equal(await opensInput.isDisabled(), false)
+    assert.equal(await opensInput.inputValue(), "21:00")
+    assert.equal(await saveButton.isDisabled(), false)
+    await saveButton.click()
+    await page.getByRole("button", { name: edit, exact: true }).waitFor()
+    assert.equal(await opensInput.isDisabled(), true)
+    assert.equal(hoursWrites, 3)
+    assert.equal(settings.weekdays[0].opensAt, "21:00")
+    await page.reload()
+    await page.getByRole("button", { name: tab, exact: true }).click()
+    await page.getByRole("button", { name: edit, exact: true }).waitFor()
+    assert.equal(await opensInput.isDisabled(), true)
+    assert.equal(await opensInput.inputValue(), "21:00")
     if (process.env.HISTORY_SCREENSHOT_DIR) {
       await page.screenshot({ path: process.env.HISTORY_SCREENSHOT_DIR + "/calendar-hours-" + language + ".png", fullPage: true })
     }

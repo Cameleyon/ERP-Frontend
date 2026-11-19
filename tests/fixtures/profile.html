@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Profile translation test</title></head>
+<body>
+  <main id="root" style="max-width:1200px;margin:20px auto;padding:0 16px"></main>
+  <script type="module">
+    import React from "react"
+    import { createRoot } from "react-dom/client"
+    import { AuthProvider, useAuth } from "/src/auth/AuthContext.tsx"
+    import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+    import ProfilePage from "/src/pages/ProfilePage.tsx"
+    import LanguageSwitcher from "/src/components/common/LanguageSwitcher.tsx"
+    import "/src/index.css"
+    function ProfileFixture() {
+      const { user } = useAuth()
+      return user ? React.createElement(ProfilePage, { configureCurrency: new URLSearchParams(location.search).has("currency") }) : null
+    }
+    createRoot(document.getElementById("root")).render(React.createElement(AuthProvider, null,
+      React.createElement(LanguageProvider, null, React.createElement(LanguageSwitcher), React.createElement(ProfileFixture))))
+  </script>
+</body>
+</html>

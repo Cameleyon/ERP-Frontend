@@ -25,7 +25,8 @@ import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { EmailConsentPreferences } from "../components/common/EmailConsent"
-import { calendarCopy } from "../components/profile/calendarCopy"
+import { profileValueLabel } from "../components/profile/profileValueCopy"
+import ProfileSection from "../components/profile/ProfileSection"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
@@ -179,7 +180,7 @@ function cleanSubscriptionNotes(notes: string | null | undefined) {
   return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
 }
 
-export default function ProfilePage({ configureCurrency = false, onOpenSettings }: { configureCurrency?: boolean; onOpenSettings?: () => void }) {
+export default function ProfilePage({ configureCurrency = false }: { configureCurrency?: boolean }) {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
@@ -281,6 +282,7 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
         addUserButton: "Ajouter l'utilisateur",
         addUserSubmitting: "Ajout...",
         noUsers: "Aucun utilisateur trouvé.",
+        noLocations: "Aucun site trouvé.",
         consent: "Consentement",
         consentDate: "Date du consentement",
         fee: "Frais",
@@ -344,7 +346,136 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
         billingPortal: "Ouvrir le portail de facturation",
         stopAutoPay: "Arrêter les paiements automatiques",
       }
-    : {
+    : language === "es" ? {
+        loadError: "No se pudo cargar el perfil",
+        companyNameRequired: "El nombre de la empresa es obligatorio",
+        saveSuccess: "Perfil actualizado correctamente",
+        saveError: "No se pudo actualizar el perfil",
+        prepareCardError: "No se pudo preparar el registro de la tarjeta",
+        missingCheckoutUrl: "No se recibió la URL de Stripe Checkout",
+        startPaidError: "No se pudo iniciar la suscripción de pago",
+        openPortalError: "No se pudo abrir el portal de facturación",
+        disableAutoPayError: "No se pudo desactivar el pago automático con tarjeta",
+        refreshPaymentError: "No se pudo actualizar el método de pago",
+        refreshPaymentSuccess: "Método de pago actualizado correctamente",
+        title: "Perfil",
+        loading: "Cargando el perfil...",
+        companyLabel: "Empresa",
+        userProfile: "Perfil de usuario",
+        firstName: "Nombre",
+        lastName: "Apellido",
+        role: "Rol",
+        password: "Contraseña",
+        hiddenPassword: "********",
+        edit: "Editar",
+        changePassword: "Cambiar contraseña",
+        currentPassword: "Contraseña actual",
+        newPassword: "Nueva contraseña",
+        confirmPassword: "Confirmar contraseña",
+        passwordRequired: "Todos los campos de contraseña son obligatorios",
+        passwordMismatch: "Las nuevas contraseñas no coinciden",
+        passwordTooShort: "La nueva contraseña debe tener al menos 8 caracteres",
+        passwordSuccess: "Contraseña actualizada correctamente",
+        passwordError: "No se pudo cambiar la contraseña",
+        userProfileSuccess: "Perfil de usuario actualizado correctamente",
+        userProfileError: "No se pudo actualizar el perfil de usuario",
+        emailPasswordRequired: "La contraseña actual es obligatoria para cambiar el correo electrónico",
+        companyInfo: "Información de la empresa",
+        usersSectionTitle: "Usuarios",
+        usersSectionSubtitle: "Añada o desactive usuarios adicionales. Todo mes iniciado se debe pagar y el próximo ciclo de facturación reflejará los cambios de estado.",
+        usersLoadError: "No se pudieron cargar los usuarios",
+        usersCreateError: "No se pudo crear el usuario",
+        usersCreateSuccess: "Usuario creado correctamente",
+        usersUpdateStatusError: "No se pudo actualizar el estado del usuario",
+        usersUpdateStatusSuccess: "Estado del usuario actualizado correctamente",
+        additionalUserWarningTitle: "Impacto en la tarifa",
+        additionalUserWarningMessage: "Cada usuario adicional activo añade 5 USD al próximo ciclo de facturación. Si se desactiva un usuario, el cambio se reflejará en el próximo ciclo de facturación.",
+        additionalUserConsentLabel: "Entiendo y acepto el aumento de 5 USD por este usuario adicional.",
+        additionalUserConsentRequired: "Su consentimiento es obligatorio antes de crear un usuario adicional.",
+        usersRequired: "Todos los campos para crear un usuario son obligatorios",
+        usersListTitle: "Usuarios de la empresa",
+        locationsSectionTitle: "Sedes",
+        locationsSectionSubtitle: "Añada las sedes administradas por esta empresa.",
+        additionalLocationWarningTitle: "Impacto en la tarifa",
+        additionalLocationWarningMessage: "Cada nueva sede añade 9,99 USD al próximo ciclo de facturación.",
+        additionalLocationConsentLabel: "Entiendo y acepto el aumento de 9,99 USD por esta nueva sede.",
+        additionalLocationConsentRequired: "Su consentimiento es obligatorio antes de crear una nueva sede.",
+        locationName: "Nombre de la sede",
+        addLocationTitle: "Añadir una sede",
+        addLocationButton: "Añadir sede",
+        locationsCreateSuccess: "Sede creada correctamente",
+        locationsCreateError: "No se pudo crear la sede",
+        locationsLoadError: "No se pudieron cargar las sedes",
+        assignedLocations: "Sedes asignadas",
+        allLocationsAccess: "Todas",
+        addUserTitle: "Añadir un usuario",
+        addUserButton: "Añadir usuario",
+        addUserSubmitting: "Añadiendo...",
+        noUsers: "No se encontraron usuarios.",
+        noLocations: "No se encontraron sedes.",
+        consent: "Consentimiento",
+        consentDate: "Fecha del consentimiento",
+        fee: "Cargo",
+        notTracked: "Sin registrar",
+        deactivate: "Desactivar",
+        reactivate: "Reactivar",
+        cannotDeactivateSelf: "No puede desactivar su propia cuenta.",
+        editProfile: "Editar perfil",
+        status: "Estado",
+        active: "Activo",
+        inactive: "Inactivo",
+        companyName: "Nombre de la empresa",
+        businessType: "Tipo de actividad",
+        phone: "Teléfono",
+        email: "Correo electrónico",
+        city: "Ciudad",
+        postalCode: "Código postal",
+        country: "País",
+        timeZone: "Zona horaria",
+        currentTime: "Hora actual",
+        invalidTimeZone: "Zona horaria no válida",
+        currency: "Moneda",
+        address: "Dirección",
+        cancel: "Cancelar",
+        saving: "Guardando...",
+        saveProfile: "Guardar perfil",
+        subscription: "Suscripción",
+        noSubscription: "No se encontró ninguna suscripción.",
+        plan: "Plan",
+        billingMode: "Modo de facturación",
+        billingCycle: "Ciclo de facturación",
+        paymentCollection: "Método de cobro",
+        provider: "Proveedor",
+        accessStart: "Inicio del acceso",
+        accessEnd: "Fin del acceso",
+        graceEnd: "Fin del período de gracia",
+        autoRenew: "Renovación automática",
+        requiresPaymentMethod: "Método de pago obligatorio",
+        additionalUsers: "Usuarios adicionales",
+        additionalUserFee: "Cargo por usuario adicional",
+        additionalUserTotal: "Cargo adicional total por ciclo",
+        additionalLocations: "Sedes adicionales",
+        additionalLocationFee: "Cargo por sede adicional",
+        additionalLocationTotal: "Cargo de sedes por ciclo",
+        notes: "Notas",
+        yes: "Sí",
+        no: "No",
+        paymentMethod: "Método de pago",
+        noSubscriptionLoaded: "No se ha cargado ninguna suscripción.",
+        stripeNotConfigured: "Esta empresa aún no está configurada para la facturación con Stripe. Puede registrar una tarjeta de crédito para crear su cuenta de Stripe y activar los pagos automáticos con tarjeta.",
+        registerCard: "Registrar tarjeta de crédito",
+        preparing: "Preparando...",
+        customerId: "ID de cliente",
+        defaultPaymentMethodId: "ID del método de pago predeterminado",
+        cardBrand: "Marca de la tarjeta",
+        last4: "Últimos 4 dígitos",
+        warning: "Se ha cancelado el pago automático con tarjeta. En la próxima fecha de facturación, deberá pagar manualmente. De lo contrario, la cuenta se bloqueará automáticamente después de 10 días.",
+        startPaid: "Iniciar suscripción de pago",
+        resumeAutoPay: "Reanudar pagos automáticos",
+        editCard: "Modificar tarjeta",
+        billingPortal: "Abrir portal de facturación",
+        stopAutoPay: "Detener pagos automáticos",
+      } : {
         loadError: "Failed to load profile",
         companyNameRequired: "Company name is required",
         saveSuccess: "Profile updated successfully",
@@ -410,6 +541,7 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
         addUserButton: "Add user",
         addUserSubmitting: "Adding...",
         noUsers: "No users found.",
+        noLocations: "No sites found.",
         consent: "Consent",
         consentDate: "Consent date",
         fee: "Fee",
@@ -655,7 +787,7 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
   }
 
   function getCompanyUserRoleLabel(role: string) {
-    return role === "ADMIN" ? "ADMIN" : role === "CASHIER" ? "CASHIER" : role
+    return profileValueLabel(role, language)
   }
 
   async function handleCreateCompanyUser(event: React.FormEvent) {
@@ -1120,15 +1252,13 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
         </div>
       ) : (
         <>
-          <div className="card">
-            <h3>{text.companyLabel}</h3>
+          <ProfileSection title={text.companyLabel}>
             <div className="detail-grid">
               <p><strong>{text.companyName}:</strong> {user?.companyName || "-"}</p>
             </div>
-          </div>
+          </ProfileSection>
 
-          <div className="card">
-            <h3>{text.userProfile}</h3>
+          <ProfileSection title={text.userProfile}>
             <div className="profile-edit-list">
               {renderEditableUserRow("firstName", text.firstName, user?.firstName || "")}
               {renderEditableUserRow("lastName", text.lastName, user?.lastName || "")}
@@ -1136,22 +1266,51 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
               <div className="profile-edit-row">
                 <div className="profile-edit-content">
                   <strong>{text.role}:</strong>
-                  <span>{user?.role || "-"}</span>
+                  <span>{profileValueLabel(user?.role, language)}</span>
                 </div>
               </div>
               {renderPasswordRow()}
             </div>
-          </div>
+          </ProfileSection>
 
           {user?.companyOwner && <EmailConsentPreferences key={user.email} />}
-          {isAdmin && onOpenSettings && <div className="profile-settings-entry">
-            <button type="button" onClick={onOpenSettings}>{calendarCopy[language].settings}</button>
-          </div>}
 
           {isAdmin && (
             <>
-          <div className="card">
-            <h3>{text.locationsSectionTitle}</h3>
+          <ProfileSection title={text.locationsSectionTitle}>
+            <div className="profile-table-scroll" role="region" aria-label={text.locationsSectionTitle} tabIndex={0}>
+            <table>
+              <thead>
+                <tr>
+                  <th>{text.locationName}</th>
+                  <th>{text.businessType}</th>
+                  <th>{text.address}</th>
+                  <th>{text.timeZone}</th>
+                  <th>{text.status}</th>
+                  <th>{text.consent}</th>
+                  <th>{text.consentDate}</th>
+                  <th>{text.fee}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companyLocations.length === 0 ? <tr><td colSpan={8}>{text.noLocations}</td></tr> : companyLocations.map((location) => (
+                  <tr key={location.id}>
+                    <td>{location.name}</td>
+                    <td>{location.businessType || "-"}</td>
+                    <td>{location.address || location.addressLine1 || "-"}</td>
+                    <td>{location.timeZoneId ? formatTimeZoneLabel(location.timeZoneId) : "-"}</td>
+                    <td>{location.active ? text.active : text.inactive}</td>
+                    <td>{location.feeConsentAccepted ? text.yes : text.no}</td>
+                    <td>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</td>
+                    <td>{location.feeAmountUsd ? `${location.feeAmountUsd} USD` : text.notTracked}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </ProfileSection>
+
+          <ProfileSection title={text.addLocationTitle}>
             <p>{text.locationsSectionSubtitle}</p>
 
             <div className="company-user-warning">
@@ -1160,8 +1319,6 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
             </div>
 
             <form onSubmit={handleCreateCompanyLocation} className="product-form-grid">
-              <h4 className="full-width" style={{ margin: 0 }}>{text.addLocationTitle}</h4>
-
               <label>
                 {text.locationName}
                 <input
@@ -1269,133 +1426,10 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
                 </button>
               </div>
             </form>
+          </ProfileSection>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>{text.locationName}</th>
-                  <th>{text.businessType}</th>
-                  <th>{text.address}</th>
-                  <th>{text.timeZone}</th>
-                  <th>{text.status}</th>
-                  <th>{text.consent}</th>
-                  <th>{text.consentDate}</th>
-                  <th>{text.fee}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {companyLocations.map((location) => (
-                  <tr key={location.id}>
-                    <td>{location.name}</td>
-                    <td>{location.businessType || "-"}</td>
-                    <td>{location.address || location.addressLine1 || "-"}</td>
-                    <td>{location.timeZoneId ? formatTimeZoneLabel(location.timeZoneId) : "-"}</td>
-                    <td>{location.active ? text.active : text.inactive}</td>
-                    <td>{location.feeConsentAccepted ? text.yes : text.no}</td>
-                    <td>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</td>
-                    <td>{location.feeAmountUsd ? `${location.feeAmountUsd} USD` : text.notTracked}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="card">
-            <h3>{text.usersSectionTitle}</h3>
-            <p>{text.usersSectionSubtitle}</p>
-
-            {user?.companyOwner && <><div className="company-user-warning">
-              <strong>{text.additionalUserWarningTitle}</strong>
-              <span>{text.additionalUserWarningMessage}</span>
-            </div>
-
-            <form onSubmit={handleCreateCompanyUser} className="product-form-grid">
-              <h4 className="full-width" style={{ margin: 0 }}>{text.addUserTitle}</h4>
-
-              <label>
-                {text.firstName}
-                <input
-                  type="text"
-                  value={companyUserCreateForm.firstName}
-                  onChange={(event) => updateCompanyUserCreateForm("firstName", event.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.lastName}
-                <input
-                  type="text"
-                  value={companyUserCreateForm.lastName}
-                  onChange={(event) => updateCompanyUserCreateForm("lastName", event.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.email}
-                <input
-                  type="email"
-                  value={companyUserCreateForm.email}
-                  onChange={(event) => updateCompanyUserCreateForm("email", event.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.password}
-                <input
-                  type="password"
-                  value={companyUserCreateForm.password}
-                  onChange={(event) => updateCompanyUserCreateForm("password", event.target.value)}
-                />
-              </label>
-
-              <label>
-                {text.role}
-                <select
-                  value={companyUserCreateForm.role}
-                  onChange={(event) => updateCompanyUserCreateForm("role", event.target.value as "ADMIN" | "CASHIER")}
-                >
-                  <option value="CASHIER">CASHIER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </label>
-
-              {companyLocations.length > 0 && (
-                <div className="full-width">
-                  <strong>{text.assignedLocations}</strong>
-                  <p style={{ marginTop: 6 }}>{text.allLocationsAccess}: {companyUserCreateForm.locationIds.length === 0 ? text.yes : text.no}</p>
-                  <div className="company-user-location-list">
-                    {companyLocations.map((location) => (
-                      <label key={location.id} className="checkbox-field">
-                        <input
-                          type="checkbox"
-                          checked={companyUserCreateForm.locationIds.includes(String(location.id))}
-                          onChange={(event) => toggleCompanyUserLocation(location.id, event.target.checked)}
-                        />
-                        <span>{location.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <label className="checkbox-field full-width company-user-consent">
-                <input
-                  type="checkbox"
-                  checked={companyUserCreateForm.feeConsentAccepted}
-                  onChange={(event) => updateCompanyUserCreateForm("feeConsentAccepted", event.target.checked)}
-                />
-                <span>{text.additionalUserConsentLabel}</span>
-              </label>
-
-              <div className="form-actions full-width">
-                <button type="submit" disabled={companyUsersSaving}>
-                  {companyUsersSaving ? text.addUserSubmitting : text.addUserButton}
-                </button>
-              </div>
-            </form></>}
-
-            <div style={{ marginTop: 24 }}>
-              <h4 style={{ marginTop: 0 }}>{text.usersListTitle}</h4>
+          <ProfileSection title={text.usersSectionTitle}>
+            <div className="profile-table-scroll" role="region" aria-label={text.usersListTitle} tabIndex={0}>
               <table>
                 <thead>
                   <tr>
@@ -1448,11 +1482,102 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
                 </tbody>
               </table>
             </div>
-          </div>
+          </ProfileSection>
 
-          <div className="card">
+          {user?.companyOwner && <ProfileSection title={text.addUserTitle}>
+            <p>{text.usersSectionSubtitle}</p>
+
+            <div className="company-user-warning">
+              <strong>{text.additionalUserWarningTitle}</strong>
+              <span>{text.additionalUserWarningMessage}</span>
+            </div>
+
+            <form onSubmit={handleCreateCompanyUser} className="product-form-grid">
+              <label>
+                {text.firstName}
+                <input
+                  type="text"
+                  value={companyUserCreateForm.firstName}
+                  onChange={(event) => updateCompanyUserCreateForm("firstName", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.lastName}
+                <input
+                  type="text"
+                  value={companyUserCreateForm.lastName}
+                  onChange={(event) => updateCompanyUserCreateForm("lastName", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.email}
+                <input
+                  type="email"
+                  value={companyUserCreateForm.email}
+                  onChange={(event) => updateCompanyUserCreateForm("email", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.password}
+                <input
+                  type="password"
+                  value={companyUserCreateForm.password}
+                  onChange={(event) => updateCompanyUserCreateForm("password", event.target.value)}
+                />
+              </label>
+
+              <label>
+                {text.role}
+                <select
+                  value={companyUserCreateForm.role}
+                  onChange={(event) => updateCompanyUserCreateForm("role", event.target.value as "ADMIN" | "CASHIER")}
+                >
+                  <option value="CASHIER">{getCompanyUserRoleLabel("CASHIER")}</option>
+                  <option value="ADMIN">{getCompanyUserRoleLabel("ADMIN")}</option>
+                </select>
+              </label>
+
+              {companyLocations.length > 0 && (
+                <div className="full-width">
+                  <strong>{text.assignedLocations}</strong>
+                  <p style={{ marginTop: 6 }}>{text.allLocationsAccess}: {companyUserCreateForm.locationIds.length === 0 ? text.yes : text.no}</p>
+                  <div className="company-user-location-list">
+                    {companyLocations.map((location) => (
+                      <label key={location.id} className="checkbox-field">
+                        <input
+                          type="checkbox"
+                          checked={companyUserCreateForm.locationIds.includes(String(location.id))}
+                          onChange={(event) => toggleCompanyUserLocation(location.id, event.target.checked)}
+                        />
+                        <span>{location.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <label className="checkbox-field full-width company-user-consent">
+                <input
+                  type="checkbox"
+                  checked={companyUserCreateForm.feeConsentAccepted}
+                  onChange={(event) => updateCompanyUserCreateForm("feeConsentAccepted", event.target.checked)}
+                />
+                <span>{text.additionalUserConsentLabel}</span>
+              </label>
+
+              <div className="form-actions full-width">
+                <button type="submit" disabled={companyUsersSaving}>
+                  {companyUsersSaving ? text.addUserSubmitting : text.addUserButton}
+                </button>
+              </div>
+            </form>
+          </ProfileSection>}
+
+          <ProfileSection title={text.companyInfo} reveal={configureCurrency}>
             <div className="table-actions" style={{ marginBottom: 16, justifyContent: "space-between" }}>
-              <h3 style={{ margin: 0 }}>{text.companyInfo}</h3>
               {!isEditing && (
                 <button type="button" className="secondary-button" onClick={handleStartEditing}>
                   {text.editProfile}
@@ -1601,26 +1726,25 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
                 </button>
               </div>
             </form>
-          </div>
+          </ProfileSection>
 
-          <div className="card">
-            <h3>{text.subscription}</h3>
+          <ProfileSection title={text.subscription}>
 
             {!subscription ? (
               <p>{text.noSubscription}</p>
             ) : (
               <div className="detail-grid">
                 <p><strong>{text.plan}:</strong> {subscription.planName} ({subscription.planCode})</p>
-                <p><strong>{text.status}:</strong> {subscription.status}</p>
-                <p><strong>{text.billingMode}:</strong> {subscription.billingMode}</p>
-                <p><strong>{text.billingCycle}:</strong> {subscription.billingCycle}</p>
-                <p><strong>{text.paymentCollection}:</strong> {subscription.paymentCollectionMethod}</p>
-                <p><strong>{text.provider}:</strong> {subscription.paymentProvider}</p>
-                <p><strong>{text.accessStart}:</strong> {formatDateTime(subscription.accessStartAt)}</p>
-                <p><strong>{text.accessEnd}:</strong> {formatDateTime(subscription.accessEndAt)}</p>
+                <p><strong>{text.status}:</strong> {profileValueLabel(subscription.status, language)}</p>
+                <p><strong>{text.billingMode}:</strong> {profileValueLabel(subscription.billingMode, language)}</p>
+                <p><strong>{text.billingCycle}:</strong> {profileValueLabel(subscription.billingCycle, language)}</p>
+                <p><strong>{text.paymentCollection}:</strong> {profileValueLabel(subscription.paymentCollectionMethod, language)}</p>
+                <p><strong>{text.provider}:</strong> {profileValueLabel(subscription.paymentProvider, language)}</p>
+                <p><strong>{text.accessStart}:</strong> {formatDateTime(subscription.accessStartAt, language)}</p>
+                <p><strong>{text.accessEnd}:</strong> {formatDateTime(subscription.accessEndAt, language)}</p>
                 <p>
                   <strong>{text.graceEnd}:</strong>{" "}
-                  {subscription.gracePeriodEndAt ? formatDateTime(subscription.gracePeriodEndAt) : "-"}
+                  {subscription.gracePeriodEndAt ? formatDateTime(subscription.gracePeriodEndAt, language) : "-"}
                 </p>
                 <p><strong>{text.autoRenew}:</strong> {subscription.autoRenew ? text.yes : text.no}</p>
                 <p>
@@ -1656,10 +1780,9 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
                 <p className="full-width"><strong>{text.notes}:</strong> {cleanSubscriptionNotes(subscription.notes)}</p>
               </div>
             )}
-          </div>
+          </ProfileSection>
 
-          <div className="card">
-            <h3>{text.paymentMethod}</h3>
+          <ProfileSection title={text.paymentMethod}>
 
             {!subscription ? (
               <p>{text.noSubscriptionLoaded}</p>
@@ -1745,7 +1868,7 @@ export default function ProfilePage({ configureCurrency = false, onOpenSettings 
                 )}
               </>
             )}
-          </div>
+          </ProfileSection>
             </>
           )}
         </>

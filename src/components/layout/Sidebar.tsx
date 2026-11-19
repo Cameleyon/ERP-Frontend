@@ -2,6 +2,8 @@ import { useAuth } from "../../auth/AuthContext"
 import { useI18n } from "../../i18n/I18nContext"
 import type { Page } from "../../types/navigation"
 import LanguageSwitcher from "../common/LanguageSwitcher"
+import { calendarCopy } from "../profile/calendarCopy"
+import { profileValueLabel } from "../profile/profileValueCopy"
 
 type Props = {
   page: Page
@@ -17,7 +19,7 @@ export default function Sidebar({
   onCloseMobile,
 }: Props) {
   const { user, logoutUser } = useAuth()
-  const { copy } = useI18n()
+  const { copy, language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
 
   const sidebarStyle = {
@@ -64,7 +66,12 @@ export default function Sidebar({
           {user && (
             <div className="sidebar-user">
               <div>{[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}</div>
-              <div>{user.role}</div>
+              <div className="sidebar-user-actions">
+                <span>{profileValueLabel(user.role, language)}</span>
+                <button type="button" className="sidebar-logout-button" onClick={logoutUser}>
+                  {copy.common.logout}
+                </button>
+              </div>
             </div>
           )}
 
@@ -126,16 +133,18 @@ export default function Sidebar({
 
         <div className="sidebar-footer">
           <div className="sidebar-footer-actions">
-            <button className="sidebar-button sidebar-footer-button logout-button" onClick={logoutUser}>
-              {copy.common.logout}
-            </button>
-
             <button
-              className={`sidebar-button sidebar-footer-button ${page === "profile" || page === "settings" ? "active" : ""}`}
+              className={`sidebar-button sidebar-footer-button ${page === "profile" ? "active" : ""}`}
               onClick={() => onNavigate("profile")}
             >
               {copy.common.profile}
             </button>
+            {isAdmin && <button
+              className={`sidebar-button sidebar-footer-button ${page === "settings" ? "active" : ""}`}
+              onClick={() => onNavigate("settings")}
+            >
+              {calendarCopy[language].settings}
+            </button>}
           </div>
 
           <div className="sidebar-product-name">

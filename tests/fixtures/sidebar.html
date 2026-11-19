@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sidebar navigation test</title></head>
+<body><div id="root"></div>
+<script type="module">
+  import React from "react"
+  import { createRoot } from "react-dom/client"
+  import { AuthProvider, useAuth } from "/src/auth/AuthContext.tsx"
+  import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+  import AppLayout from "/src/components/layout/AppLayout.tsx"
+  import "/src/index.css"
+  function NavigationFixture() {
+    const { user } = useAuth()
+    const [page, setPage] = React.useState("dashboard")
+    if (!user) return React.createElement("p", { id: "signed-out" }, "Signed out")
+    return React.createElement(AppLayout, { page, onNavigate: setPage }, React.createElement("h1", { id: "selected-page" }, page))
+  }
+  createRoot(document.getElementById("root")).render(React.createElement(AuthProvider, null,
+    React.createElement(LanguageProvider, null, React.createElement(NavigationFixture))))
+</script></body></html>

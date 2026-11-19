@@ -25,7 +25,14 @@ export default function StripePaymentMethodForm({ clientSecret, onSuccess }: Pro
         saving: "Enregistrement...",
         save: "Enregistrer la carte",
       }
-    : {
+    : language === "es" ? {
+        stripeNotReady: "Stripe aún no está listo",
+        cardUnavailable: "El campo de tarjeta no está disponible",
+        saveError: "No se pudo guardar el método de pago",
+        saveSuccess: "Método de pago guardado correctamente",
+        saving: "Guardando...",
+        save: "Guardar tarjeta",
+      } : {
         stripeNotReady: "Stripe is not ready yet",
         cardUnavailable: "The card field is not available",
         saveError: "Failed to save the payment method",

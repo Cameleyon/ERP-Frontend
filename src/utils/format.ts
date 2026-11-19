@@ -7,14 +7,14 @@ export function formatCurrency(value: number, currency = "USD", locale = "en-US"
   }).format(value)
 }
 
-export function formatDateTime(value: string) {
+export function formatDateTime(value: string, locale = "en-CA") {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
     return value
   }
 
-  return new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "short",
     day: "2-digit",

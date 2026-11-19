@@ -919,7 +919,7 @@ export const messages = {
       scrollTableRight: "Desplazar la tabla a la derecha",
       wholeNumberQuantity: "Este producto requiere una cantidad entera, sin decimales.",
       saleQuantityPrecision: "Las cantidades de venta pueden tener hasta dos decimales.",
-      menu: "Menu",
+      menu: "Menú",
       logout: "Cerrar sesión",
       profile: "Perfil",
       active: "Activo",

@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react"
 import { getEmailConsentPreference, updateEmailConsentPreference } from "../../api/emailConsentApi"
 import { useI18n } from "../../i18n/I18nContext"
 import ErrorMessage from "./ErrorMessage"
+import ProfileSection from "../profile/ProfileSection"
 
 const copy = {
   fr: {
@@ -88,8 +89,7 @@ export function EmailConsentPreferences() {
   }
 
   return (
-    <section className="card">
-      <h3>{text.title}</h3>
+    <ProfileSection title={text.title}>
       <EmailConsentCheckbox checked={checked} disabled={busy}
         onChange={value => { setChecked(value); setConfirmed(false) }} />
       <div className="form-actions">
@@ -97,6 +97,6 @@ export function EmailConsentPreferences() {
       </div>
       {confirmed && <p role="status">{text.saved}</p>}
       {failed && <ErrorMessage message={text.error} onDismiss={() => setFailed(false)} />}
-    </section>
+    </ProfileSection>
   )
 }

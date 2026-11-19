@@ -213,7 +213,7 @@ function AppContent() {
         {safePage === "new-sale" && <NewSalePage />}
         {safePage === "sales-history" && <SalesHistoryPage />}
         {safePage === "inventory" && isAdmin && <InventoryPage />}
-        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} onOpenSettings={() => setPage("settings")} />}
+        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} />}
         {safePage === "settings" && isAdmin && <SettingsPage onBack={() => setPage("profile")} />}
         {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
           onConfigure={() => { setCurrencyRequired(false); setConfigureCurrency(true); setPage("profile") }} />}

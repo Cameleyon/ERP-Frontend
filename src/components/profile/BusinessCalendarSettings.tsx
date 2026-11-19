@@ -4,7 +4,7 @@ import { useI18n } from "../../i18n/I18nContext"
 import ErrorMessage from "../common/ErrorMessage"
 import { calendarCopy } from "./calendarCopy"
 import { DEFAULT_COMPANY_TIME_ZONE, formatTimeZoneLabel, lastCompleteCompanyDate } from "../../utils/companyLocalization"
-import { calendarDateIsClosed } from "../../utils/businessCalendar"
+import { calendarDateIsClosed, openingDaysForForm, openingHoursChanged } from "../../utils/businessCalendar"
 
 type View = "calendar" | "hours"
 
@@ -51,7 +51,7 @@ export default function BusinessCalendarSettings({ site, zone, view }: { site: n
       onChange={event => { if (event.target.value) { setSaved(false); setMonth(event.target.value); setSelected(event.target.value + "-01") } }} /></label>}
     {!ready ? !failed && <p role="status">{text.loading}</p> : view === "hours"
       ? <HoursEditor key={loadKey} site={site} effective={data.calendar.effectiveFrom || companyToday(zone)}
-          initial={data.calendar.weekdays} onSaved={onSaved} />
+          initial={data.calendar.weekdays} configured={!!data.calendar.effectiveFrom} onSaved={onSaved} onEdit={() => setSaved(false)} />
       : <>
         <div className="business-calendar-layout">
           <div className="business-calendar" role="group" aria-label={text.calendar}>
@@ -83,28 +83,31 @@ export default function BusinessCalendarSettings({ site, zone, view }: { site: n
   </section>
 }
 
-function HoursEditor({ site, initial, effective, onSaved }: {
-  site: number; initial: OpeningDay[]; effective: string; onSaved: () => void
+function HoursEditor({ site, initial, effective, configured, onSaved, onEdit }: {
+  site: number; initial: OpeningDay[]; effective: string; configured: boolean; onSaved: () => void; onEdit: () => void
 }) {
-  const { language } = useI18n()
+  const { language, copy } = useI18n()
   const text = calendarCopy[language]
   const [from, setFrom] = useState(effective)
-  const [days, setDays] = useState<OpeningDay[]>(() => Array.from({ length: 7 }, (_, index) =>
-    initial.find(row => row.weekday === index + 1) || { weekday: index + 1, open: false, opensAt: null, closesAt: null, closesNextDay: false }))
+  const [days, setDays] = useState<OpeningDay[]>(() => openingDaysForForm(initial))
+  const [editing, setEditing] = useState(!configured)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
+  const dirty = !configured || openingHoursChanged(from, days, effective, initial)
   function update(day: number, values: Partial<OpeningDay>) {
     setDays(rows => rows.map(row => row.weekday === day ? { ...row, ...values } : row))
   }
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError(false)
-    try { await saveOpeningHours(site, from, days); onSaved() }
+    event.preventDefault()
+    if (!editing || busy || !dirty) return
+    setBusy(true); setError(false)
+    try { await saveOpeningHours(site, from, days); setEditing(false); onSaved() }
     catch { setError(true) }
     finally { setBusy(false) }
   }
   return <form onSubmit={submit}>
     {error && <ErrorMessage message={text.error} onDismiss={() => setError(false)} />}
-    <fieldset className="calendar-fields" disabled={busy}>
+    <fieldset className="calendar-fields" disabled={busy || !editing}>
       <label>{text.effective}<input type="date" value={from} required onChange={event => setFrom(event.target.value)} /></label>
       {days.map(day => {
         const name = new Intl.DateTimeFormat(language, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 10, 15 + day.weekday)))
@@ -120,8 +123,14 @@ function HoursEditor({ site, initial, effective, onSaved }: {
             onChange={event => update(day.weekday, { closesNextDay: event.target.checked })} /><span>{text.nextDay}</span></label>
         </div>
       })}
-      <button type="submit">{text.saveHours}</button>
     </fieldset>
+    <div className="form-actions">
+      {!editing && <button type="button" disabled={busy} onClick={() => { setEditing(true); setError(false); onEdit() }}>{text.editHours}</button>}
+      {editing && configured && <button type="button" className="secondary-button" disabled={busy} onClick={() => {
+        setFrom(effective); setDays(openingDaysForForm(initial)); setEditing(false); setError(false)
+      }}>{copy.common.cancel}</button>}
+      <button type="submit" disabled={busy || !editing || !dirty}>{text.saveHours}</button>
+    </div>
   </form>
 }
 

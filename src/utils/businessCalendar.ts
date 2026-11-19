@@ -1,4 +1,19 @@
-import type { CalendarView } from "../api/businessCalendarApi"
+import type { CalendarView, OpeningDay } from "../api/businessCalendarApi"
+
+export function openingDaysForForm(initial: OpeningDay[]): OpeningDay[] {
+  return Array.from({ length: 7 }, (_, index) => {
+    const saved = initial.find(day => day.weekday === index + 1)
+    return saved ? { ...saved } : { weekday: index + 1, open: false, opensAt: null, closesAt: null, closesNextDay: false }
+  })
+}
+
+export function openingHoursChanged(from: string, days: OpeningDay[], effective: string, initial: OpeningDay[]) {
+  if (from !== effective) return true
+  const saved = openingDaysForForm(initial)
+  return days.some((day, index) => day.open !== saved[index].open || day.closesNextDay !== saved[index].closesNextDay
+    || (day.opensAt?.slice(0, 5) || null) !== (saved[index].opensAt?.slice(0, 5) || null)
+    || (day.closesAt?.slice(0, 5) || null) !== (saved[index].closesAt?.slice(0, 5) || null))
+}
 
 export function calendarDateIsClosed(calendar: CalendarView["calendar"], date: string) {
   const override = calendar.dates.find(row => row.date === date)?.dayType
