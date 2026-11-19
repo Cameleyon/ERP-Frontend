@@ -169,8 +169,8 @@ function DashboardContent({ user, token }: { user: AuthenticatedUserResponse; to
           notice={notice} loading={forecast.loading} />
       </div>
       <div className="dashboard-bottom-grid">
-        <TopProductsTable rows={topProducts} profitRows={topProfitProducts} />
-        <TopProductsTable rows={lowestSalesProducts} profitRows={lowestProfitProducts} lowest />
+        <TopProductsTable rows={topProducts} profitRows={topProfitProducts} currency={currency || "USD"} />
+        <TopProductsTable rows={lowestSalesProducts} profitRows={lowestProfitProducts} currency={currency || "USD"} lowest />
       </div>
       <div className="dashboard-section"><LowStockTable rows={lowStock} /></div>
     </>}

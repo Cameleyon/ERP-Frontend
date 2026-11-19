@@ -85,6 +85,13 @@ try {
     const opensInput = page.getByLabel(monday + " " + opens, { exact: true })
     const saveButton = page.getByRole("button", { name: saveHours, exact: true })
     await page.getByRole("button", { name: edit, exact: true }).waitFor()
+    assert.equal(await page.locator(".opening-hours-header").getByRole("button", { name: edit, exact: true }).count(), 1)
+    assert.equal(await page.locator(".opening-hours-header").getByRole("button", { name: saveHours, exact: true }).count(), 1)
+    const headerAlignment = await page.locator(".opening-hours-header").evaluate(node => {
+      const header = node.getBoundingClientRect(), actions = node.querySelector(".form-actions").getBoundingClientRect()
+      return Math.abs(header.right - actions.right) < 2
+    })
+    assert.equal(headerAlignment, true)
     assert.equal(await mondayCheckbox.isDisabled(), true)
     assert.equal(await opensInput.isDisabled(), true)
     assert.equal(await page.locator("input[type=date]").isDisabled(), true)

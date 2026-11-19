@@ -753,6 +753,10 @@ td {
 .calendar-settings-panel { border-top: 1px solid #d8e3e9; padding-top: 16px; }
 .calendar-settings-panel h2 { font-size: 22px; }
 .calendar-settings-panel > h3 { margin-top: 24px; }
+.opening-hours-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; }
+.opening-hours-header h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.opening-hours-header .form-actions { margin-left: auto; justify-content: flex-end; max-width: 100%; }
+.opening-hours-header button { max-width: 100%; }
 .calendar-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
 .calendar-fields label { display: grid; gap: 6px; min-width: 0; }
 .calendar-fields input, .calendar-fields select, .calendar-fields textarea { box-sizing: border-box; min-width: 0; width: 100%; }
@@ -771,6 +775,7 @@ td {
 .calendar-recorded-dates span { overflow-wrap: anywhere; }
 .opening-hours-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(130px, 1fr); gap: 16px; align-items: center; border-bottom: 1px solid #d8e3e9; padding-bottom: 14px; }
 @media (max-width: 700px) {
+  .opening-hours-header .form-actions { width: 100%; }
   .business-calendar-layout { grid-template-columns: minmax(0, 1fr); }
   .opening-hours-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .opening-hours-row > label:first-child, .opening-hours-row > label:last-child { grid-column: 1 / -1; }

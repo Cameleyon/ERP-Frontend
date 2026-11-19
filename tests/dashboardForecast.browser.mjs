@@ -13,7 +13,7 @@ const words = {
   fr: { title: "Tableau de bord", period: "Filtres", week: "Prévision de la semaine", daily: "Prévision du jour", show: "Afficher les prévisions", apply: "Appliquer", site: "Site", provisional: "Prévision provisoire" },
   es: { title: "Panel", period: "Filtros", week: "Previsión de esta semana", daily: "Previsión de hoy", show: "Mostrar previsiones", apply: "Aplicar", site: "Sitio", provisional: "Previsión provisional" },
 }
-async function setup({ language = "en", width = 1440, mode = "available", role = "ADMIN", delay = false, currency = "USD" } = {}) {
+async function setup({ language = "en", width = 1440, mode = "available", role = "ADMIN", delay = false, currency = "USD", productRows = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 1100 }, timezoneId: "Asia/Tokyo" })
   const page = await context.newPage()
   await page.clock.install({ time: new Date("2026-11-25T17:00:00Z") })
@@ -31,6 +31,7 @@ async function setup({ language = "en", width = 1440, mode = "available", role =
     else if (path === "/api/company/locations") body = demoSites
     else if (path === "/api/dashboard/summary") body = summaryFixture
     else if (path === "/api/dashboard/sales-trend") body = actualFixture
+    else if (path === "/api/dashboard/top-products" && productRows) body = [{ productId: 1, productName: "Test product", sku: "TEST", totalQuantitySold: 3, totalSalesAmount: 150, totalProfitAmount: 35 }]
     else if (path === "/api/forecasts/weekly/current") {
       const id = url.searchParams.get("locationId")
       state.requests.push({ id, cache: request.headers()["cache-control"] })
@@ -86,7 +87,7 @@ try {
       await dot.hover({ force: true })
       await t.page.locator(".forecast-chart-tooltip").filter({ hasText: "Today’s recorded values are incomplete." }).waitFor()
       const tooltip = await t.page.locator(".forecast-chart-tooltip").textContent()
-      assert.ok(tooltip.includes("Forecasted sales")); assert.ok(tooltip.includes("Cost")); assert.ok(tooltip.includes("-$10.00"))
+      assert.ok(tooltip.includes("Forecasted sales")); assert.ok(tooltip.includes("Cost")); assert.ok(tooltip.includes("-USD\u00a010.00"))
       await t.page.screenshot({ path: `${screenshots}/weekly-current-day-tooltip.png`, fullPage: true })
       const future = t.page.locator("circle[stroke='#2563eb']").last()
       await future.hover({ force: true })
@@ -147,7 +148,7 @@ try {
   await close(historical)
 
   const slow = await setup({ delay: true })
-  assert.equal(await slow.page.locator(".summary-value").first().textContent(), "$150.00")
+  assert.equal(await slow.page.locator(".summary-value").first().textContent(), "USD\u00a0150.00")
   await slow.page.getByText("Loading forecast…", { exact: true }).waitFor()
   slow.state.delay = false; slow.state.held.splice(0).forEach(resolve => resolve())
   await slow.page.getByRole("checkbox", { name: "Show forecast" }).waitFor()
@@ -158,10 +159,10 @@ try {
   await slow.page.waitForFunction(() => document.querySelector(".forecast-notice")?.textContent.includes("Loading"))
   await slow.page.getByLabel("Site", { exact: true }).selectOption("10")
   await slow.page.locator(".summary-forecast").first().waitFor()
-  assert.equal(await slow.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "$710.00")
+  assert.equal(await slow.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "USD\u00a0710.00")
   slow.state.held.splice(0).forEach(resolve => resolve())
   await slow.page.waitForTimeout(100)
-  assert.equal(await slow.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "$710.00")
+  assert.equal(await slow.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "USD\u00a0710.00")
   await verifyLayout(slow, "site10-after-obsolete-response")
   // TTL revalidation removes invalidated numbers.
   slow.state.mode = "stale"
@@ -195,11 +196,21 @@ try {
   assert.ok((await alternateCurrency.page.locator(".summary-forecast-sales").textContent()).includes("HTG"))
   await verifyLayout(alternateCurrency, "weekly-fr-htg")
   await close(alternateCurrency)
+  for (const [language, amount] of [["en", "CAD\u00a0150.00"], ["fr", "150,00\u00a0CAD"], ["es", "150,00\u00a0CAD"]]) {
+    const cad = await setup({ language, currency: "CAD", width: 390, productRows: true })
+    await applyPeriod(cad, "this-week")
+    await cad.page.locator(".summary-forecast").first().waitFor()
+    assert.equal(await cad.page.locator(".summary-value").first().textContent(), amount)
+    assert.equal(await cad.page.locator(".top-products-card").first().getByText(amount, { exact: true }).count(), 2)
+    assert.equal(await cad.page.locator(".top-products-card").last().getByText(amount, { exact: true }).count(), 2)
+    await verifyLayout(cad, `currency-cad-${language}-mobile`)
+    await close(cad)
+  }
   const zeros = await setup({ mode: "zero" })
   await applyPeriod(zeros, "this-week")
   await zeros.page.locator(".summary-forecast").first().waitFor()
-  assert.equal(await zeros.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "$0.00")
-  assert.equal(await zeros.page.locator(".summary-forecast-profit .summary-forecast-value").textContent(), "$0.00")
+  assert.equal(await zeros.page.locator(".summary-forecast-sales .summary-forecast-value").textContent(), "USD\u00a00.00")
+  assert.equal(await zeros.page.locator(".summary-forecast-profit .summary-forecast-value").textContent(), "USD\u00a00.00")
   await verifyLayout(zeros, "zero-forecasts")
   await close(zeros)
   const transition = await setup()

@@ -43,15 +43,18 @@ export default function BusinessCalendarSettings({ site, zone, view }: { site: n
   const visibleDates = data?.calendar.dates.filter(item => item.date.startsWith(month)) ?? []
   function onSaved() { setSaved(true); setRevision(value => value + 1) }
   return <section className="calendar-settings-panel">
-    <h2>{view === "hours" ? text.hours : text.calendar}</h2>
-    <p>{text.zone}: {formatTimeZoneLabel(data?.businessTimeZone || zone)}</p>
+    {(view !== "hours" || !ready) && <>
+      <h2>{view === "hours" ? text.hours : text.calendar}</h2>
+      <p>{text.zone}: {formatTimeZoneLabel(data?.businessTimeZone || zone)}</p>
+    </>}
     {failed && <ErrorMessage message={text.error} onDismiss={() => setFailed(false)} />}
-    {saved && <p role="status">{text.saved}</p>}
+    {saved && (view !== "hours" || !ready) && <p role="status">{text.saved}</p>}
     {view === "calendar" && <label className="calendar-month-select">{text.month}<input type="month" value={month}
       onChange={event => { if (event.target.value) { setSaved(false); setMonth(event.target.value); setSelected(event.target.value + "-01") } }} /></label>}
     {!ready ? !failed && <p role="status">{text.loading}</p> : view === "hours"
       ? <HoursEditor key={loadKey} site={site} effective={data.calendar.effectiveFrom || companyToday(zone)}
-          initial={data.calendar.weekdays} configured={!!data.calendar.effectiveFrom} onSaved={onSaved} onEdit={() => setSaved(false)} />
+          initial={data.calendar.weekdays} configured={!!data.calendar.effectiveFrom} onSaved={onSaved} onEdit={() => setSaved(false)}
+          zone={data.businessTimeZone || zone} saved={saved} />
       : <>
         <div className="business-calendar-layout">
           <div className="business-calendar" role="group" aria-label={text.calendar}>
@@ -83,8 +86,8 @@ export default function BusinessCalendarSettings({ site, zone, view }: { site: n
   </section>
 }
 
-function HoursEditor({ site, initial, effective, configured, onSaved, onEdit }: {
-  site: number; initial: OpeningDay[]; effective: string; configured: boolean; onSaved: () => void; onEdit: () => void
+function HoursEditor({ site, initial, effective, configured, onSaved, onEdit, zone, saved }: {
+  site: number; initial: OpeningDay[]; effective: string; configured: boolean; onSaved: () => void; onEdit: () => void; zone: string; saved: boolean
 }) {
   const { language, copy } = useI18n()
   const text = calendarCopy[language]
@@ -106,6 +109,18 @@ function HoursEditor({ site, initial, effective, configured, onSaved, onEdit }: 
     finally { setBusy(false) }
   }
   return <form onSubmit={submit}>
+    <div className="opening-hours-header">
+      <h2>{text.hours}</h2>
+      <div className="form-actions">
+        {!editing && <button type="button" disabled={busy} onClick={() => { setEditing(true); setError(false); onEdit() }}>{text.editHours}</button>}
+        {editing && configured && <button type="button" className="secondary-button" disabled={busy} onClick={() => {
+          setFrom(effective); setDays(openingDaysForForm(initial)); setEditing(false); setError(false)
+        }}>{copy.common.cancel}</button>}
+        <button type="submit" disabled={busy || !editing || !dirty}>{text.saveHours}</button>
+      </div>
+    </div>
+    <p>{text.zone}: {formatTimeZoneLabel(zone)}</p>
+    {saved && <p role="status">{text.saved}</p>}
     {error && <ErrorMessage message={text.error} onDismiss={() => setError(false)} />}
     <fieldset className="calendar-fields" disabled={busy || !editing}>
       <label>{text.effective}<input type="date" value={from} required onChange={event => setFrom(event.target.value)} /></label>
@@ -124,13 +139,6 @@ function HoursEditor({ site, initial, effective, configured, onSaved, onEdit }: 
         </div>
       })}
     </fieldset>
-    <div className="form-actions">
-      {!editing && <button type="button" disabled={busy} onClick={() => { setEditing(true); setError(false); onEdit() }}>{text.editHours}</button>}
-      {editing && configured && <button type="button" className="secondary-button" disabled={busy} onClick={() => {
-        setFrom(effective); setDays(openingDaysForForm(initial)); setEditing(false); setError(false)
-      }}>{copy.common.cancel}</button>}
-      <button type="submit" disabled={busy || !editing || !dirty}>{text.saveHours}</button>
-    </div>
   </form>
 }
 

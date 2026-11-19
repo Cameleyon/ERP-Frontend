@@ -6,10 +6,11 @@ type Props = {
   rows: TopProductResponse[]
   profitRows: TopProductResponse[]
   lowest?: boolean
+  currency: string
 }
 
-export default function TopProductsTable({ rows, profitRows, lowest = false }: Props) {
-  const { copy } = useI18n()
+export default function TopProductsTable({ rows, profitRows, lowest = false, currency }: Props) {
+  const { copy, language } = useI18n()
   const text = copy.topProductsTable
   const title = lowest ? text.lowestTitle : text.title
 
@@ -42,8 +43,8 @@ export default function TopProductsTable({ rows, profitRows, lowest = false }: P
                 <td>{row.productName}</td>
                 <td>{row.sku}</td>
                 <td>{formatNumber(row.totalQuantitySold)}</td>
-                <td>{formatCurrency(row.totalSalesAmount)}</td>
-                <td>{formatCurrency(row.totalProfitAmount)}</td>
+                <td>{formatCurrency(row.totalSalesAmount, currency, language)}</td>
+                <td>{formatCurrency(row.totalProfitAmount, currency, language)}</td>
               </tr>
             ))
           )}
