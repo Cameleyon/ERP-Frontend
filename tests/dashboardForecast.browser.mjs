@@ -121,9 +121,9 @@ try {
   await verifyLayout(mobileEn, "weekly-en-mobile-320")
   await close(mobileEn)
 
-  for (const [mode, label] of [["provisional", "limited sales history"], ["insufficient", "28 days"], ["pending", "being prepared"],
-    ["deferred", "being prepared"], ["no-sales", "No valid recorded sales"], ["stale", "temporarily unavailable"],
-    ["partial", "covering all selected sites"], ["failure", "temporarily unavailable"], ["unauthorized", "temporarily unavailable"], ["foreign", "temporarily unavailable"]]) {
+  for (const [mode, label] of [["provisional", "limited sales history"], ["insufficient", "insufficient data"], ["pending", "being prepared"],
+    ["deferred", "being prepared"], ["no-sales", "insufficient data"], ["stale", "Forecasts are not available."],
+    ["partial", "covering all selected sites"], ["failure", "Forecasts are not available."], ["unauthorized", "Forecasts are not available."], ["foreign", "Forecasts are not available."]]) {
     const t = await setup({ mode }); await applyPeriod(t, "this-week")
     await t.page.locator(".forecast-notice").filter({ hasText: label }).waitFor()
     const count = await t.page.locator(".summary-forecast").count()
@@ -167,7 +167,7 @@ try {
   // TTL revalidation removes invalidated numbers.
   slow.state.mode = "stale"
   await slow.page.clock.runFor(61_000)
-  await slow.page.getByText(/Forecasts are temporarily unavailable/).waitFor()
+  await slow.page.getByText("Forecasts are not available.", { exact: true }).waitFor()
   assert.equal(await slow.page.locator(".summary-forecast").count(), 0)
   await close(slow)
 
@@ -218,7 +218,7 @@ try {
   await transition.page.locator(".summary-forecast").first().waitFor()
   await transition.page.clock.setSystemTime(new Date("2026-11-30T17:00:00Z"))
   await transition.page.clock.runFor(30_001)
-  await transition.page.getByText(/Forecasts are temporarily unavailable/).waitFor()
+  await transition.page.getByText("Forecasts are not available.", { exact: true }).waitFor()
   assert.equal(await transition.page.locator("input[type=date]").first().inputValue(), "2026-11-30")
   assert.equal(await transition.page.locator(".summary-forecast").count(), 0)
   assert.ok(transition.state.requests.length >= 2)

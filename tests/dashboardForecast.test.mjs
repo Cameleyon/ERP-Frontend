@@ -109,6 +109,10 @@ test("all approved labels are localized and date formatting never shifts date-on
   for (const language of ["en", "fr", "es"]) {
     assert.deepEqual(Object.keys(forecastCopy[language]), Object.keys(forecastCopy.en))
     assert.ok(formatBusinessDate("2026-11-23", language, true).includes("23"))
-    assert.ok(forecastCopy[language].history.includes("28"))
+    assert.equal(forecastCopy[language].history, forecastCopy[language].noSales)
+    assert.notEqual(forecastCopy[language].history, forecastCopy[language].unavailable)
   }
+  assert.equal(forecastCopy.fr.history, "Les prévisions ne sont pas disponibles en raison de données insuffisantes.")
+  assert.equal(forecastCopy.en.history, "Forecasts are not available due to insufficient data.")
+  assert.equal(forecastCopy.es.history, "Las previsiones no están disponibles por falta de datos suficientes.")
 })
