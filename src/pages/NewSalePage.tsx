@@ -7,6 +7,7 @@ import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../
 import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
 import { createSale, getSaleDetail, type SaleDetailResponse } from "../api/salesApi"
 import BarcodeLookup from "../components/sales/BarcodeLookup"
+import ProductNameLookup from "../components/sales/ProductNameLookup"
 import CartTable from "../components/sales/CartTable"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
@@ -66,6 +67,7 @@ export default function NewSalePage() {
   const [lastSaleInvoice, setLastSaleInvoice] = useState<SaleDetailResponse | null>(null)
 
   const successTimeoutRef = useRef<number | null>(null)
+  const lookupRequestRef = useRef(0)
 
   useEffect(() => {
     void loadCustomers()
@@ -108,26 +110,29 @@ export default function NewSalePage() {
     }
   }
 
-  async function handleLookup() {
-    if (!productCode.trim()) {
+  async function handleLookup(code = productCode) {
+    if (!code.trim()) {
       setError(text.barcodeRequired)
       return
     }
 
+    const request = ++lookupRequestRef.current
     try {
       setLookupLoading(true)
       setError("")
       setSuccess("")
 
-      const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
+      const product = await getProductByCode(code.trim(), locationId ? Number(locationId) : null)
+      if (request !== lookupRequestRef.current) return
       setSelectedProduct(product)
       setQuantity("1")
     } catch (err) {
+      if (request !== lookupRequestRef.current) return
       console.error(err)
       setSelectedProduct(null)
       setError(err instanceof Error ? err.message : text.lookupFailed)
     } finally {
-      setLookupLoading(false)
+      if (request === lookupRequestRef.current) setLookupLoading(false)
     }
   }
 
@@ -349,7 +354,13 @@ export default function NewSalePage() {
 
         {locations.length > 0 && (
           <label className="page-title-site-filter">
-            <select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={locationsLoading}>
+            <select value={locationId} onChange={(event) => {
+              lookupRequestRef.current++
+              setLookupLoading(false)
+              setSelectedProduct(null)
+              setProductCode("")
+              setLocationId(event.target.value)
+            }} disabled={locationsLoading}>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.name}
@@ -385,9 +396,20 @@ export default function NewSalePage() {
       <BarcodeLookup
         productCode={productCode}
         onProductCodeChange={setProductCode}
-        onLookup={handleLookup}
+        onLookup={() => { void handleLookup() }}
         loading={lookupLoading}
-      />
+      >
+        <ProductNameLookup key={locationId} onError={setError}
+          onQueryChange={() => {
+            lookupRequestRef.current++
+            setLookupLoading(false)
+            setSelectedProduct(null)
+          }}
+          onSelect={sku => {
+            setProductCode(sku)
+            void handleLookup(sku)
+          }} />
+      </BarcodeLookup>
 
       {selectedProduct && (
         <div className="card">

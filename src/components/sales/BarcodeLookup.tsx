@@ -1,10 +1,12 @@
 import { useI18n } from "../../i18n/I18nContext"
+import type { ReactNode } from "react"
 
 type Props = {
   productCode: string
   onProductCodeChange: (value: string) => void
   onLookup: () => void
   loading?: boolean
+  children?: ReactNode
 }
 
 export default function BarcodeLookup({
@@ -12,6 +14,7 @@ export default function BarcodeLookup({
   onProductCodeChange,
   onLookup,
   loading = false,
+  children,
 }: Props) {
   const { copy } = useI18n()
   const text = copy.barcodeLookup
@@ -22,7 +25,7 @@ export default function BarcodeLookup({
   }
 
   return (
-    <div className="card">
+    <div className="card product-lookup-card">
       <h3>{text.title}</h3>
       <form onSubmit={handleSubmit} className="sale-form-row">
         <input
@@ -35,6 +38,7 @@ export default function BarcodeLookup({
           {loading ? text.loading : text.action}
         </button>
       </form>
+      {children}
     </div>
   )
 }
