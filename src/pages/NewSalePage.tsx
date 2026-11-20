@@ -288,13 +288,9 @@ export default function NewSalePage() {
   }
 
   function handleDetectedBarcode(value: string) {
-    lookupRequestRef.current++
-    setLookupLoading(false)
-    setSelectedProduct(null)
     setProductCode(value)
     setShowScanner(false)
-    setError("")
-    setSuccess("")
+    void handleLookup(value)
   }
 
   const filteredCustomers = useMemo(() => {

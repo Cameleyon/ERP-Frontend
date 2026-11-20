@@ -46,6 +46,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
+    if (lookupLoading) return
     if (expanded && index >= 0 && index < results.length) return choose(results[index])
     if (results.length === 1) return choose(results[0])
     if (results.length > 1) { setOpen(true); return }
@@ -61,6 +62,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
     <label htmlFor={id} className="visually-hidden">{text.nameLabel}</label>
     <input id={id} type="text" role="combobox" autoComplete="off" value={query}
       placeholder={text.placeholder} aria-autocomplete="list" aria-expanded={expanded}
+      aria-busy={lookupLoading}
       aria-controls={expanded ? id + "-results" : undefined}
       aria-activedescendant={expanded && index >= 0 && index < results.length ? id + "-" + index : undefined}
       onFocus={() => setOpen(true)}
@@ -70,6 +72,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
         setIndex(-1)
       }}
       onKeyDown={event => {
+        if (event.key === "Enter" && !event.nativeEvent.isComposing) submit(event)
         if (event.key === "Escape") { setOpen(false); setIndex(-1) }
         if (results.length && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
           event.preventDefault()
@@ -88,9 +91,8 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
       </li>)}
     </ul>}
     </div>
-    <button type="submit" disabled={lookupLoading}>{lookupLoading ? text.loading : text.action}</button>
     </form>
-    {open && query.trim() && loading && <p role="status">{text.loading}</p>}
+    {(lookupLoading || open && query.trim() && loading) && <p role="status">{text.loading}</p>}
     {open && query.trim() && !loading && !failed && results.length === 0 && <p role="status">{text.nameEmpty}</p>}
     {failed && <button type="button" className="secondary-button" onClick={() => {
       setLoading(true); setFailed(false); setAttempt(value => value + 1)

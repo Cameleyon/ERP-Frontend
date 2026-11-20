@@ -50,6 +50,7 @@ try {
     await page.goto(origin + "/tests/fixtures/product-name-sale.html")
     const input = page.getByRole("combobox", { name: labels[language] })
     assert.equal(await page.locator(".product-lookup-card input").count(), 1)
+    assert.equal(await page.locator(".product-lookup-card button[type=submit]").count(), 0)
     await input.fill("cafe")
     const options = page.getByRole("listbox").getByRole("option")
     await options.first().waitFor()
