@@ -4,17 +4,19 @@ import { useI18n } from "../../i18n/I18nContext"
 import { suggestProducts } from "../../utils/productNameSearch"
 
 type Props = {
-  onSelect: (sku: string) => void
-  onQueryChange: () => void
+  value: string
+  onChange: (value: string) => void
+  onSelect: (product: ProductResponse) => void
+  onLookup: () => void
   onError: (message: string) => void
+  lookupLoading: boolean
 }
 
-export default function ProductNameLookup({ onSelect, onQueryChange, onError }: Props) {
+export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading }: Props) {
   const { copy } = useI18n()
   const text = copy.barcodeLookup
   const id = useId()
   const [products, setProducts] = useState<ProductResponse[]>([])
-  const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
   const [index, setIndex] = useState(-1)
   const [loading, setLoading] = useState(true)
@@ -37,25 +39,35 @@ export default function ProductNameLookup({ onSelect, onQueryChange, onError }: 
   }, [attempt, onError, text.nameLoadError])
 
   function choose(product: ProductResponse) {
-    setQuery(product.name)
     setOpen(false)
     setIndex(-1)
-    onSelect(product.sku)
+    onSelect(product)
   }
 
-  return <div className="sale-product-name-search"
-    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}>
-    <label htmlFor={id}>{text.nameLabel}</label>
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (expanded && index >= 0 && index < results.length) return choose(results[index])
+    if (results.length === 1) return choose(results[0])
+    if (results.length > 1) { setOpen(true); return }
+    setOpen(false)
+    onLookup()
+  }
+
+  return <div className="card product-lookup-card">
+    <h3>{text.title}</h3>
+    <form onSubmit={submit} className="sale-form-row">
+    <div className="sale-product-name-search"
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}>
+    <label htmlFor={id} className="visually-hidden">{text.nameLabel}</label>
     <input id={id} type="text" role="combobox" autoComplete="off" value={query}
-      placeholder={text.namePlaceholder} aria-autocomplete="list" aria-expanded={expanded}
+      placeholder={text.placeholder} aria-autocomplete="list" aria-expanded={expanded}
       aria-controls={expanded ? id + "-results" : undefined}
       aria-activedescendant={expanded && index >= 0 && index < results.length ? id + "-" + index : undefined}
       onFocus={() => setOpen(true)}
       onChange={event => {
-        setQuery(event.target.value)
+        onChange(event.target.value)
         setOpen(true)
         setIndex(-1)
-        onQueryChange()
       }}
       onKeyDown={event => {
         if (event.key === "Escape") { setOpen(false); setIndex(-1) }
@@ -65,16 +77,7 @@ export default function ProductNameLookup({ onSelect, onQueryChange, onError }: 
           setIndex(previous => event.key === "ArrowDown"
             ? (previous + 1) % results.length : (previous <= 0 ? results.length : previous) - 1)
         }
-        if (event.key === "Enter" && expanded) {
-          event.preventDefault()
-          choose(results[index >= 0 ? index : 0])
-        }
       }} />
-    {open && query.trim() && loading && <p role="status">{text.loading}</p>}
-    {open && query.trim() && !loading && !failed && results.length === 0 && <p role="status">{text.nameEmpty}</p>}
-    {failed && <button type="button" className="secondary-button" onClick={() => {
-      setLoading(true); setFailed(false); setAttempt(value => value + 1)
-    }}>{text.nameRetry}</button>}
     {expanded && <ul id={id + "-results"} role="listbox" className="sale-product-name-suggestions">
       {results.map((product, itemIndex) => <li key={product.id} role="presentation">
         <button type="button" role="option" id={id + "-" + itemIndex} tabIndex={-1}
@@ -84,5 +87,13 @@ export default function ProductNameLookup({ onSelect, onQueryChange, onError }: 
         </button>
       </li>)}
     </ul>}
+    </div>
+    <button type="submit" disabled={lookupLoading}>{lookupLoading ? text.loading : text.action}</button>
+    </form>
+    {open && query.trim() && loading && <p role="status">{text.loading}</p>}
+    {open && query.trim() && !loading && !failed && results.length === 0 && <p role="status">{text.nameEmpty}</p>}
+    {failed && <button type="button" className="secondary-button" onClick={() => {
+      setLoading(true); setFailed(false); setAttempt(value => value + 1)
+    }}>{text.nameRetry}</button>}
   </div>
 }

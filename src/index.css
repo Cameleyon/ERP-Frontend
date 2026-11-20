@@ -517,8 +517,9 @@ td {
 
 .sale-product-name-search {
   position: relative;
+  flex: 1 1 280px;
+  min-width: 0;
   max-width: 640px;
-  margin-top: 24px;
 }
 
 .sale-product-name-search label {

@@ -30,3 +30,8 @@ export function getProductByCode(code: string, locationId?: number | null) {
   const query = locationId ? `?locationId=${locationId}` : ""
   return apiGet<ProductLookupResponse>(`/products/barcode/${encodeURIComponent(code)}${query}`)
 }
+
+export function getProductBySku(sku: string, locationId?: number | null) {
+  const query = locationId ? `?locationId=${locationId}` : ""
+  return apiGet<ProductLookupResponse>(`/products/sku/${encodeURIComponent(sku)}${query}`)
+}
