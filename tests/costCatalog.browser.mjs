@@ -65,6 +65,8 @@ try {
     })
     await page.goto(origin + "/tests/fixtures/cost-catalog.html")
     await page.getByRole("cell", { name: purchase.catalog.names[language], exact: true }).waitFor()
+    assert.equal(await page.locator("details").count(), 0, "custom rubric creation section is removed")
+    assert.equal(await page.locator(".cost-rubric-form").count(), 0)
     assert.equal(await page.locator("tbody tr").count(), 11)
     await page.getByRole("button", { name: t.remove, exact: true }).click()
     await page.getByRole("button", { name: t.remove + ": " + purchase.catalog.names[language], exact: true }).click()

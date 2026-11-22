@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react"
 import {
-  createCostRubric,
-  DuplicateCostRubricNameError,
   getCostRubrics,
   updateCostRubricStatus,
   type CompanyCostRubricResponse,
@@ -14,18 +12,8 @@ import { getCostCatalog, type CostCatalogEntry } from "../api/costCatalogApi"
 import CostCatalogDialog from "../components/costs/CostCatalogDialog"
 import { costCatalogCopy } from "../components/costs/costCatalogCopy"
 
-type FormState = {
-  name: string
-  description: string
-}
-
 type SortKey = "name" | "description" | "type" | "status" | "category"
 type Sort = { key: SortKey; direction: "asc" | "desc" }
-
-const emptyForm: FormState = {
-  name: "",
-  description: "",
-}
 
 export default function CostRubricsPage() {
   const { language } = useI18n()
@@ -34,7 +22,6 @@ export default function CostRubricsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [form, setForm] = useState<FormState>(emptyForm)
   const [sort, setSort] = useState<Sort | null>(null)
   const [catalog, setCatalog] = useState<CostCatalogEntry[]>([])
   const [adding, setAdding] = useState(false)
@@ -187,58 +174,6 @@ export default function CostRubricsPage() {
     }
   }
 
-  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSuccess("")
-
-    const name = form.name.trim()
-    if (!name) {
-      setError(text.nameRequired)
-      return
-    }
-    const normalizedName = name.toLowerCase()
-    const duplicate = rubrics.find((rubric) =>
-      getLocalizedCostRubricName(rubric.code, rubric.name, language, rubric.catalog).trim().toLowerCase() === normalizedName ||
-      rubric.name.trim().toLowerCase() === normalizedName,
-    )
-    if (duplicate) {
-      setError(duplicate.active ? text.duplicateName : text.inactiveDuplicateName)
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError("")
-      await createCostRubric({
-        name,
-        description: form.description.trim() || undefined,
-      })
-
-      setSuccess(text.createSuccess)
-      setForm(emptyForm)
-      await loadRubrics()
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    } catch (err) {
-      if (err instanceof DuplicateCostRubricNameError) {
-        setError(text.duplicateName)
-      } else {
-        console.error(err)
-        if (!(err instanceof CompanyCurrencyRequiredError)) {
-          setError(err instanceof Error ? err.message : text.createError)
-        }
-      }
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function handleToggleRubric(rubric: CompanyCostRubricResponse) {
     try {
       setSaving(true)
@@ -266,39 +201,6 @@ export default function CostRubricsPage() {
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
-
-      <details className="card">
-        <summary>{text.newTitle}</summary>
-
-        <p id="cost-rubric-duplicate-warning" className="company-user-warning">{text.duplicateWarning}</p>
-        <form onSubmit={handleSubmit} className="product-form-grid cost-rubric-form" aria-describedby="cost-rubric-duplicate-warning">
-          <label>
-            {text.name}
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => updateForm("name", e.target.value)}
-              placeholder={text.customNamePlaceholder}
-            />
-          </label>
-
-          <label>
-            {text.description}
-            <textarea
-              rows={3}
-              maxLength={500}
-              value={form.description}
-              onChange={(e) => updateForm("description", e.target.value)}
-            />
-          </label>
-
-          <div className="form-actions full-width">
-            <button type="submit" disabled={saving}>
-              {saving ? text.creating : text.create}
-            </button>
-          </div>
-        </form>
-      </details>
 
       <div className="card">
         <div className="cost-catalog-heading">
