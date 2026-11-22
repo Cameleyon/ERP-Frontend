@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sales calendar test</title></head>
+<body><main id="root" style="max-width:1200px;margin:24px auto;padding:0 16px"></main>
+<script type="module">
+import React from "react"
+import { createRoot } from "react-dom/client"
+import { AuthProvider } from "/src/auth/AuthContext.tsx"
+import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+import SalesHistoryPage from "/src/pages/SalesHistoryPage.tsx"
+import "/src/index.css"
+createRoot(document.getElementById("root")).render(React.createElement(AuthProvider, null,
+  React.createElement(LanguageProvider, null, React.createElement(SalesHistoryPage))))
+</script></body></html>

@@ -196,7 +196,7 @@ try {
   assert.ok((await alternateCurrency.page.locator(".summary-forecast-sales").textContent()).includes("HTG"))
   await verifyLayout(alternateCurrency, "weekly-fr-htg")
   await close(alternateCurrency)
-  for (const [language, amount] of [["en", "CAD\u00a0150.00"], ["fr", "150,00\u00a0CAD"], ["es", "150,00\u00a0CAD"]]) {
+  for (const [language, amount] of [["en", "CAD\u00a0150.00"], ["fr", "150.00\u00a0CAD"], ["es", "150.00\u00a0CAD"]]) {
     const cad = await setup({ language, currency: "CAD", width: 390, productRows: true })
     await applyPeriod(cad, "this-week")
     await cad.page.locator(".summary-forecast").first().waitFor()

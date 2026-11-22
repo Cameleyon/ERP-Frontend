@@ -1,3 +1,4 @@
+import type { CostCatalogEntry } from "../api/costCatalogApi"
 export type CostRubricLanguage = "fr" | "en" | "es"
 
 export type DefaultCostRubricOption = {
@@ -15,7 +16,9 @@ export const DEFAULT_COST_RUBRIC_OPTIONS: DefaultCostRubricOption[] = [
   { code: "HANDLING", displayOrder: 30, fr: "Manutention", en: "Handling", es: "Manipulacion" },
 ]
 
-export function getLocalizedCostRubricName(code: string, fallbackName: string, language: CostRubricLanguage) {
+export function getLocalizedCostRubricName(code: string, fallbackName: string, language: CostRubricLanguage,
+  catalog?: CostCatalogEntry | null) {
+  if (catalog) return catalog.names[language]
   const matchedOption = DEFAULT_COST_RUBRIC_OPTIONS.find((option) => option.code === code)
   if (!matchedOption) {
     return fallbackName

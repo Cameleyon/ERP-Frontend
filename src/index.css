@@ -297,6 +297,12 @@ td {
   width: 1%;
 }
 
+.sales-history-actions button {
+  min-height: 32px;
+  padding: 4px 7px;
+  font-size: 0.72rem;
+}
+
 .filters,
 .sale-form-row,
 .product-filters,
@@ -511,7 +517,8 @@ td {
   margin: 0;
 }
 
-.product-lookup-card {
+.product-lookup-card,
+.inventory-receipt-editor {
   overflow: visible;
 }
 
@@ -520,6 +527,51 @@ td {
   flex: 1 1 280px;
   min-width: 0;
   max-width: 640px;
+}
+
+.cost-catalog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cost-catalog-heading h3 { margin: 0; }
+.cost-catalog-heading .form-actions { margin: 0; }
+.cost-catalog-dialog { width: min(760px, calc(100vw - 32px)); max-height: 90dvh; top: 5dvh; bottom: auto; margin: 0 auto; box-sizing: border-box; background: #fff; }
+.cost-catalog-table { min-width: 900px; table-layout: fixed; }
+.cost-catalog-table th:nth-child(1) { width: 22%; }
+.cost-catalog-table th:nth-child(2) { width: 22%; }
+.cost-catalog-table th:nth-child(3) { width: 50%; }
+.cost-catalog-table th:nth-child(4) { width: 6%; }
+.cost-catalog-table td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.cost-catalog-table :is(th, td):last-child { position: sticky; right: 0; background: #fff; }
+.cost-catalog-table .cost-rubric-actions { display: flex; }
+.cost-catalog-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 16px; }
+.cost-catalog-fields label { display: block; margin-bottom: 8px; }
+.cost-catalog-fields select,
+.cost-catalog-select { width: 100%; min-width: 0; box-sizing: border-box; }
+.cost-catalog-select { display: flex; justify-content: space-between; gap: 12px; border-radius: 8px; background: #f7fbff; color: var(--text-color); border: 1px solid var(--border-color); min-height: 48px; padding: 12px; }
+.cost-catalog-options { border: 1px solid var(--border-color); border-radius: 8px; margin-top: 6px; max-height: 280px; overflow-y: auto; padding: 6px; }
+.cost-catalog-option { display: grid; grid-template-columns: minmax(0, 1fr) 32px; align-items: center; gap: 8px; padding: 8px 4px; }
+.cost-catalog-option:hover,
+.cost-catalog-option:focus-within { background: #edf8f4; }
+.cost-catalog-option label { display: flex; align-items: flex-start; gap: 10px; margin: 0; cursor: pointer; overflow-wrap: anywhere; }
+.cost-catalog-option input { flex: 0 0 18px; width: 18px; height: 18px; accent-color: #167549; margin-top: 3px; }
+.cost-catalog-option small { display: block; color: #697b83; font-size: 13px; font-weight: 400; margin-top: 4px; }
+.cost-catalog-info,
+.cost-catalog-remove { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 6px; background: #edf4f7; color: #075172; border: 1px solid var(--border-color); font-size: 20px; }
+.cost-catalog-remove { color: #b91c1c; background: #fff3f3; }
+.cost-catalog-help { height: 160px; box-sizing: border-box; overflow-y: auto; padding: 16px 0; font-size: 14px; line-height: 1.5; }
+.cost-catalog-help p { margin: 6px 0; }
+.cost-catalog-selected { list-style: none; padding: 0; margin: 0 0 24px; }
+.cost-catalog-selected li { display: grid; grid-template-columns: 20px minmax(0, 1fr) 32px; gap: 8px; align-items: center; margin-bottom: 8px; overflow-wrap: anywhere; }
+.cost-catalog-green { color: #167549; font-weight: 700; }
+@media (max-width: 600px) {
+  .cost-catalog-fields { grid-template-columns: minmax(0, 1fr); }
+  .cost-catalog-dialog { padding: 16px; }
 }
 
 .sale-product-name-search label {
@@ -1027,14 +1079,14 @@ td {
   .mobile-sticky-actions .sales-history-actions {
     flex-direction: column;
     align-items: stretch;
-    width: min(128px, 40vw);
+    width: min(108px, 34vw);
     min-width: 0;
   }
 
   .mobile-sticky-actions .sales-history-actions button {
-    min-height: 40px;
-    padding: 5px 8px;
-    font-size: 0.78rem;
+    min-height: 32px;
+    padding: 4px 7px;
+    font-size: 0.72rem;
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -1308,6 +1360,11 @@ dialog.signup-dialog, dialog.currency-required-dialog, dialog.product-confirmati
 }
 
 .error-dialog::backdrop { background: rgba(10, 30, 40, 0.45); }
+.sale-completion-dialog { width: min(850px, calc(100% - 24px)); max-height: calc(100dvh - 24px); margin: auto; box-sizing: border-box; overflow: auto; background: #fff; border-radius: 8px; }
+.sale-completion-dialog::backdrop { background: rgba(10, 30, 40, 0.45); }
+.sale-completion-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.sale-completion-header h2 { font-size: 22px; line-height: 1.3; margin: 0; flex: 1 1 240px; overflow-wrap: anywhere; }
+.sale-completion-receipt { min-width: 0; }
 .error-dialog h2 { margin: 0; font-size: 22px; color: #991b1b; }
 .error-dialog p { white-space: pre-wrap; }
 

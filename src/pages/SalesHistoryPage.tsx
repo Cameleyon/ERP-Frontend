@@ -23,6 +23,7 @@ import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
+import { salesHistoryRange } from "../utils/salesDates"
 
 type SaleItemWithOptionalUnit = {
   productId: number
@@ -35,24 +36,15 @@ type SaleItemWithOptionalUnit = {
 
 const SALES_PER_PAGE = 12
 
-function toInputDate(value: Date) {
-  return value.toISOString().slice(0, 10)
-}
-
-function createDefaultRange() {
-  const end = new Date()
-  const start = new Date(end)
-  start.setDate(end.getDate() - 29)
-
-  return {
-    startDate: toInputDate(start),
-    endDate: toInputDate(end),
-  }
-}
-
 export default function SalesHistoryPage() {
   const { user } = useAuth()
-  const { copy } = useI18n()
+  if (!user) return null
+  return <SalesHistoryContent key={`${user.id}|${user.companyId}|${user.companyTimeZoneId || ""}`} />
+}
+
+function SalesHistoryContent() {
+  const { user } = useAuth()
+  const { copy, language } = useI18n()
   const text = copy.salesHistoryPage
   const [sales, setSales] = useState<SaleResponse[]>([])
   const [selectedSale, setSelectedSale] = useState<SaleDetailResponse | null>(null)
@@ -66,7 +58,7 @@ export default function SalesHistoryPage() {
   const [cancellationApprovalEnabled, setCancellationApprovalEnabled] = useState(false)
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
-  const [dateRange, setDateRange] = useState(createDefaultRange)
+  const [dateRange, setDateRange] = useState(() => salesHistoryRange(user?.role, user?.companyTimeZoneId))
   const [currentPage, setCurrentPage] = useState(1)
   const isAdmin = user?.role === "ADMIN"
   const isCashier = user?.role === "CASHIER"
@@ -82,8 +74,8 @@ export default function SalesHistoryPage() {
       return text.rangeMissing
     }
 
-    const start = new Date(`${dateRange.startDate}T00:00:00`)
-    const end = new Date(`${dateRange.endDate}T00:00:00`)
+    const start = new Date(`${dateRange.startDate}T00:00:00Z`)
+    const end = new Date(`${dateRange.endDate}T00:00:00Z`)
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       return text.rangeMissing
@@ -94,7 +86,7 @@ export default function SalesHistoryPage() {
     }
 
     const maxEnd = new Date(start)
-    maxEnd.setMonth(maxEnd.getMonth() + 1)
+    maxEnd.setUTCMonth(maxEnd.getUTCMonth() + 1)
 
     if (end > maxEnd) {
       return text.rangeError
@@ -108,8 +100,7 @@ export default function SalesHistoryPage() {
       setLoading(true)
       setError("")
       const data = await getSales({
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
+        ...(isCashier ? salesHistoryRange(user?.role, user?.companyTimeZoneId) : dateRange),
         locationId: selectedLocationId ? Number(selectedLocationId) : null,
       })
       setSales(Array.isArray(data) ? data : [])
@@ -290,7 +281,7 @@ export default function SalesHistoryPage() {
   }
 
   function handleResetFilter() {
-    const defaultRange = createDefaultRange()
+    const defaultRange = salesHistoryRange(user?.role, user?.companyTimeZoneId)
     const defaultLocationId = getDefaultLocationId(locations)
     setDateRange(defaultRange)
     setLocationId(defaultLocationId)
@@ -383,7 +374,7 @@ export default function SalesHistoryPage() {
                   <div className="sale-cancellation-request-copy">
                     <strong>{request.saleNumber}</strong>
                     <span>
-                      {request.customerName || "-"} | {formatCurrency(request.totalAmount)} | {formatDateTime(request.soldAt)}
+                      {request.customerName || "-"} | {formatCurrency(request.totalAmount)} | {formatDateTime(request.soldAt, language, user?.companyTimeZoneId || undefined)}
                     </span>
                     <span>
                       {text.requestedBy}: {request.requestedByName || "-"} | {text.payment}: {request.paymentMethod || "-"}
@@ -427,6 +418,7 @@ export default function SalesHistoryPage() {
             {text.startDate}
             <input
               type="date"
+              disabled={isCashier}
               value={dateRange.startDate}
               onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
             />
@@ -436,6 +428,7 @@ export default function SalesHistoryPage() {
             {text.endDate}
             <input
               type="date"
+              disabled={isCashier}
               value={dateRange.endDate}
               onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
             />
@@ -454,7 +447,7 @@ export default function SalesHistoryPage() {
         {loading ? (
           <p>{text.loadingSales}</p>
         ) : (
-          <ScrollableTable headingId="sales-history-list-heading">
+          <ScrollableTable headingId="sales-history-list-heading" showScrollButtons={false}>
             <table>
               <thead>
                 <tr>
@@ -477,7 +470,7 @@ export default function SalesHistoryPage() {
                   paginatedSales.map((sale) => (
                     <tr key={sale.id}>
                       <td>{sale.saleNumber}</td>
-                      <td>{formatDateTime(sale.soldAt)}</td>
+                      <td>{formatDateTime(sale.soldAt, language, user?.companyTimeZoneId || undefined)}</td>
                       <td>{sale.locationName || "-"}</td>
                       <td>{sale.customerName || "-"}</td>
                       <td>{sale.paymentMethod || "-"}</td>
@@ -502,7 +495,7 @@ export default function SalesHistoryPage() {
 
                           {isCashier && cancellationApprovalEnabled && sale.status === "COMPLETED" && (
                             <button
-                              className="secondary-button"
+                              className="secondary-button compact-action-button"
                               onClick={() => handleRequestCancellationApproval(sale.id)}
                               disabled={
                                 requestActionLoading === sale.id || sale.cancellationRequestStatus === "PENDING"
@@ -549,7 +542,7 @@ export default function SalesHistoryPage() {
           <>
             <div className="detail-grid">
               <p><strong>{text.saleNumber}:</strong> {selectedSale.saleNumber}</p>
-              <p><strong>{text.date}:</strong> {formatDateTime(selectedSale.soldAt)}</p>
+              <p><strong>{text.date}:</strong> {formatDateTime(selectedSale.soldAt, language, user?.companyTimeZoneId || undefined)}</p>
               <p><strong>{text.location}:</strong> {selectedSale.locationName || "-"}</p>
               <p><strong>{text.customer}:</strong> {selectedSale.customerName || "-"}</p>
               <p><strong>{text.payment}:</strong> {selectedSale.paymentMethod || "-"}</p>

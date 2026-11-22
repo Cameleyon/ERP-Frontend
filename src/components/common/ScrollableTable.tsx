@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { useI18n } from "../../i18n/I18nContext"
 
-export default function ScrollableTable({ headingId, children }: { headingId: string; children: ReactNode }) {
+export default function ScrollableTable({ headingId, children, showScrollButtons = true }: { headingId: string; children: ReactNode; showScrollButtons?: boolean }) {
   const { copy } = useI18n()
   const viewportId = useId()
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -36,7 +36,7 @@ export default function ScrollableTable({ headingId, children }: { headingId: st
 
   return (
     <>
-      {scrollable && (
+      {showScrollButtons && scrollable && (
         <div className="table-scroll-actions">
           <button type="button" className="secondary-button" aria-label={copy.common.scrollTableLeft}
             title={copy.common.scrollTableLeft} aria-controls={viewportId} disabled={!scroll.left} onClick={() => scrollTable(-1)}>

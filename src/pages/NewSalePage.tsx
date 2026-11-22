@@ -5,11 +5,11 @@ import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import { getProductByCode, getProductBySku, type ProductLookupResponse } from "../api/productApi"
-import { createSale, getSaleDetail, type SaleDetailResponse } from "../api/salesApi"
+import { createSale } from "../api/salesApi"
 import ProductLookup from "../components/sales/ProductLookup"
 import CartTable from "../components/sales/CartTable"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
-import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
+import SaleCompletionDialog from "../components/sales/SaleCompletionDialog"
 import QuantityInput from "../components/common/QuantityInput"
 import { useAuth } from "../auth/AuthContext"
 import { formatCurrency, formatNumber } from "../utils/format"
@@ -63,9 +63,7 @@ export default function NewSalePage() {
   const [paymentConfirmedManually, setPaymentConfirmedManually] = useState(false)
   const [quantity, setQuantity] = useState("1")
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [lastSaleInvoice, setLastSaleInvoice] = useState<SaleDetailResponse | null>(null)
-
-  const successTimeoutRef = useRef<number | null>(null)
+  const [completedSaleId, setCompletedSaleId] = useState<number | null>(null)
   const lookupRequestRef = useRef(0)
 
   useEffect(() => {
@@ -87,14 +85,6 @@ export default function NewSalePage() {
       setLocationsLoading(false)
     }
   }
-
-  useEffect(() => {
-    return () => {
-      if (successTimeoutRef.current) {
-        window.clearTimeout(successTimeoutRef.current)
-      }
-    }
-  }, [])
 
   async function loadCustomers() {
     try {
@@ -252,9 +242,8 @@ export default function NewSalePage() {
         })),
       })
 
-      const saleDetail = await getSaleDetail(response.id)
-
       setSuccess(text.saleSuccess(response.saleNumber))
+      setCompletedSaleId(response.id)
       setCartItems([])
       setSelectedProduct(null)
       setProductCode("")
@@ -266,17 +255,6 @@ export default function NewSalePage() {
       setPaymentAuthorizationCode("")
       setPaymentConfirmedManually(false)
       setLocationId(getDefaultLocationId(locations))
-      setLastSaleInvoice(saleDetail)
-
-      window.scrollTo({ top: 0, behavior: "smooth" })
-
-      if (successTimeoutRef.current) {
-        window.clearTimeout(successTimeoutRef.current)
-      }
-
-      successTimeoutRef.current = window.setTimeout(() => {
-        setSuccess("")
-      }, 4000)
     } catch (err) {
       console.error(err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -375,7 +353,6 @@ export default function NewSalePage() {
       </div>
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
-      {success && <div className="card success">{success}</div>}
 
       <div className="card nested-card scanner-toggle-card">
         <div className="scanner-header">
@@ -593,8 +570,9 @@ export default function NewSalePage() {
         </button>
       </div>
 
-      {lastSaleInvoice && (
-        <SaleInvoicePreview sale={lastSaleInvoice} companyName={user?.companyName} />
+      {completedSaleId !== null && (
+        <SaleCompletionDialog saleId={completedSaleId} message={success} companyName={user?.companyName}
+          onClose={() => { setCompletedSaleId(null); setSuccess("") }} />
       )}
     </div>
   )

@@ -10,9 +10,11 @@ type Props = {
   onLookup: () => void
   onError: (message: string) => void
   lookupLoading: boolean
+  embedded?: boolean
+  disabled?: boolean
 }
 
-export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading }: Props) {
+export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading, embedded = false, disabled = false }: Props) {
   const { copy } = useI18n()
   const text = copy.barcodeLookup
   const id = useId()
@@ -39,6 +41,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
   }, [attempt, onError, text.nameLoadError])
 
   function choose(product: ProductResponse) {
+    if (disabled) return
     setOpen(false)
     setIndex(-1)
     onSelect(product)
@@ -46,7 +49,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (lookupLoading) return
+    if (lookupLoading || disabled) return
     if (expanded && index >= 0 && index < results.length) return choose(results[index])
     if (results.length === 1) return choose(results[0])
     if (results.length > 1) { setOpen(true); return }
@@ -54,13 +57,14 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
     onLookup()
   }
 
-  return <div className="card product-lookup-card">
+  return <div className={embedded ? "product-lookup-card" : "card product-lookup-card"}>
     <h3>{text.title}</h3>
     <form onSubmit={submit} className="sale-form-row">
     <div className="sale-product-name-search"
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}>
     <label htmlFor={id} className="visually-hidden">{text.nameLabel}</label>
     <input id={id} type="text" role="combobox" autoComplete="off" value={query}
+      disabled={disabled}
       placeholder={text.placeholder} aria-autocomplete="list" aria-expanded={expanded}
       aria-busy={lookupLoading}
       aria-controls={expanded ? id + "-results" : undefined}
@@ -84,6 +88,7 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
     {expanded && <ul id={id + "-results"} role="listbox" className="sale-product-name-suggestions">
       {results.map((product, itemIndex) => <li key={product.id} role="presentation">
         <button type="button" role="option" id={id + "-" + itemIndex} tabIndex={-1}
+          disabled={disabled}
           aria-selected={index === itemIndex} className="sale-product-name-option"
           onMouseDown={event => event.preventDefault()} onClick={() => choose(product)}>
           <strong>{product.name}</strong><span>SKU: {product.sku}</span>

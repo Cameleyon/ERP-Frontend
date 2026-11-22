@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises"
 const { chromium } = createRequire(import.meta.url)("playwright")
 const origin = process.env.PRODUCT_SEARCH_PREVIEW_URL || "http://127.0.0.1:5203"
 const screenshots = process.env.PRODUCT_SEARCH_SCREENSHOTS || "docs/screenshots/product-search"
+const inventory = process.env.PRODUCT_SEARCH_MODE === "inventory"
 await mkdir(screenshots, { recursive: true })
 const browser = await chromium.launch({ channel: "msedge", headless: true })
 const products = [
@@ -35,6 +36,10 @@ try {
       if (url.pathname === "/api/auth/me") body = { id: 8, companyId: 7, role: "ADMIN",
         email: "test@example.invalid", firstName: "Test", lastName: "Owner", companyOwner: true }
       else if (url.pathname === "/api/customers") body = []
+      else if (url.pathname === "/api/cost-rubrics") body = [
+        { id: 1, code: "COST_OF_GOODS", name: "Purchase price", active: true, displayOrder: 0 },
+      ]
+      else if (url.pathname === "/api/inventory/receipts/active") body = []
       else if (url.pathname === "/api/company/locations") body = [
         { id: 9, name: "Site A", active: true, primaryLocation: true },
         { id: 10, name: "Site B", active: true, primaryLocation: false },
@@ -47,7 +52,7 @@ try {
       } else throw Error("Unexpected API " + url.pathname)
       await route.fulfill({ json: body, headers })
     })
-    await page.goto(origin + "/tests/fixtures/product-name-sale.html")
+    await page.goto(origin + "/tests/fixtures/product-name-" + (inventory ? "inventory" : "sale") + ".html")
     const input = page.getByRole("combobox", { name: labels[language] })
     assert.equal(await page.locator(".product-lookup-card input").count(), 1)
     assert.equal(await page.locator(".product-lookup-card button[type=submit]").count(), 0)
@@ -74,12 +79,14 @@ try {
     await options.first().click()
     await page.waitForTimeout(150)
     assert.ok(requests.includes("/api/products/sku/CAFE-A?locationId=10"))
+    if (inventory) await page.locator("#receipt-cost-1").fill("25")
     await input.fill("CAFE-B")
     assert.equal(await page.locator("p").filter({ hasText: /^SKU:/ }).count(), 0, "editing must clear the old selection")
     await options.first().click()
     await page.waitForTimeout(150)
     assert.ok(requests.includes("/api/products/sku/CAFE-B?locationId=10"))
     assert.equal(await input.inputValue(), "Café moulu")
+    if (inventory) assert.equal(await page.locator("#receipt-cost-1").inputValue(), "", "draft costs must not transfer to another product")
     await input.fill("1234567890")
     await options.first().waitFor()
     await input.press("Enter")
@@ -92,7 +99,10 @@ try {
     mismatch = true
     await input.fill("CAFE-B")
     await options.first().click()
-    await page.getByText(({ en: "Lookup failed", fr: "La recherche a échoué", es: "La búsqueda falló" })[language], { exact: true }).waitFor()
+    const lookupError = inventory
+      ? ({ en: "Lookup failed", fr: "Échec de la recherche", es: "La búsqueda falló" })[language]
+      : ({ en: "Lookup failed", fr: "La recherche a échoué", es: "La búsqueda falló" })[language]
+    await page.getByText(lookupError, { exact: true }).waitFor()
     assert.equal(await page.locator("p").filter({ hasText: /^SKU:/ }).count(), 0, "a mismatched product must never be selected")
     assert.deepEqual(errors, [])
     console.log("PASS", language, width, "suggestions, keyboard, site lookup, empty state, layout")

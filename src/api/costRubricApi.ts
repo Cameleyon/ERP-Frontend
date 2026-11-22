@@ -1,10 +1,12 @@
 import { apiGet } from "./client"
 import { API_BASE_URL } from "./config"
 import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
+import type { CostCatalogEntry } from "./costCatalogApi"
 
 const TOKEN_KEY = "camelyon_token"
 
 export type CompanyCostRubricResponse = {
+  catalog?: CostCatalogEntry | null
   id: number
   code: string
   name: string

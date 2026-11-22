@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
-import { getProductByCode, type ProductLookupResponse } from "../api/productApi"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { getProductByCode, getProductBySku, type ProductLookupResponse } from "../api/productApi"
+import ProductLookup from "../components/sales/ProductLookup"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import {
   createInventoryReceipt,
@@ -59,6 +60,7 @@ export default function InventoryPage() {
   const [editedReceiptQuantity, setEditedReceiptQuantity] = useState("1")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const lookupRequestRef = useRef(0)
 
   useEffect(() => {
     async function loadInitialData() {
@@ -95,8 +97,9 @@ export default function InventoryPage() {
   }
 
   async function handleLocationChange(nextLocationId: string) {
+    clearProductSelection()
     setLocationId(nextLocationId)
-    setSelectedProduct(null)
+    setProductCode("")
     setWithdrawalReceiptId(null)
     setEditingReceiptId(null)
 
@@ -111,25 +114,44 @@ export default function InventoryPage() {
     }
   }
 
-  async function handleLookup() {
-    if (!productCode.trim()) {
-      setError(text.barcodeRequired)
+  function clearProductSelection() {
+    lookupRequestRef.current++
+    setLookupLoading(false)
+    setSelectedProduct(null)
+    setQuantity("1")
+    setCostAmounts({})
+    setNotes("")
+  }
+
+  async function handleLookup(code = productCode, selected?: { id: number; sku: string }) {
+    if (saveLoading) return
+    if (!code.trim()) {
+      setError(copy.newSalePage.barcodeRequired)
       return
     }
 
+    const request = ++lookupRequestRef.current
     try {
       setLookupLoading(true)
+      setSelectedProduct(null)
+      setCostAmounts({})
+      setNotes("")
       setError("")
       setSuccess("")
-      const product = await getProductByCode(productCode.trim(), locationId ? Number(locationId) : null)
+      const site = locationId ? Number(locationId) : null
+      const product = selected ? await getProductBySku(selected.sku, site) : await getProductByCode(code.trim(), site)
+      if (request !== lookupRequestRef.current) return
+      if (!product.active || selected && product.id !== selected.id) throw new Error(text.lookupError)
       setSelectedProduct(product)
+      setProductCode(product.name)
       setQuantity("1")
     } catch (err) {
+      if (request !== lookupRequestRef.current) return
       console.error(err)
       setSelectedProduct(null)
       setError(err instanceof Error ? err.message : text.lookupError)
     } finally {
-      setLookupLoading(false)
+      if (request === lookupRequestRef.current) setLookupLoading(false)
     }
   }
 
@@ -254,10 +276,10 @@ export default function InventoryPage() {
   }
 
   function handleDetectedBarcode(value: string) {
+    if (saveLoading || rubricsLoading || !locationId) return
     setProductCode(value)
     setShowScanner(false)
-    setError("")
-    setSuccess("")
+    void handleLookup(value)
   }
 
   function updateCostAmount(rubricId: number, value: string) {
@@ -278,11 +300,8 @@ export default function InventoryPage() {
   }
 
   function cancelReceiptCreation() {
-    setSelectedProduct(null)
+    clearProductSelection()
     setProductCode("")
-    setQuantity("1")
-    setNotes("")
-    setCostAmounts({})
     setError("")
     setSuccess("")
   }
@@ -306,7 +325,7 @@ export default function InventoryPage() {
 
         {locations.length > 0 && (
           <label className="page-title-site-filter">
-            <select value={locationId} onChange={(event) => void handleLocationChange(event.target.value)}>
+            <select value={locationId} disabled={saveLoading} onChange={(event) => void handleLocationChange(event.target.value)}>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.name}
@@ -320,12 +339,12 @@ export default function InventoryPage() {
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
-      <div className="card">
+      <div className="card inventory-receipt-editor">
         <h3>{text.inventoryForm}</h3>
         <div className="card nested-card scanner-toggle-card">
           <div className="scanner-header">
             <h3>{text.scannerTitle}</h3>
-            <button type="button" className="secondary-button" onClick={() => setShowScanner((prev) => !prev)}>
+            <button type="button" className="secondary-button" disabled={saveLoading || rubricsLoading || !locationId} onClick={() => setShowScanner((prev) => !prev)}>
               {showScanner ? text.closeScanner : text.openScanner}
             </button>
           </div>
@@ -335,17 +354,11 @@ export default function InventoryPage() {
             </div>
           )}
         </div>
-        <div className="sale-form-row">
-          <input
-            type="text"
-            placeholder={text.barcodePlaceholder}
-            value={productCode}
-            onChange={(event) => setProductCode(event.target.value)}
-          />
-          <button onClick={handleLookup} disabled={lookupLoading}>
-            {lookupLoading ? text.lookupLoading : text.lookup}
-          </button>
-        </div>
+        <ProductLookup key={locationId} embedded disabled={saveLoading || rubricsLoading || !locationId}
+          value={productCode} lookupLoading={lookupLoading} onError={setError}
+          onChange={value => { clearProductSelection(); setProductCode(value) }}
+          onLookup={() => { void handleLookup() }}
+          onSelect={product => { setProductCode(product.name); void handleLookup(product.sku, product) }} />
 
         {selectedProduct && (
           <>
@@ -387,7 +400,7 @@ export default function InventoryPage() {
             ) : (
               <div className="inventory-form-grid">
                 {rubrics.map((rubric) => {
-                  const name = getLocalizedCostRubricName(rubric.code, rubric.name, language)
+                  const name = getLocalizedCostRubricName(rubric.code, rubric.name, language, rubric.catalog)
                   const inputId = `receipt-cost-${rubric.id}`
                   return (
                     <div className="inventory-cost-field" key={rubric.id}>

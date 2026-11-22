@@ -7,6 +7,7 @@ import { formatCurrency, formatDateTime, formatNumber } from "../../utils/format
 type Props = {
   sale: SaleDetailResponse
   companyName?: string | null
+  revealOnAction?: boolean
 }
 
 type BarcodeBar = {
@@ -18,7 +19,7 @@ const BARCODE_NARROW = 2
 const BARCODE_WIDE = 5
 const BARCODE_HEIGHT = 72
 
-export default function SaleInvoicePreview({ sale, companyName }: Props) {
+export default function SaleInvoicePreview({ sale, companyName, revealOnAction = false }: Props) {
   const { language } = useI18n()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const printRef = useRef<HTMLElement | null>(null)
@@ -26,6 +27,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   const [emailSuccess, setEmailSuccess] = useState("")
   const [emailError, setEmailError] = useState("")
   const [invoiceEmailEnabled, setInvoiceEmailEnabled] = useState(false)
+  const [receiptVisible, setReceiptVisible] = useState(!revealOnAction)
 
   const text = language === "fr"
       ? {
@@ -54,7 +56,32 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         total: "Total",
         barcodeLabel: (saleNumber: string) => `Code-barres pour ${saleNumber}`,
       }
-    : {
+    : language === "es" ? {
+        title: "Factura",
+        sendEmail: "Enviar por correo",
+        sendingEmail: "Enviando...",
+        emailSent: "La factura se ha enviado por correo correctamente.",
+        invoiceEmailUnavailable: "El envío de facturas por correo solo está disponible con el plan Standard.",
+        print: "Imprimir factura",
+        saleInvoice: "Factura de venta",
+        invoiceNumber: "N.º de factura",
+        date: "Fecha",
+        status: "Estado",
+        customer: "Cliente",
+        walkInCustomer: "Cliente ocasional",
+        customerEmail: "Correo del cliente",
+        customerPhone: "Teléfono del cliente",
+        paymentMethod: "Método de pago",
+        product: "Producto",
+        quantity: "Cantidad",
+        unitPrice: "Precio unitario",
+        lineTotal: "Total de línea",
+        empty: "No hay líneas de factura.",
+        subtotal: "Subtotal",
+        tax: "Impuesto",
+        total: "Total",
+        barcodeLabel: (saleNumber: string) => `Código de barras de ${saleNumber}`,
+      } : {
         title: "Invoice",
         sendEmail: "Send by email",
         sendingEmail: "Sending...",
@@ -129,6 +156,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
 
   function handlePrintInvoice() {
     if (!containerRef.current || printRef.current) return
+    setReceiptVisible(true)
 
     const printTarget = containerRef.current.cloneNode(true) as HTMLElement
     const printWindow = window.open("", "_blank")
@@ -182,6 +210,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   }
 
   async function handleEmailInvoice() {
+    setReceiptVisible(true)
     if (!sale.customerEmail) {
       return
     }
@@ -206,20 +235,20 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
   }
 
   return (
-    <div className="card">
+    <div className={revealOnAction ? "sale-completion-receipt" : "card"}>
       {emailError && <div className="card error">{emailError}</div>}
       {emailSuccess && <div className="card success">{emailSuccess}</div>}
 
       <div className="table-actions" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-        <h3 style={{ margin: 0 }}>{text.title}</h3>
+        {!revealOnAction && <h3 style={{ margin: 0 }}>{text.title}</h3>}
         <div className="table-actions">
-          {sale.customerEmail && (
+          {(sale.customerEmail || revealOnAction) && (
             <button
               type="button"
               className="secondary-button"
               onClick={handleEmailInvoice}
-              disabled={sendingEmail || !invoiceEmailEnabled}
-              title={invoiceEmailEnabled ? undefined : text.invoiceEmailUnavailable}
+              disabled={sendingEmail || !invoiceEmailEnabled || !sale.customerEmail}
+              title={!sale.customerEmail ? (language === "fr" ? "Aucune adresse e-mail pour ce client." : language === "es" ? "Este cliente no tiene correo electrónico." : "No email address for this customer.") : invoiceEmailEnabled ? undefined : text.invoiceEmailUnavailable}
             >
               {sendingEmail ? text.sendingEmail : text.sendEmail}
             </button>
@@ -231,6 +260,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
         </div>
       </div>
 
+      <div hidden={!receiptVisible}>
       <div ref={containerRef} className="printable-invoice">
         <div className="invoice-header">
           <div>
@@ -240,7 +270,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
 
           <div className="invoice-reference">
             <p><strong>{text.invoiceNumber}:</strong> {sale.saleNumber}</p>
-            <p><strong>{text.date}:</strong> {formatDateTime(sale.soldAt)}</p>
+            <p><strong>{text.date}:</strong> {formatDateTime(sale.soldAt, language)}</p>
             <p><strong>{text.status}:</strong> {sale.status}</p>
           </div>
         </div>
@@ -314,6 +344,7 @@ export default function SaleInvoicePreview({ sale, companyName }: Props) {
           </svg>
           <div className="invoice-barcode-text">{sale.saleNumber}</div>
         </div>
+      </div>
       </div>
     </div>
   )

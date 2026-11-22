@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import {
   createCostRubric,
-  deleteCostRubric,
   DuplicateCostRubricNameError,
   getCostRubrics,
   updateCostRubricStatus,
@@ -11,13 +10,16 @@ import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getLocalizedCostRubricName } from "../utils/costRubrics"
+import { getCostCatalog, type CostCatalogEntry } from "../api/costCatalogApi"
+import CostCatalogDialog from "../components/costs/CostCatalogDialog"
+import { costCatalogCopy } from "../components/costs/costCatalogCopy"
 
 type FormState = {
   name: string
   description: string
 }
 
-type SortKey = "name" | "description" | "type" | "status"
+type SortKey = "name" | "description" | "type" | "status" | "category"
 type Sort = { key: SortKey; direction: "asc" | "desc" }
 
 const emptyForm: FormState = {
@@ -34,14 +36,18 @@ export default function CostRubricsPage() {
   const [success, setSuccess] = useState("")
   const [form, setForm] = useState<FormState>(emptyForm)
   const [sort, setSort] = useState<Sort | null>(null)
+  const [catalog, setCatalog] = useState<CostCatalogEntry[]>([])
+  const [adding, setAdding] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const catalogText = costCatalogCopy[language]
 
   const text = language === "fr"
     ? {
         title: "Rubriques de cout",
         loadError: "Echec du chargement des rubriques de cout",
         nameRequired: "Le nom est requis",
-        duplicateName: "Une rubrique de coût porte déjà ce nom. Vérifiez le nom ou utilisez la rubrique existante. Si elle est inactive, réactivez-la dans la liste.",
-        inactiveDuplicateName: "Une rubrique de coût inactive porte déjà ce nom. Cliquez sur « Activer » dans la liste pour la réutiliser au lieu d’en créer une autre.",
+        duplicateName: "Une rubrique de coût porte déjà ce nom. Utilisez la rubrique existante. Si elle a été retirée, retrouvez-la avec « Ajouter ».",
+        inactiveDuplicateName: "Une rubrique de coût retirée porte déjà ce nom. Retrouvez-la avec « Ajouter » pour la réutiliser au lieu d’en créer une autre.",
         createSuccess: "La rubrique de cout a ete creee avec succes",
         createError: "Echec de la creation de la rubrique de cout",
         deactivateSuccess: "La rubrique de cout a ete desactivee avec succes",
@@ -75,8 +81,8 @@ export default function CostRubricsPage() {
         title: "Rúbricas de costo",
         loadError: "No se pudieron cargar las rúbricas de costo",
         nameRequired: "El nombre es obligatorio",
-        duplicateName: "Ya existe una rúbrica de costo con ese nombre. Revisa el nombre o usa la rúbrica existente. Si está inactiva, actívala en la lista.",
-        inactiveDuplicateName: "Ya existe una rúbrica de costo inactiva con ese nombre. Selecciona «Activar» en la lista para reutilizarla en lugar de crear otra.",
+        duplicateName: "Ya existe una rúbrica de costo con ese nombre. Use la existente. Si fue retirada, búsquela con «Añadir».",
+        inactiveDuplicateName: "Ya existe una rúbrica de costo retirada con ese nombre. Búsquela con «Añadir» para reutilizarla en lugar de crear otra.",
         createSuccess: "Rúbrica de costo creada",
         createError: "No se pudo crear la rúbrica de costo",
         deactivateSuccess: "Rúbrica de costo desactivada",
@@ -109,8 +115,8 @@ export default function CostRubricsPage() {
         title: "Cost rubrics",
         loadError: "Failed to load cost rubrics",
         nameRequired: "Name is required",
-        duplicateName: "A cost rubric with this name already exists. Check the name or use the existing rubric. If it’s inactive, activate it in the list.",
-        inactiveDuplicateName: "An inactive cost rubric with this name already exists. Click Activate in the list to reuse it instead of creating a new one.",
+        duplicateName: "A cost rubric with this name already exists. Use the existing rubric. If it was removed, find it using Add.",
+        inactiveDuplicateName: "A removed cost rubric with this name already exists. Find it using Add to reuse it instead of creating another.",
         createSuccess: "Cost rubric created successfully",
         createError: "Failed to create the cost rubric",
         deactivateSuccess: "Cost rubric deactivated successfully",
@@ -143,14 +149,14 @@ export default function CostRubricsPage() {
 
   const columns: { key: SortKey; label: string }[] = [
     { key: "name", label: text.name },
+    { key: "category", label: catalogText.category },
     { key: "description", label: text.descriptionHeading },
-    { key: "type", label: text.type },
-    { key: "status", label: text.status },
   ]
-  const rows = rubrics.map((rubric) => ({
+  const rows = rubrics.filter(rubric => rubric.active).map((rubric) => ({
     rubric,
-    name: getLocalizedCostRubricName(rubric.code, rubric.name, language),
-    description: rubric.description ?? "",
+    name: getLocalizedCostRubricName(rubric.code, rubric.name, language, rubric.catalog),
+    category: rubric.catalog ? catalogText.categories[rubric.catalog.category] : catalogText.categories.CUSTOM,
+    description: rubric.description || rubric.catalog?.descriptions[language] || "",
     type: rubric.system ? text.system : text.custom,
     status: rubric.active ? text.active : text.inactive,
   }))
@@ -170,8 +176,9 @@ export default function CostRubricsPage() {
     try {
       setLoading(true)
       setError("")
-      const data = await getCostRubrics()
+      const [data, available] = await Promise.all([getCostRubrics(), getCostCatalog()])
       setRubrics(data)
+      setCatalog(available)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.loadError)
@@ -197,12 +204,12 @@ export default function CostRubricsPage() {
       return
     }
     const normalizedName = name.toLowerCase()
-    const duplicate = rows.find((row) =>
-      row.name.trim().toLowerCase() === normalizedName ||
-      row.rubric.name.trim().toLowerCase() === normalizedName,
+    const duplicate = rubrics.find((rubric) =>
+      getLocalizedCostRubricName(rubric.code, rubric.name, language, rubric.catalog).trim().toLowerCase() === normalizedName ||
+      rubric.name.trim().toLowerCase() === normalizedName,
     )
     if (duplicate) {
-      setError(duplicate.rubric.active ? text.duplicateName : text.inactiveDuplicateName)
+      setError(duplicate.active ? text.duplicateName : text.inactiveDuplicateName)
       return
     }
 
@@ -234,6 +241,7 @@ export default function CostRubricsPage() {
 
   async function handleToggleRubric(rubric: CompanyCostRubricResponse) {
     try {
+      setSaving(true)
       setError("")
       setSuccess("")
 
@@ -247,28 +255,8 @@ export default function CostRubricsPage() {
       if (!(err instanceof CompanyCurrencyRequiredError)) {
         setError(err instanceof Error ? err.message : text.statusError)
       }
-    }
-  }
-
-  async function handleDeleteRubric(rubric: CompanyCostRubricResponse) {
-    if (rubric.system) return
-
-    const confirmed = window.confirm(text.deleteConfirm(getLocalizedCostRubricName(rubric.code, rubric.name, language)))
-    if (!confirmed) return
-
-    try {
-      setError("")
-      setSuccess("")
-
-      await deleteCostRubric(rubric.id)
-
-      setSuccess(text.deleteSuccess)
-      await loadRubrics()
-    } catch (err) {
-      console.error(err)
-      if (!(err instanceof CompanyCurrencyRequiredError)) {
-        setError(err instanceof Error ? err.message : text.deleteError)
-      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -279,8 +267,8 @@ export default function CostRubricsPage() {
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
-      <div className="card">
-        <h3>{text.newTitle}</h3>
+      <details className="card">
+        <summary>{text.newTitle}</summary>
 
         <p id="cost-rubric-duplicate-warning" className="company-user-warning">{text.duplicateWarning}</p>
         <form onSubmit={handleSubmit} className="product-form-grid cost-rubric-form" aria-describedby="cost-rubric-duplicate-warning">
@@ -310,15 +298,24 @@ export default function CostRubricsPage() {
             </button>
           </div>
         </form>
-      </div>
+      </details>
 
       <div className="card">
-        <h3>{text.listTitle}</h3>
+        <div className="cost-catalog-heading">
+          <h3>{text.listTitle}</h3>
+          <div className="form-actions">
+            <button type="button" disabled={loading || saving} onClick={() => setAdding(true)}>{catalogText.add}</button>
+            <button type="button" className="secondary-button" disabled={loading || saving}
+              aria-pressed={removing} onClick={() => setRemoving(value => !value)}>
+              {removing ? catalogText.done : catalogText.remove}
+            </button>
+          </div>
+        </div>
 
         {loading ? (
           <p>{text.loading}</p>
         ) : (
-          <table>
+          <table className="cost-catalog-table">
             <thead>
               <tr>
                 {columns.map(({ key, label }) => {
@@ -339,37 +336,29 @@ export default function CostRubricsPage() {
               </tr>
             </thead>
             <tbody>
-              {rubrics.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>{text.empty}</td>
+                  <td colSpan={4}>{text.empty}</td>
                 </tr>
               ) : (
-                rows.map(({ rubric, name, description, type, status }) => (
+                rows.map(({ rubric, name, description, category }) => (
                   <tr key={rubric.id}>
                     <td>{name}</td>
+                    <td>{category}</td>
                     <td className="cost-rubric-description">{description || "\u2014"}</td>
-                    <td>{type}</td>
-                    <td>{status}</td>
                     <td>
-                      <div className="cost-rubric-actions">
+                      {removing && <div className="cost-rubric-actions">
                         <button
                           type="button"
-                          className="secondary-button"
+                          className="cost-catalog-remove"
+                          title={catalogText.remove}
+                          aria-label={catalogText.remove + ": " + name}
+                          disabled={saving}
                           onClick={() => handleToggleRubric(rubric)}
                         >
-                          {rubric.active ? text.deactivate : text.activate}
+                          ×
                         </button>
-
-                        {!rubric.system && (
-                          <button
-                            type="button"
-                            className="danger-button"
-                            onClick={() => handleDeleteRubric(rubric)}
-                          >
-                            {text.delete}
-                          </button>
-                        )}
-                      </div>
+                      </div>}
                     </td>
                   </tr>
                 ))
@@ -378,6 +367,8 @@ export default function CostRubricsPage() {
           </table>
         )}
       </div>
+      {adding && <CostCatalogDialog catalog={catalog} rubrics={rubrics} onError={setError}
+        onClose={() => setAdding(false)} onSaved={data => { setRubrics(data); setAdding(false); setSuccess("") }} />}
     </div>
   )
 }

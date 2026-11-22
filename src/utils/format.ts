@@ -5,17 +5,24 @@ export function formatCurrency(value: number, currency = "USD", locale = "en-US"
     currencyDisplay: "code",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value)
+  }).formatToParts(value).map(part => {
+    if (part.type === "decimal") return "."
+    if (part.type === "group" && part.value === ".") return "\u00a0"
+    return part.value
+  }).join("")
 }
 
-export function formatDateTime(value: string, locale = "en-CA") {
-  const date = new Date(value)
+export function formatDateTime(value: string, locale = "en-CA", timeZone?: string) {
+  // Offset-free API values are wall-clock times, not browser-local instants.
+  const wallTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value)
+  const date = new Date(wallTime ? value + "Z" : value)
 
   if (Number.isNaN(date.getTime())) {
     return value
   }
 
   return new Intl.DateTimeFormat(locale, {
+    ...(wallTime ? { timeZone: "UTC" } : timeZone ? { timeZone } : {}),
     year: "numeric",
     month: "short",
     day: "2-digit",
