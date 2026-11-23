@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut } from "./client"
+import type { SaleResponse } from "./salesApi"
 
 export type CustomerResponse = {
   id: number
@@ -30,4 +31,8 @@ export function updateCustomer(customerId: number, payload: CustomerPayload) {
 
 export function deleteCustomer(customerId: number) {
   return apiDelete<void>(`/customers/${customerId}`)
+}
+
+export function getCustomerPurchases(customerId: number, page = 0) {
+  return apiGet<{ items: SaleResponse[]; total: number; page: number; size: number }>(`/sales/customer/${customerId}?page=${page}&size=20`)
 }
