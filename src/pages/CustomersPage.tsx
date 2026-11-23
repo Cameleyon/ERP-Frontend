@@ -4,11 +4,17 @@ import ErrorMessage from "../components/common/ErrorMessage"
 import { createCustomer, getCustomers, type CustomerResponse } from "../api/customerApi"
 import CustomerDetailsDialog from "../components/customers/CustomerDetailsDialog"
 import CustomerFields from "../components/customers/CustomerFields"
+import { useAuth } from "../auth/AuthContext"
 
 const emptyForm = { name: "", phone: "", email: "", emailOptIn: false }
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
 
 export default function CustomersPage() {
+  const { user } = useAuth()
+  return user?.role === "ADMIN" ? <CustomersContent /> : null
+}
+
+function CustomersContent() {
   const { copy } = useI18n()
   const text = copy.customersPage
   const id = useId()

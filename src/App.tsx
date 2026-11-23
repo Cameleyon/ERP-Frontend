@@ -24,6 +24,7 @@ import CurrencyRequiredDialog from "./components/common/CurrencyRequiredDialog"
 import MarketingConsent from "./components/common/MarketingConsent"
 import { metaPixel } from "./utils/metaPixel"
 import { COMPANY_CURRENCY_REQUIRED_EVENT } from "./utils/companyCurrency"
+import { accessiblePage } from "./utils/pageAccess"
 
 type PublicPage = "landing" | "signup" | "login"
 const PLATFORM_APP_URL =
@@ -195,14 +196,7 @@ function AppContent() {
     )
   }
 
-  const safePage =
-      !isAdmin &&
-      (page === "inventory" ||
-          page === "cost-rubrics" ||
-          page === "products" ||
-          page === "settings")
-          ? "dashboard"
-          : page
+  const safePage = accessiblePage(user?.role, page)
 
   return (
       <AppLayout page={safePage} onNavigate={nextPage => { setConfigureCurrency(false); setPage(nextPage) }}>

@@ -4,10 +4,14 @@ const { chromium } = createRequire(import.meta.url)("playwright")
 const browser = await chromium.launch({ channel: "msedge", headless: true })
 const origin = process.env.PRODUCT_SEARCH_PREVIEW_URL || "http://127.0.0.1:5203"
 try {
-  for (const [lang, width] of [["en", 1440], ["fr", 375], ["es", 768]]) {
+  for (const [lang, width, role] of [["en", 1440, "ADMIN"], ["fr", 375, "ADMIN"], ["es", 768, "ADMIN"]]) {
     const context = await browser.newContext({ viewport: { width, height: 1000 } })
     const page = await context.newPage(), errors = [], requests = []
     let fail = false
+    let cancelled = false, failCancel = false, cancelRequests = 0, failDetail = false
+    const sale = { id: 1, saleNumber: "SALE-1", soldAt: "2026-11-22T10:00:00", locationName: "Site A", totalAmount: 10,
+      subtotalAmount: 10, taxAmount: 0, customerName: "Client", paymentMethod: "CASH", status: "COMPLETED",
+      items: [{ productId: 1, productName: "Test purchase item", quantity: 1, unitPrice: 10, lineTotal: 10 }] }
     const clients = [
       { id: 1, name: "Émile Client", phone: "111", email: "one@example.invalid", emailOptIn: false },
       { id: 2, name: "Émile Client", phone: "222", email: "two@example.invalid", emailOptIn: true },
@@ -25,7 +29,16 @@ try {
       if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers })
       requests.push(path)
       let json
-      if (path === "/api/auth/me") json = { id: 8, companyId: 7, role: "ADMIN", companyTimeZoneId: "Etc/GMT+5" }
+      if (path === "/api/auth/me") json = { id: 8, companyId: 7, role, companyTimeZoneId: "Etc/GMT+5" }
+      else if (path === "/api/company/subscription") json = { invoiceEmailEnabled: false }
+      else if (path === "/api/sales/1") {
+        if (failDetail) return route.fulfill({ status: 503, headers, json: { message: "Test detail failure" } })
+        json = { ...sale, status: cancelled ? "CANCELLED" : "COMPLETED" }
+      } else if (path === "/api/sales/1/cancel") {
+        assert.equal(role, "ADMIN"); assert.equal(req.method(), "POST"); cancelRequests++
+        if (failCancel) return route.fulfill({ status: 503, headers, json: { message: "Test cancellation failure" } })
+        cancelled = true; json = { ...sale, status: "CANCELLED" }
+      }
       else if (path === "/api/customers") json = clients
       else if (path === "/api/customers/2" && req.method() === "PUT") {
         Object.assign(clients[1], req.postDataJSON()); json = clients[1]
@@ -48,6 +61,38 @@ try {
     await input.press("ArrowDown"); await input.press("ArrowDown"); await input.press("Enter")
     const dialog = page.getByRole("dialog")
     await dialog.getByRole("cell", { name: "SALE-1", exact: true }).waitFor()
+    // Use the row's buttons by position so translations are not duplicated in the test.
+    const row = dialog.locator("tr").filter({ hasText: "SALE-1" })
+    await row.getByRole("button").first().click()
+    const detail = page.locator(".customer-purchase-details")
+    await detail.getByRole("cell", { name: "Test purchase item", exact: true }).waitFor()
+    await page.keyboard.press("Escape")
+    assert.equal(await detail.count(), 0)
+    assert.equal(await dialog.count(), 1)
+    failDetail = true
+    await row.getByRole("button").first().click()
+    await detail.getByRole("alert").waitFor()
+    failDetail = false
+    await detail.getByRole("alert").getByRole("button").click()
+    await detail.getByRole("cell", { name: "Test purchase item", exact: true }).waitFor()
+    await page.keyboard.press("Escape")
+    if (role === "ADMIN") {
+      page.once("dialog", prompt => prompt.dismiss())
+      await row.getByRole("button").last().click()
+      assert.equal(cancelRequests, 0)
+      failCancel = true
+      page.once("dialog", prompt => prompt.accept())
+      await row.getByRole("button").last().click()
+      await page.getByRole("alertdialog").waitFor()
+      await page.getByRole("alertdialog").getByRole("button").click()
+      assert.equal(await row.getByRole("button").count(), 2)
+      failCancel = false
+      page.once("dialog", prompt => prompt.accept())
+      await row.getByRole("button").last().click()
+      await page.waitForFunction(() => document.querySelector(".status-cancelled"))
+      assert.equal(await row.getByRole("button").count(), 1)
+      assert.equal(cancelRequests, 2)
+    } else assert.equal(await row.getByRole("button").count(), 1, "cashier has no direct cancellation")
     assert.ok(requests.includes("/api/sales/customer/2"), "same-name selection uses customer ID")
     const labels = dialog.locator("form label")
     assert.equal(await labels.nth(1).locator("input").inputValue(), "222")
@@ -73,7 +118,7 @@ try {
     await dialog.getByRole("alert").getByRole("button").click()
     await dialog.getByRole("cell", { name: "SALE-1", exact: true }).waitFor()
     assert.deepEqual(errors, [])
-    console.log("PASS", lang, width, "suggestions, ID selection, editing, pagination, empty history, retry")
+    console.log("PASS", lang, width, role, "search, details, cancellation permissions/errors, editing, pagination, history retry")
     await context.close()
   }
 } finally { await browser.close() }

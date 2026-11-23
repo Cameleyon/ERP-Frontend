@@ -76,19 +76,19 @@ export default function Sidebar({
           )}
 
           <nav className="sidebar-nav">
-            <button
+            {isAdmin && <button
               className={`sidebar-button ${page === "dashboard" ? "active" : ""}`}
               onClick={() => onNavigate("dashboard")}
             >
               {copy.sidebar.dashboard}
-            </button>
+            </button>}
 
-            <button
+            {isAdmin && <button
               className={`sidebar-button ${page === "customers" ? "active" : ""}`}
               onClick={() => onNavigate("customers")}
             >
               {copy.sidebar.customers}
-            </button>
+            </button>}
 
             <button
               className={`sidebar-button ${page === "new-sale" ? "active" : ""}`}
@@ -133,12 +133,12 @@ export default function Sidebar({
 
         <div className="sidebar-footer">
           <div className="sidebar-footer-actions">
-            <button
+            {isAdmin && <button
               className={`sidebar-button sidebar-footer-button ${page === "profile" ? "active" : ""}`}
               onClick={() => onNavigate("profile")}
             >
               {copy.common.profile}
-            </button>
+            </button>}
             {isAdmin && <button
               className={`sidebar-button sidebar-footer-button ${page === "settings" ? "active" : ""}`}
               onClick={() => onNavigate("settings")}

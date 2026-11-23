@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/AuthContext"
 import { formatCurrency, formatDateTime } from "../../utils/format"
 import StatusBadge from "../common/StatusBadge"
 import CustomerFields from "./CustomerFields"
+import CustomerPurchaseActions from "./CustomerPurchaseActions"
 
 export default function CustomerDetailsDialog({ customer, onClose, onSaved, onDeleted }: {
   customer: CustomerResponse; onClose: () => void; onSaved: (customer: CustomerResponse) => void; onDeleted: () => void
@@ -54,7 +55,11 @@ export default function CustomerDetailsDialog({ customer, onClose, onSaved, onDe
     finally { setBusy(false) }
   }
   return <dialog ref={ref} className="card customer-details-dialog" aria-labelledby={id}
-    onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
+    onCancel={event => {
+      if (event.target !== event.currentTarget) return
+      event.preventDefault()
+      if (!busy) onClose()
+    }}>
     <div className="sale-completion-header"><h2 id={id}>{customer.name}</h2>
       <button type="button" className="secondary-button" autoFocus disabled={busy} onClick={onClose}>{copy.common.close}</button></div>
     {error && <p role="alert" className="error">{error}</p>}
@@ -69,10 +74,14 @@ export default function CustomerDetailsDialog({ customer, onClose, onSaved, onDe
       <button onClick={() => { setLoading(true); setHistoryFailed(false); setAttempt(value => value + 1) }}>{labels.retry}</button></div>
       : !purchases?.items.length ? <p>{labels.empty}</p> : <>
         <div className="scrollable-table" tabIndex={0} role="region" aria-label={labels.title}>
-          <table><thead><tr><th>{history.saleNumber}</th><th>{history.date}</th><th>{history.location}</th><th>{history.total}</th><th>{history.status}</th></tr></thead>
+          <table><thead><tr><th>{history.saleNumber}</th><th>{history.date}</th><th>{history.location}</th><th>{history.total}</th><th>{history.status}</th><th className="mobile-sticky-actions" aria-label={copy.common.actions} /></tr></thead>
             <tbody>{purchases.items.map(sale => <tr key={sale.id}><td>{sale.saleNumber}</td>
               <td>{formatDateTime(sale.soldAt, language, user?.companyTimeZoneId || undefined)}</td><td>{sale.locationName || "-"}</td>
-              <td>{formatCurrency(sale.totalAmount)}</td><td><StatusBadge value={sale.status} /></td></tr>)}</tbody></table>
+              <td>{formatCurrency(sale.totalAmount)}</td><td><StatusBadge value={sale.status} /></td>
+              <td className="mobile-sticky-actions"><CustomerPurchaseActions sale={sale} disabled={busy}
+                onUpdated={updated => setPurchases(previous => previous ? { ...previous,
+                  items: previous.items.map(item => item.id === updated.id ? updated : item) } : previous)} /></td>
+            </tr>)}</tbody></table>
         </div>
         <div className="customer-purchase-pagination"><button type="button" className="secondary-button" disabled={page === 0}
           onClick={() => changePage(page - 1)}>{history.previousPage}</button>
