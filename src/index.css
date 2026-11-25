@@ -3584,3 +3584,18 @@ a.language-switcher-button:hover {
   font-weight: 700;
   text-decoration: none;
 }
+.setup-guide { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; border-radius: 8px; }
+.setup-guide h2 { font-size: 19px; margin: 0 0 6px; }
+.setup-guide p { margin: 4px 0; }
+.setup-milestones { display: flex; flex-wrap: wrap; list-style: none; gap: 4px 12px; padding: 0; margin: 8px 0 0; font-size: 14px; }
+.setup-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.setup-actions > button:not(.link-button) { background: #044975; color: white; }
+.setup-actions button, .setup-show { min-height: 44px; max-width: 100%; white-space: normal; }
+.setup-product-options { grid-column: 1 / -1; min-width: 0; }
+.setup-product-options > summary { cursor: pointer; padding-block: 12px; }
+.inventory-field-error { display: block; color: #9b1c1c; margin-block: 4px; }
+@media (max-width: 640px) {
+  .setup-guide { align-items: stretch; flex-direction: column; }
+  .setup-actions { align-items: start; flex-direction: column; }
+  .setup-milestones { display: none; }
+}

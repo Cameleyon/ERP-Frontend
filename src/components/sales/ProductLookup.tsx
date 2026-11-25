@@ -1,24 +1,26 @@
 import { useEffect, useId, useState } from "react"
-import { getProducts, type ProductResponse } from "../../api/productManagementApi"
+import { getProducts } from "../../api/productManagementApi"
+import { getSalesProductSuggestions, type ProductSuggestion } from "../../api/productApi"
 import { useI18n } from "../../i18n/I18nContext"
 import { suggestProducts } from "../../utils/productNameSearch"
 
 type Props = {
   value: string
   onChange: (value: string) => void
-  onSelect: (product: ProductResponse) => void
+  onSelect: (product: ProductSuggestion) => void
   onLookup: () => void
   onError: (message: string) => void
   lookupLoading: boolean
   embedded?: boolean
   disabled?: boolean
+  salesLocationId?: string
 }
 
-export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading, embedded = false, disabled = false }: Props) {
+export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading, embedded = false, disabled = false, salesLocationId }: Props) {
   const { copy } = useI18n()
   const text = copy.barcodeLookup
   const id = useId()
-  const [products, setProducts] = useState<ProductResponse[]>([])
+  const [products, setProducts] = useState<ProductSuggestion[]>([])
   const [open, setOpen] = useState(false)
   const [index, setIndex] = useState(-1)
   const [loading, setLoading] = useState(true)
@@ -28,8 +30,10 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
   const expanded = open && !!query.trim() && !loading && results.length > 0
 
   useEffect(() => {
+    if (salesLocationId === "") return
     let current = true
-    getProducts().then(data => {
+    const request = salesLocationId === undefined ? getProducts() : getSalesProductSuggestions(salesLocationId)
+    request.then(data => {
       if (current) setProducts(Array.isArray(data) ? data : [])
     }).catch(() => {
       if (current) {
@@ -38,9 +42,9 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
       }
     }).finally(() => { if (current) setLoading(false) })
     return () => { current = false }
-  }, [attempt, onError, text.nameLoadError])
+  }, [attempt, onError, text.nameLoadError, salesLocationId])
 
-  function choose(product: ProductResponse) {
+  function choose(product: ProductSuggestion) {
     if (disabled) return
     setOpen(false)
     setIndex(-1)

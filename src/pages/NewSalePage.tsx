@@ -4,7 +4,7 @@ import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
-import { getProductByCode, getProductBySku, type ProductLookupResponse } from "../api/productApi"
+import { findSalesProduct, type SalesProduct } from "../api/productApi"
 import { createSale } from "../api/salesApi"
 import ProductLookup from "../components/sales/ProductLookup"
 import CartTable from "../components/sales/CartTable"
@@ -14,6 +14,9 @@ import QuantityInput from "../components/common/QuantityInput"
 import { useAuth } from "../auth/AuthContext"
 import { formatCurrency, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
+import { setupCopy } from "../i18n/setupCopy"
+import { parseExactDecimal, parseStockQuantity } from "../utils/decimalInput"
+import { receiptErrorMessage } from "../i18n/inventoryReceiptMessages"
 
 type CartItem = {
   productId: number
@@ -25,7 +28,7 @@ type CartItem = {
   lineTotal: number
 }
 
-function resolveUnitPrice(product: ProductLookupResponse, itemQuantity: number) {
+function resolveUnitPrice(product: SalesProduct, itemQuantity: number) {
   const appliedTier = [...(product.priceTiers ?? [])]
     .sort((a, b) => b.minQuantity - a.minQuantity)
     .find((tier) => itemQuantity >= tier.minQuantity)
@@ -36,10 +39,12 @@ function resolveUnitPrice(product: ProductLookupResponse, itemQuantity: number) 
   }
 }
 
-export default function NewSalePage() {
+export default function NewSalePage({ preferredSiteId, onSetupReturn }: { preferredSiteId?: number; onSetupReturn?: () => void } = {}) {
   const { user } = useAuth()
-  const { copy } = useI18n()
+  const { copy, language } = useI18n()
   const text = copy.newSalePage
+  const guide = setupCopy[language]
+  const saleHeading = useRef<HTMLHeadingElement>(null)
 
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -50,7 +55,7 @@ export default function NewSalePage() {
 
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [selectedProduct, setSelectedProduct] = useState<ProductLookupResponse | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<SalesProduct | null>(null)
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
@@ -62,6 +67,7 @@ export default function NewSalePage() {
   const [paymentAuthorizationCode, setPaymentAuthorizationCode] = useState("")
   const [paymentConfirmedManually, setPaymentConfirmedManually] = useState(false)
   const [quantity, setQuantity] = useState("1")
+  const [quantityError, setQuantityError] = useState("")
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [completedSaleId, setCompletedSaleId] = useState<number | null>(null)
   const lookupRequestRef = useRef(0)
@@ -69,6 +75,7 @@ export default function NewSalePage() {
   useEffect(() => {
     void loadCustomers()
     void loadLocations()
+    if (preferredSiteId) saleHeading.current?.focus()
   }, [])
 
   async function loadLocations() {
@@ -77,10 +84,12 @@ export default function NewSalePage() {
       const data = await getAccessibleCompanyLocations()
       const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
       setLocations(activeLocations)
-      setLocationId(getDefaultLocationId(activeLocations))
+      setLocationId(preferredSiteId
+        ? activeLocations.some(site => site.id === preferredSiteId) ? String(preferredSiteId) : ""
+        : getDefaultLocationId(activeLocations))
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : "Failed to load locations")
+      if (!preferredSiteId) setError(err instanceof Error ? err.message : "Failed to load locations")
     } finally {
       setLocationsLoading(false)
     }
@@ -100,6 +109,7 @@ export default function NewSalePage() {
   }
 
   async function handleLookup(code = productCode, selected?: { id: number; sku: string }) {
+    if (!locationId) return
     if (!code.trim()) {
       setError(text.barcodeRequired)
       return
@@ -112,14 +122,14 @@ export default function NewSalePage() {
       setError("")
       setSuccess("")
 
-      const site = locationId ? Number(locationId) : null
-      const product = selected ? await getProductBySku(selected.sku, site) : await getProductByCode(code.trim(), site)
+      const product = await findSalesProduct(selected?.sku ?? code.trim(), locationId, !!selected)
       if (request !== lookupRequestRef.current) return
       if (selected && product.id !== selected.id) throw new Error(text.lookupFailed)
       if (!product.active) throw new Error(text.lookupFailed)
       setSelectedProduct(product)
       setProductCode(product.name)
       setQuantity("1")
+      setQuantityError("")
     } catch (err) {
       if (request !== lookupRequestRef.current) return
       console.error(err)
@@ -136,20 +146,17 @@ export default function NewSalePage() {
       return
     }
 
-    const quantityValue = parseQuantity(quantity)
-
-    if (quantityValue <= 0) {
-      setError(text.quantityPositive)
+    const validated = parseStockQuantity(quantity, selectedProduct.quantityType === "INTEGER")
+    if (validated.reason) {
+      setQuantityError(validated.reason === "whole" ? copy.common.wholeNumberQuantity
+        : validated.reason === "positive" ? text.quantityPositive
+        : validated.reason === "range" ? receiptErrorMessage("INVENTORY_QUANTITY_RANGE", language, text.quantityPositive)
+        : copy.common.saleQuantityPrecision)
+      document.getElementById("sale-quantity")?.focus()
       return
     }
-    if (selectedProduct.quantityType === "INTEGER" && !Number.isInteger(quantityValue)) {
-      setError(copy.common.wholeNumberQuantity)
-      return
-    }
-    if (Number(quantityValue.toFixed(2)) !== quantityValue) {
-      setError(copy.common.saleQuantityPrecision)
-      return
-    }
+    setQuantityError("")
+    const quantityValue = validated.quantity
 
     if (quantityValue > selectedProduct.currentStock) {
       setError(text.quantityExceedsStock)
@@ -159,7 +166,9 @@ export default function NewSalePage() {
     const existing = cartItems.find((item) => item.productId === selectedProduct.id)
 
     if (existing) {
-      const newQuantity = Number((existing.quantity + quantityValue).toFixed(2))
+      const prior = parseExactDecimal(String(existing.quantity), 2)
+      if ("reason" in prior) return
+      const newQuantity = Number(prior.units + validated.cents) / 100
       const pricing = resolveUnitPrice(selectedProduct, newQuantity)
 
       if (newQuantity > selectedProduct.currentStock) {
@@ -325,23 +334,24 @@ export default function NewSalePage() {
     }
   }
 
-  const quantityValue = parseQuantity(quantity)
+  const quantityValue = parseStockQuantity(quantity, selectedProduct?.quantityType === "INTEGER").quantity ?? 0
   const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantityValue) : null
 
   return (
     <div>
       <div className="page-title-row">
-        <h1>{text.title}</h1>
+        <h1 ref={saleHeading} tabIndex={-1}>{text.title}</h1>
 
         {locations.length > 0 && (
           <label className="page-title-site-filter">
-            <select value={locationId} onChange={(event) => {
+            <select aria-label={guide.site} value={locationId} onChange={(event) => {
               lookupRequestRef.current++
               setLookupLoading(false)
               setSelectedProduct(null)
               setProductCode("")
               setLocationId(event.target.value)
             }} disabled={locationsLoading}>
+              {!locationId && <option value="">{guide.selectSite}</option>}
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.name}
@@ -351,6 +361,10 @@ export default function NewSalePage() {
           </label>
         )}
       </div>
+      {preferredSiteId && !locationsLoading && !locationId && <div className="card">
+        <p role="status">{locations.length ? guide.unavailable : guide.siteBlocked}</p>
+        {onSetupReturn && <button type="button" className="secondary-button" onClick={onSetupReturn}>{guide.back}</button>}
+      </div>}
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
 
@@ -375,6 +389,8 @@ export default function NewSalePage() {
 
       <ProductLookup
         key={locationId}
+        salesLocationId={locationId}
+        disabled={!locationId}
         value={productCode}
         onChange={value => {
           lookupRequestRef.current++
@@ -409,21 +425,20 @@ export default function NewSalePage() {
             <strong>{text.currentStock}:</strong> {formatNumber(selectedProduct.currentStock)}
             {selectedProduct.unitName ? ` ${selectedProduct.unitName}` : ""}
           </p>
-          <p>
-            <strong>{text.minimumStock}:</strong> {formatNumber(selectedProduct.minimumStock)}
-            {selectedProduct.unitName ? ` ${selectedProduct.unitName}` : ""}
-          </p>
 
           <div className="sale-form-row">
             <label>
               {text.quantity} {selectedProduct.unitName ? `(${selectedProduct.unitName})` : ""}
               <QuantityInput
+                inputId="sale-quantity"
                 step={selectedProduct.quantityType === "INTEGER" ? 1 : 0.01}
                 buttonStep={1}
                 value={quantity}
-                onChange={setQuantity}
+                onChange={value => { setQuantityError(""); setQuantity(value) }}
                 ariaLabel={text.quantity}
+                error={quantityError || undefined}
               />
+              {quantityError && <small id="sale-quantity-error" className="inventory-field-error" role="alert">{quantityError}</small>}
             </label>
 
             <button onClick={handleAddToCart}>{text.addToCart}</button>
@@ -576,9 +591,4 @@ export default function NewSalePage() {
       )}
     </div>
   )
-}
-
-function parseQuantity(value: string) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : 0
 }

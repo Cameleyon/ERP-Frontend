@@ -35,3 +35,15 @@ export function getProductBySku(sku: string, locationId?: number | null) {
   const query = locationId ? `?locationId=${locationId}` : ""
   return apiGet<ProductLookupResponse>(`/products/sku/${encodeURIComponent(sku)}${query}`)
 }
+
+export type ProductSuggestion = Pick<ProductLookupResponse, "id" | "name" | "sku" | "barcode" | "active">
+export type SalesProduct = ProductSuggestion & Pick<ProductLookupResponse, "unitName" | "quantityType" | "unitPrice" | "priceTiers" | "currentStock">
+
+export function getSalesProductSuggestions(locationId: string) {
+  return apiGet<ProductSuggestion[]>(`/sales/product-lookup?locationId=${encodeURIComponent(locationId)}`)
+}
+
+export function findSalesProduct(code: string, locationId: string, exactSku: boolean) {
+  const lookup = exactSku ? "sku" : "barcode"
+  return apiGet<SalesProduct>(`/sales/product-lookup/${lookup}/${encodeURIComponent(code)}?locationId=${encodeURIComponent(locationId)}`)
+}

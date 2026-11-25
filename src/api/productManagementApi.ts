@@ -4,6 +4,11 @@ import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 
+export class ProductResponseError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) { super(message); this.status = status }
+}
+
 function buildAuthHeaders() {
   const token = localStorage.getItem(TOKEN_KEY)
 
@@ -17,7 +22,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
   await checkCompanyCurrencyResponse(response)
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
+    let message = text
+    try { message = JSON.parse(text)?.message || text } catch { /* Preserve existing fallback. */ }
+    throw new ProductResponseError(message || `Request failed with status ${response.status}`, response.status)
   }
 
   return response.json()
@@ -98,6 +105,15 @@ export async function createProduct(payload: CreateProductRequest): Promise<Prod
     body: JSON.stringify(payload),
   })
 
+  const product = await handleResponse<ProductResponse>(response)
+  if (!Number.isSafeInteger(product?.id) || product.id <= 0 || typeof product.name !== "string") {
+    throw new Error("Unconfirmed product response")
+  }
+  return product
+}
+
+export async function getProduct(id: number): Promise<ProductResponse> {
+  const response = await fetch(`${API_BASE_URL}/products/${id}`, { headers: buildAuthHeaders() })
   return handleResponse<ProductResponse>(response)
 }
 

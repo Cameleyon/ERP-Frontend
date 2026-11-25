@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import {
   createProduct,
   getProducts,
+  ProductResponseError,
   updateProduct,
   type CreateProductRequest,
   type ProductResponse,
@@ -16,6 +17,9 @@ import ScrollableTable from "../components/common/ScrollableTable"
 import TablePagination from "../components/common/TablePagination"
 import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
 import { parseCsvText } from "../utils/csv"
+import { useAuth } from "../auth/AuthContext"
+import { getAccessibleCompanyLocations } from "../api/companyLocationsApi"
+import { setupCopy } from "../i18n/setupCopy"
 
 type ProductFormState = {
   barcode: string
@@ -87,15 +91,28 @@ function parseBooleanLike(value: string) {
   return null
 }
 
-export default function ProductsPage() {
+export default function ProductsPage({ guided = false, visible = true, onOpeningStock }: {
+  guided?: boolean; visible?: boolean; onOpeningStock?: (productId: number) => void
+} = {}) {
   const { language, copy } = useI18n()
+  const { user } = useAuth()
+  const guide = setupCopy[language]
   const text = copy.productsPage
   const [products, setProducts] = useState<ProductResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [createdProductName, setCreatedProductName] = useState<string | null>(null)
+  const [createdProduct, setCreatedProduct] = useState<ProductResponse | null>(null)
+  const [siteAvailability, setSiteAvailability] = useState<"checking" | "ready" | "blocked" | "error">("checking")
+  const [listWarning, setListWarning] = useState("")
+  const [uncertainCreate, setUncertainCreate] = useState(false)
+  const [optionalOpen, setOptionalOpen] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const productListHeading = useRef<HTMLHeadingElement>(null)
+  const submitLock = useRef(false)
+  const wasVisible = useRef(visible)
+  const invalidOptionalField = useRef<string | null>(null)
   const confirmationDialog = useRef<HTMLDialogElement>(null)
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [form, setForm] = useState<ProductFormState>(emptyForm)
@@ -126,6 +143,7 @@ export default function ProductsPage() {
   ]
 
   const isEditMode = editingProductId !== null
+  const guidedForm = guided && !isEditMode
 
   const localizedPresetCategories = useMemo(
     () => getLocalizedPresetCategories(language),
@@ -138,8 +156,27 @@ export default function ProductsPage() {
 
   useEffect(() => {
     const dialog = confirmationDialog.current
-    if (createdProductName !== null && dialog && !dialog.open) dialog.showModal()
-  }, [createdProductName])
+    if (createdProduct && dialog && !dialog.open) dialog.showModal()
+  }, [createdProduct])
+
+  useEffect(() => {
+    if (visible && (guided || !wasVisible.current)) nameRef.current?.focus()
+    wasVisible.current = visible
+  }, [guided, visible])
+
+  useEffect(() => {
+    if (siteAvailability === "ready" && createdProduct?.active) {
+      confirmationDialog.current?.querySelector<HTMLElement>("[data-opening-stock]")?.focus()
+    }
+  }, [siteAvailability, createdProduct])
+
+  async function checkReceiptSite() {
+    setSiteAvailability("checking")
+    try {
+      const sites = await getAccessibleCompanyLocations()
+      setSiteAvailability(sites.some(site => site.active) ? "ready" : "blocked")
+    } catch { setSiteAvailability("error") }
+  }
 
   useEffect(() => {
     if (!categorySelection || categorySelection === "OTHER") {
@@ -161,15 +198,17 @@ export default function ProductsPage() {
     )
   }, [categorySelection, localizedPresetCategories])
 
-  async function loadProducts() {
+  async function loadProducts(quiet = false) {
     try {
       setLoading(true)
-      setError("")
+      if (!quiet) setError("")
       const data = await getProducts()
       setProducts(Array.isArray(data) ? data : [])
+      return true
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.loadProductsError)
+      if (!quiet) setError(err instanceof Error ? err.message : text.loadProductsError)
+      return false
     } finally {
       setLoading(false)
     }
@@ -627,6 +666,7 @@ export default function ProductsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submitLock.current || uncertainCreate && !isEditMode) return
 
     if (!form.name.trim()) {
       setError(text.nameRequired)
@@ -641,14 +681,18 @@ export default function ProductsPage() {
       return
     }
     if (form.quantityType === "INTEGER" && !Number.isInteger(Number(form.minimumStock))) {
+      revealOptional("product-minimum-stock")
       setError(copy.common.wholeNumberQuantity)
       return
     }
 
+    let creationStarted = false
     try {
+      submitLock.current = true
       setSaving(true)
       setError("")
       setSuccess("")
+      setListWarning("")
 
       const priceTiers = normalizePriceTiers()
 
@@ -668,45 +712,93 @@ export default function ProductsPage() {
         await updateProduct(editingProductId, payload)
         setSuccess(text.updateSuccess)
       } else {
+        creationStarted = true
         const product = await createProduct({ ...payload, quantityType: form.quantityType })
-        setCreatedProductName(product.name)
+        setSiteAvailability("checking")
+        setCreatedProduct(product)
+        if (product.active && onOpeningStock) void checkReceiptSite()
       }
 
       setEditingProductId(null)
       setForm(emptyForm)
       setCategorySelection("")
       setShowScanner(false)
-      await loadProducts()
+      if (!await loadProducts(!isEditMode) && !isEditMode) setListWarning(guide.listFailed)
       if (isEditMode) window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error(err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
-        setError(err instanceof Error ? err.message : text.saveError)
+        if (creationStarted && (!(err instanceof ProductResponseError) || err.status >= 500 || err.status === 408)) {
+          setUncertainCreate(true)
+          setError(guide.uncertain)
+        } else {
+          const message = err instanceof Error ? err.message : text.saveError
+          if (!creationStarted && !isEditMode || /wholesale|tier/i.test(message)) revealOptional("product-wholesale")
+          else if (/barcode/i.test(message)) revealOptional("product-barcode")
+          setError(message)
+        }
       }
     } finally {
+      submitLock.current = false
       setSaving(false)
     }
+  }
+
+  function revealOptional(id: string) {
+    invalidOptionalField.current = id
+    setOptionalOpen(true)
+    requestAnimationFrame(() => {
+      if (document.querySelector("dialog[open]")) return
+      document.getElementById(id)?.focus()
+    })
   }
 
   return (
     <div>
       <h1>{text.title}</h1>
 
-      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
+      {error && <ErrorMessage message={error} onDismiss={() => {
+        setError("")
+        const field = invalidOptionalField.current
+        invalidOptionalField.current = null
+        if (field) requestAnimationFrame(() => document.getElementById(field)?.focus())
+      }} />}
       {success && <div className="card success">{success}</div>}
+      {listWarning && <p role="status">{listWarning}</p>}
+      {uncertainCreate && <div className="card">
+        <p>{guide.uncertain}</p>
+        <button type="button" onClick={async () => { await loadProducts(); productListHeading.current?.focus() }}>{guide.checkProducts}</button>
+        <button type="button" className="secondary-button" onClick={() => {
+          setUncertainCreate(false); setForm(emptyForm); setCategorySelection("")
+        }}>{copy.common.cancel}</button>
+      </div>}
 
-      {createdProductName !== null && (
+      {createdProduct && (
         <dialog
           ref={confirmationDialog}
           className="card product-confirmation-dialog"
           aria-labelledby="product-confirmation-title"
           aria-describedby="product-confirmation-name"
-          onClose={() => setCreatedProductName(null)}
+          onClose={() => { setCreatedProduct(null); nameRef.current?.focus() }}
         >
-          <h2 id="product-confirmation-title">{text.createSuccess}</h2>
-          <p id="product-confirmation-name">{createdProductName}</p>
+          <h2 id="product-confirmation-title">{guide.created}</h2>
+          <div id="product-confirmation-name"><p>{createdProduct.name}</p><p role="status">
+            {!createdProduct.active ? guide.inactive : !onOpeningStock ? guide.createdReason
+              : siteAvailability === "checking" ? guide.loading : siteAvailability === "blocked" ? guide.siteBlocked
+              : siteAvailability === "error" ? guide.unavailable : guide.createdReason}
+          </p></div>
           <form method="dialog" className="form-actions">
-            <button type="submit" autoFocus>{copy.common.close}</button>
+            {createdProduct.active && onOpeningStock && siteAvailability === "ready" &&
+              <button type="button" data-opening-stock onClick={() => onOpeningStock(createdProduct.id)}>{guide.opening}</button>}
+            {createdProduct.active && onOpeningStock && siteAvailability === "error" &&
+              <button type="button" onClick={() => void checkReceiptSite()}>{guide.retry}</button>}
+            {!createdProduct.active && user?.role === "ADMIN" &&
+              <button type="button" onClick={() => {
+                const dialog = confirmationDialog.current
+                dialog?.close()
+                handleEdit(createdProduct)
+              }}>{guide.edit}</button>}
+            <button type="submit" className="secondary-button" autoFocus>{guide.later}</button>
           </form>
         </dialog>
       )}
@@ -833,82 +925,23 @@ export default function ProductsPage() {
       <div className="card">
         <h3>{isEditMode ? text.editTitle : text.newTitle}</h3>
 
-        <div className="card nested-card scanner-toggle-card">
-          <div className="scanner-header">
-            <h3>{text.scannerTitle}</h3>
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setShowScanner((prev) => !prev)}
-            >
-              {showScanner ? text.closeScanner : text.openScanner}
-            </button>
-          </div>
-
-          {showScanner && (
-            <div className="scanner-container">
-              <BarcodeScanner onDetected={handleDetectedBarcode} />
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="product-form-grid">
-          <label>
-            {text.barcode}
-            <input
-              type="text"
-              value={form.barcode}
-              onChange={(e) => updateForm("barcode", e.target.value)}
-              placeholder={text.barcodePlaceholder}
-            />
-          </label>
-
+        <form onSubmit={handleSubmit} className="product-form-grid" onInvalidCapture={event => {
+          const field = event.target
+          if (guidedForm && !optionalOpen && field instanceof HTMLElement && field.closest("#product-extra-fields")) {
+            event.preventDefault()
+            setOptionalOpen(true)
+            requestAnimationFrame(() => { field.focus(); if (field instanceof HTMLInputElement) field.reportValidity() })
+          }
+        }}>
           <label className="full-width">
-            {text.name}
+            {guidedForm ? guide.name : text.name}
             <input
+              ref={nameRef}
               type="text"
               value={form.name}
               onChange={(e) => updateForm("name", e.target.value)}
             />
           </label>
-
-          <label className="full-width">
-            {text.description}
-            <input
-              type="text"
-              value={form.description}
-              onChange={(e) => updateForm("description", e.target.value)}
-            />
-          </label>
-
-          <label>
-            {text.category}
-            <select
-              value={categorySelection}
-              onChange={(e) => handleCategorySelectionChange(e.target.value)}
-            >
-              <option value="">{text.chooseCategory}</option>
-              {localizedPresetCategories.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
-                </option>
-              ))}
-              <option value="OTHER">{text.otherCategory}</option>
-            </select>
-          </label>
-
-          {categorySelection === "OTHER" && (
-            <label>
-              {text.customCategory}
-              <input
-                type="text"
-                value={form.category}
-                onChange={(e) => updateForm("category", e.target.value)}
-                placeholder={text.customCategoryPlaceholder}
-              />
-            </label>
-          )}
 
           <label>
             {text.unit}
@@ -929,6 +962,7 @@ export default function ProductsPage() {
           <label>
             {text.quantityType}
             <select
+              aria-describedby={!isEditMode ? "product-quantity-help" : undefined}
               value={form.quantityType}
               disabled={isEditMode}
               onChange={(e) => updateForm("quantityType", e.target.value === "INTEGER" ? "INTEGER" : "DECIMAL")}
@@ -936,10 +970,11 @@ export default function ProductsPage() {
               <option value="INTEGER">{text.quantityInteger}</option>
               <option value="DECIMAL">{text.quantityDecimal}</option>
             </select>
+            {!isEditMode && <small id="product-quantity-help">{guide.quantityHelp}</small>}
           </label>
 
           <label>
-            {text.unitPrice}
+            {guidedForm ? guide.price : text.unitPrice}{guidedForm && user?.companyCurrencyCode ? ` (${user.companyCurrencyCode})` : ""}
             <input
               type="number"
               min={0}
@@ -949,100 +984,176 @@ export default function ProductsPage() {
             />
           </label>
 
-          <div className="full-width card nested-card">
-            <div className="scanner-header">
-              <div>
-                <h3>{text.wholesalePrices}</h3>
-                <p>{text.wholesalePricesHelp}</p>
-              </div>
-
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleAddPriceTier}
-                disabled={form.priceTiers.length >= MAX_PRICE_TIERS}
-              >
-                {text.addWholesalePrice}
-              </button>
-            </div>
-
-            {form.priceTiers.length === 0 ? (
-              <p>{text.noWholesalePrices}</p>
-            ) : (
+          <div className="setup-product-options">
+            {guidedForm && <button type="button" className="secondary-button" aria-expanded={optionalOpen}
+              aria-controls="product-extra-fields" onClick={() => setOptionalOpen(value => !value)}>{guide.options}</button>}
+            <div id="product-extra-fields" hidden={guidedForm && !optionalOpen}>
               <div className="product-form-grid">
-                {form.priceTiers.map((tier, index) => (
-                  <div key={index} className="full-width product-form-grid">
-                    <label>
-                      {text.wholesaleLabel}
-                      <input
-                        type="text"
-                        value={tier.label}
-                        onChange={(e) => handleUpdatePriceTier(index, "label", e.target.value)}
-                        placeholder={text.wholesaleLabelPlaceholder}
-                      />
-                    </label>
+                <div className="full-width card nested-card scanner-toggle-card">
+                  <div className="scanner-header">
+                    <h3>{text.scannerTitle}</h3>
 
-                    <label>
-                      {text.wholesaleMinimum}
-                      <input
-                        type="number"
-                        min={2}
-                        step={form.quantityType === "INTEGER" ? 1 : 0.0001}
-                        value={tier.minQuantity}
-                        onChange={(e) => handleUpdatePriceTier(index, "minQuantity", e.target.value)}
-                        placeholder="3"
-                      />
-                    </label>
-
-                    <label>
-                      {text.wholesaleUnitPrice}
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={tier.unitPrice}
-                        onChange={(e) => handleUpdatePriceTier(index, "unitPrice", e.target.value)}
-                        placeholder="0.00"
-                      />
-                    </label>
-
-                    <div className="form-actions">
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => handleRemovePriceTier(index)}
-                      >
-                        {text.removeWholesalePrice}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setShowScanner((prev) => !prev)}
+                    >
+                      {showScanner ? text.closeScanner : text.openScanner}
+                    </button>
                   </div>
-                ))}
+
+                  {showScanner && (
+                    <div className="scanner-container">
+                      <BarcodeScanner onDetected={handleDetectedBarcode} />
+                    </div>
+                  )}
+                </div>
+                <label>
+                  {text.barcode}
+                  <input
+                    id="product-barcode"
+                    type="text"
+                    value={form.barcode}
+                    onChange={(e) => updateForm("barcode", e.target.value)}
+                    placeholder={text.barcodePlaceholder}
+                  />
+                </label>
+
+                <label className="full-width">
+                  {text.description}
+                  <input
+                    type="text"
+                    value={form.description}
+                    onChange={(e) => updateForm("description", e.target.value)}
+                  />
+                </label>
+
+                <label>
+                  {text.category}
+                  <select
+                    value={categorySelection}
+                    onChange={(e) => handleCategorySelectionChange(e.target.value)}
+                  >
+                    <option value="">{text.chooseCategory}</option>
+                    {localizedPresetCategories.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                    <option value="OTHER">{text.otherCategory}</option>
+                  </select>
+                </label>
+
+                {categorySelection === "OTHER" && (
+                  <label>
+                    {text.customCategory}
+                    <input
+                      type="text"
+                      value={form.category}
+                      onChange={(e) => updateForm("category", e.target.value)}
+                      placeholder={text.customCategoryPlaceholder}
+                    />
+                  </label>
+                )}
+
+                <div className="full-width card nested-card" id="product-wholesale" tabIndex={-1}>
+                  <div className="scanner-header">
+                    <div>
+                      <h3>{text.wholesalePrices}</h3>
+                      <p>{text.wholesalePricesHelp}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={handleAddPriceTier}
+                      disabled={form.priceTiers.length >= MAX_PRICE_TIERS}
+                    >
+                      {text.addWholesalePrice}
+                    </button>
+                  </div>
+
+                  {form.priceTiers.length === 0 ? (
+                    <p>{text.noWholesalePrices}</p>
+                  ) : (
+                    <div className="product-form-grid">
+                      {form.priceTiers.map((tier, index) => (
+                        <div key={index} className="full-width product-form-grid">
+                          <label>
+                            {text.wholesaleLabel}
+                            <input
+                              type="text"
+                              value={tier.label}
+                              onChange={(e) => handleUpdatePriceTier(index, "label", e.target.value)}
+                              placeholder={text.wholesaleLabelPlaceholder}
+                            />
+                          </label>
+
+                          <label>
+                            {text.wholesaleMinimum}
+                            <input
+                              type="number"
+                              min={2}
+                              step={form.quantityType === "INTEGER" ? 1 : 0.0001}
+                              value={tier.minQuantity}
+                              onChange={(e) => handleUpdatePriceTier(index, "minQuantity", e.target.value)}
+                              placeholder="3"
+                            />
+                          </label>
+
+                          <label>
+                            {text.wholesaleUnitPrice}
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={tier.unitPrice}
+                              onChange={(e) => handleUpdatePriceTier(index, "unitPrice", e.target.value)}
+                              placeholder="0.00"
+                            />
+                          </label>
+
+                          <div className="form-actions">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => handleRemovePriceTier(index)}
+                            >
+                              {text.removeWholesalePrice}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <label>
+                  {text.minimumStock}
+                  <input
+                    id="product-minimum-stock"
+                    type="number"
+                    min={0}
+                    step={form.quantityType === "INTEGER" ? 1 : 0.0001}
+                    value={form.minimumStock}
+                    onChange={(e) => updateForm("minimumStock", e.target.value)}
+                  />
+                </label>
+
+                <label className="checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) => updateForm("active", e.target.checked)}
+                  />
+                  {text.active}
+                </label>
               </div>
-            )}
+            </div>
           </div>
 
-          <label>
-            {text.minimumStock}
-            <input
-              type="number"
-              min={0}
-              step={form.quantityType === "INTEGER" ? 1 : 0.0001}
-              value={form.minimumStock}
-              onChange={(e) => updateForm("minimumStock", e.target.value)}
-            />
-          </label>
-
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => updateForm("active", e.target.checked)}
-            />
-            {text.active}
-          </label>
-
           <div className="form-actions full-width">
-            <button type="submit" disabled={saving}>
+            <button type="submit" disabled={saving || uncertainCreate && !isEditMode}>
               {saving
                 ? isEditMode
                   ? text.updating
@@ -1062,7 +1173,7 @@ export default function ProductsPage() {
       </div>
 
       <div className="card product-list-card">
-        <h3 id="product-list-heading">{text.listTitle}</h3>
+        <h3 ref={productListHeading} tabIndex={-1} id="product-list-heading">{text.listTitle}</h3>
 
         <div className="product-filters">
           <label>

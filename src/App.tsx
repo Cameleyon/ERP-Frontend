@@ -25,6 +25,7 @@ import MarketingConsent from "./components/common/MarketingConsent"
 import { metaPixel } from "./utils/metaPixel"
 import { COMPANY_CURRENCY_REQUIRED_EVENT } from "./utils/companyCurrency"
 import { accessiblePage } from "./utils/pageAccess"
+import type { SetupAction } from "./utils/setupGuide"
 
 type PublicPage = "landing" | "signup" | "login"
 const PLATFORM_APP_URL =
@@ -34,7 +35,16 @@ const PLATFORM_APP_URL =
 function AppContent() {
   const { isAuthenticated, isLoading, logoutUser, refreshUser, user } = useAuth()
   const { copy, language } = useI18n()
-  const [page, setPage] = useState<Page>("dashboard")
+  const scope = user ? `${user.companyId}:${user.id}` : ""
+  type Navigation = { page: Page; productId?: number; siteId?: number; guidedProduct?: boolean; resumeProduct?: boolean; manageSites?: boolean }
+  const [route, setRoute] = useState<{ scope: string; nav: Navigation }>()
+  const nav: Navigation = route?.scope === scope ? route.nav : { page: "dashboard" }
+  const [dashboardSite, setDashboardSite] = useState<{ scope: string; id?: number }>()
+  const preferredSite = dashboardSite?.scope === scope ? dashboardSite.id : undefined
+  function navigate(next: Navigation, currency = false) {
+    setConfigureCurrency(currency)
+    setRoute({ scope, nav: next })
+  }
   const [publicPage, setPublicPage] = useState<PublicPage>("landing")
   const [registeredEmail, setRegisteredEmail] = useState("")
   const [currencyRequired, setCurrencyRequired] = useState(false)
@@ -75,6 +85,8 @@ function AppContent() {
 
   useEffect(() => {
     if (!user?.companyId) {
+      setRoute(undefined)
+      setDashboardSite(undefined)
       setCurrencyRequired(false)
       setConfigureCurrency(false)
       setTermsRequired(false)
@@ -196,21 +208,42 @@ function AppContent() {
     )
   }
 
-  const safePage = accessiblePage(user?.role, page)
+  const safePage = accessiblePage(user?.role, nav.page)
+  const retainProducts = safePage === "profile" && nav.resumeProduct
+
+  function followSetup(action: SetupAction) {
+    switch (action.kind) {
+      case "currency": navigate({ page: "profile" }, true); break
+      case "product": navigate({ page: "products", guidedProduct: true }); break
+      case "products": navigate({ page: "products" }); break
+      case "opening": navigate({ page: "inventory", productId: action.productId, siteId: action.siteId }); break
+      case "inventory": navigate({ page: "inventory" }); break
+      case "sale": navigate({ page: "new-sale", siteId: action.siteId }); break
+      case "manage": navigate({ page: "profile", manageSites: true }); break
+    }
+  }
 
   return (
-      <AppLayout page={safePage} onNavigate={nextPage => { setConfigureCurrency(false); setPage(nextPage) }}>
-        {safePage === "dashboard" && <DashboardPage />}
+      <AppLayout key={scope} page={safePage} onNavigate={page => navigate({ page })}>
+        {safePage === "dashboard" && <DashboardPage onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })} />}
         {safePage === "customers" && <CustomersPage />}
-        {safePage === "products" && isAdmin && <ProductsPage />}
+        {(safePage === "products" || retainProducts) && isAdmin &&
+          <div hidden={retainProducts}><ProductsPage guided={nav.guidedProduct} visible={!retainProducts}
+            onOpeningStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite })} /></div>}
         {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage />}
-        {safePage === "new-sale" && <NewSalePage />}
+        {safePage === "new-sale" && <NewSalePage preferredSiteId={nav.siteId} onSetupReturn={() => navigate({ page: "dashboard" })} />}
         {safePage === "sales-history" && <SalesHistoryPage />}
-        {safePage === "inventory" && isAdmin && <InventoryPage />}
-        {safePage === "profile" && <ProfilePage configureCurrency={configureCurrency} />}
-        {safePage === "settings" && isAdmin && <SettingsPage onBack={() => setPage("profile")} />}
+        {safePage === "inventory" && isAdmin && <InventoryPage productId={nav.productId} preferredSiteId={nav.siteId}
+          onReviewProducts={() => navigate({ page: "products" })} />}
+        {safePage === "profile" && <ProfilePage configureCurrency={route?.scope === scope && configureCurrency}
+          manageSites={nav.manageSites} returnToProduct={retainProducts}
+          onCurrencyReturn={() => navigate(retainProducts ? { page: "products", guidedProduct: nav.guidedProduct } : { page: "dashboard" })} />}
+        {safePage === "settings" && isAdmin && <SettingsPage onBack={() => navigate({ page: "profile" })} />}
         {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
-          onConfigure={() => { setCurrencyRequired(false); setConfigureCurrency(true); setPage("profile") }} />}
+          onConfigure={() => {
+            setCurrencyRequired(false)
+            navigate({ page: "profile", resumeProduct: safePage === "products", guidedProduct: nav.guidedProduct }, true)
+          }} />}
       </AppLayout>
   )
 }

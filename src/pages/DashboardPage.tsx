@@ -13,6 +13,8 @@ import SalesTrendChart from "../components/dashboard/SalesTrendChart"
 import TopProductsTable from "../components/dashboard/TopProductsTable"
 import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
+import SetupGuide from "../components/dashboard/SetupGuide"
+import type { SetupAction } from "../utils/setupGuide"
 import { useDashboardForecast } from "../components/dashboard/useDashboardForecast"
 import { forecastCopy } from "../components/dashboard/forecastCopy"
 import { formatCurrency, formatNumber } from "../utils/format"
@@ -24,14 +26,19 @@ import {
 
 const noticePriority: ForecastNotice[] = ["unavailable", "aggregate", "data", "noSales", "history", "pending", "limited"]
 
-export default function DashboardPage() {
+export default function DashboardPage({ onSetupAction, onSiteChange }: {
+  onSetupAction?: (action: SetupAction) => void; onSiteChange?: (id?: number) => void
+} = {}) {
   const { user, token } = useAuth()
   if (!user || !token) return null
   return <DashboardContent key={`${token}|${user.companyId}|${user.companyTimeZoneId}|${user.companyCurrencyCode}`}
-    user={user} token={token} />
+    user={user} token={token} onSetupAction={onSetupAction} onSiteChange={onSiteChange} />
 }
 
-function DashboardContent({ user, token }: { user: AuthenticatedUserResponse; token: string }) {
+function DashboardContent({ user, token, onSetupAction, onSiteChange }: {
+  user: AuthenticatedUserResponse; token: string
+  onSetupAction?: (action: SetupAction) => void; onSiteChange?: (id?: number) => void
+}) {
   const { copy, language } = useI18n()
   const text = copy.dashboardPage, forecastText = forecastCopy[language]
   const configuredZone = user.companyTimeZoneId || DEFAULT_COMPANY_TIME_ZONE
@@ -145,12 +152,18 @@ function DashboardContent({ user, token }: { user: AuthenticatedUserResponse; to
     <div className="page-title-row">
       <h1>{text.title}</h1>
       {locations.length > 0 && <label className="page-title-site-filter">
-        <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => changeSite(event.target.value)}>
+        <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => {
+          changeSite(event.target.value)
+          onSiteChange?.(Number(event.target.value) || undefined)
+        }}>
           <option value="">{copy.dashboardFilters.allLocations}</option>
           {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
         </select>
       </label>}
     </div>
+    {onSetupAction && user.role === "ADMIN" && user.companyOwner && user.companyId &&
+      <SetupGuide key={`${user.companyId}:${user.id}`} ownerKey={`${user.companyId}:${user.id}`}
+        sites={locations} siteId={Number(locationId) || undefined} onAction={onSetupAction} />}
     <DashboardFilters preset={preset} startDate={startDate} endDate={endDate} onPresetChange={handlePresetChange}
       onStartDateChange={date => { setStartDate(date); setPreset("custom") }}
       onEndDateChange={date => { setEndDate(date); setPreset("custom") }} onApply={handleApply} />

@@ -12,7 +12,7 @@ export function formatCurrency(value: number, currency = "USD", locale = "en-US"
   }).join("")
 }
 
-export function formatDateTime(value: string, locale = "en-CA", timeZone?: string) {
+export function formatDateTime(value: string, locale = "en-CA", timeZone?: string, showOffset = false) {
   // Offset-free API values are wall-clock times, not browser-local instants.
   const wallTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(value)
   const date = new Date(wallTime ? value + "Z" : value)
@@ -28,6 +28,7 @@ export function formatDateTime(value: string, locale = "en-CA", timeZone?: strin
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    ...(showOffset ? { timeZoneName: "shortOffset" } : {}),
   }).format(date)
 }
 
@@ -43,6 +44,19 @@ export function formatDate(value: string) {
     month: "short",
     day: "2-digit",
   }).format(date)
+}
+
+export function formatReceiptDateTime(value: string, locale: string, zone?: string | null) {
+  if (zone) {
+    try {
+      return formatDateTime(value, locale, zone, true)
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error
+      // A browser with older timezone data can still display the verified UTC instant.
+      return formatDateTime(value, locale, "UTC") + " UTC"
+    }
+  }
+  return formatDateTime(value, locale, "UTC")
 }
 
 export function formatNumber(value: number) {

@@ -1,12 +1,13 @@
 import { API_BASE_URL } from "./config"
 import type { ProductQuantityType } from "./productApi"
+import type { ReceiptConfirmationType } from "../utils/receiptCosts"
 import { checkCompanyCurrencyResponse } from "../utils/companyCurrency"
 
 const TOKEN_KEY = "camelyon_token"
 
 export type CreateInventoryReceiptCostLineRequest = {
   companyCostRubricId: number
-  amount: number
+  amount: string
 }
 
 export type CreateInventoryReceiptRequest = {
@@ -15,6 +16,7 @@ export type CreateInventoryReceiptRequest = {
   receivedQuantity: number
   notes: string
   costLines: CreateInventoryReceiptCostLineRequest[]
+  costConfirmation?: { type: ReceiptConfirmationType; amounts: Record<number, string> }
 }
 
 export type InventoryReceiptCostLineResponse = {
@@ -37,6 +39,8 @@ export type InventoryReceiptResponse = {
   unitCost: number
   notes: string
   receivedAt: string
+  receivedAtInstant?: string | null
+  receivedAtZoneId?: string | null
   createdAt: string
   updatedAt: string | null
   lastAction: "CREATION" | "WITHDRAWAL" | "MODIFICATION"
@@ -52,8 +56,35 @@ export type UpdateInventoryReceiptQuantityRequest = {
   receivedQuantity: number
 }
 
+export class InventoryReceiptError extends Error {
+  readonly code: string
+  readonly rejected: boolean
+  readonly rubricId?: number
+
+  constructor(code: string, rejected = false, rubricId?: number) {
+    super(code)
+    this.code = code
+    this.rejected = rejected
+    this.rubricId = rubricId
+  }
+}
+
+async function readReceiptResponse<T>(response: Response): Promise<T> {
+  await checkCompanyCurrencyResponse(response)
+  if (response.ok) return response.json()
+  if (response.status >= 500) throw new InventoryReceiptError("RECEIPT_INTERNAL_ERROR")
+  if (response.status === 401) throw new InventoryReceiptError("RECEIPT_AUTH_REQUIRED")
+  if (response.status === 403) throw new InventoryReceiptError("RECEIPT_ACCESS_DENIED")
+  const body = await response.json().catch(() => null)
+  const code = typeof body?.code === "string" ? body.code : "RECEIPT_OPERATION_REJECTED"
+  throw new InventoryReceiptError(code, (response.status === 400 || response.status === 404)
+    && body?.operationRejected === true,
+    Number.isSafeInteger(body?.companyCostRubricId) ? body.companyCostRubricId : undefined)
+}
+
 export async function createInventoryReceipt(
-  payload: CreateInventoryReceiptRequest
+  payload: CreateInventoryReceiptRequest,
+  operationKey: string,
 ): Promise<InventoryReceiptResponse> {
   const token = localStorage.getItem(TOKEN_KEY)
 
@@ -61,18 +92,19 @@ export async function createInventoryReceipt(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Idempotency-Key": operationKey,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30_000),
   })
 
-  await checkCompanyCurrencyResponse(response)
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
+  const receipt = await readReceiptResponse<InventoryReceiptResponse>(response)
+  if (!Number.isSafeInteger(receipt?.id) || receipt.id <= 0 || receipt.productId !== payload.productId
+      || receipt.locationId !== payload.locationId) {
+    throw new InventoryReceiptError("RECEIPT_INTERNAL_ERROR")
   }
-
-  return response.json()
+  return receipt
 }
 
 export async function getRecentInventoryReceipts(locationId: number): Promise<InventoryReceiptResponse[]> {
@@ -84,12 +116,7 @@ export async function getRecentInventoryReceipts(locationId: number): Promise<In
     },
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
-  }
-
-  return response.json()
+  return readReceiptResponse(response)
 }
 
 export async function getActiveInventoryReceipts(locationId: number): Promise<InventoryReceiptResponse[]> {
@@ -101,12 +128,7 @@ export async function getActiveInventoryReceipts(locationId: number): Promise<In
     },
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
-  }
-
-  return response.json()
+  return readReceiptResponse(response)
 }
 
 export async function createInventoryReceiptWithdrawal(
@@ -124,13 +146,7 @@ export async function createInventoryReceiptWithdrawal(
     body: JSON.stringify(payload),
   })
 
-  await checkCompanyCurrencyResponse(response)
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
-  }
-
-  return response.json()
+  return readReceiptResponse(response)
 }
 
 export async function updateInventoryReceiptQuantity(
@@ -138,21 +154,10 @@ export async function updateInventoryReceiptQuantity(
   payload: UpdateInventoryReceiptQuantityRequest,
 ): Promise<InventoryReceiptResponse> {
   const token = localStorage.getItem(TOKEN_KEY)
-
   const response = await fetch(`${API_BASE_URL}/inventory/receipts/${receiptId}/quantity`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(payload),
   })
-
-  await checkCompanyCurrencyResponse(response)
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed with status ${response.status}`)
-  }
-
-  return response.json()
+  return readReceiptResponse(response)
 }

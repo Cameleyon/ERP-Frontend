@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../auth/AuthContext"
 import { useRef } from "react"
+import { setupCopy } from "../i18n/setupCopy"
 import {
   getCompanyProfile,
   updateCompanyProfile,
@@ -180,7 +181,9 @@ function cleanSubscriptionNotes(notes: string | null | undefined) {
   return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
 }
 
-export default function ProfilePage({ configureCurrency = false }: { configureCurrency?: boolean }) {
+export default function ProfilePage({ configureCurrency = false, manageSites = false, returnToProduct = false, onCurrencyReturn }: {
+  configureCurrency?: boolean; manageSites?: boolean; returnToProduct?: boolean; onCurrencyReturn?: () => void
+}) {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
@@ -205,6 +208,13 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
   const [isEditing, setIsEditing] = useState(false)
   const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
   const currencyInputRef = useRef<HTMLInputElement>(null)
+  const sitesHeading = useRef<HTMLHeadingElement>(null)
+  const [currencySessionRetry, setCurrencySessionRetry] = useState(false)
+  const [currencyReady, setCurrencyReady] = useState(false)
+  const guide = setupCopy[language]
+  useEffect(() => {
+    if (manageSites && !loading) sitesHeading.current?.focus()
+  }, [manageSites, loading])
   useEffect(() => {
     if (!configureCurrency || loading || !isAdmin) return
     setIsEditing(true)
@@ -986,13 +996,30 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
       setProfile(updatedProfile)
       setForm(buildFormState(updatedProfile))
       setIsEditing(false)
-      await refreshUser()
-      setSuccess(text.saveSuccess)
+      const confirmedCurrency = configureCurrency && /^[A-Z]{3}$/.test(updatedProfile.currencyCode ?? "")
+      if (confirmedCurrency) {
+        setSuccess(guide.currencySaved)
+        await refreshCurrencySession()
+      } else {
+        await refreshUser()
+        setSuccess(text.saveSuccess)
+      }
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : text.saveError)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function refreshCurrencySession() {
+    setCurrencySessionRetry(false)
+    setCurrencyReady(false)
+    try {
+      await refreshUser({ keepOnTransientError: true })
+      setCurrencyReady(true)
+    } catch {
+      setCurrencySessionRetry(true)
     }
   }
 
@@ -1244,7 +1271,12 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
       <h1>{text.title}</h1>
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
-      {success && <div className="card success">{success}</div>}
+      {success && <div className="card success" role="status">{success}</div>}
+      {configureCurrency && currencySessionRetry && <div role="status">
+        <p>{guide.refreshSession}</p><button type="button" onClick={() => void refreshCurrencySession()}>{guide.retry}</button>
+      </div>}
+      {configureCurrency && currencyReady && onCurrencyReturn &&
+        <button type="button" className="secondary-button" onClick={onCurrencyReturn}>{returnToProduct ? guide.resume : guide.back}</button>}
 
       {loading ? (
         <div className="card">
@@ -1277,7 +1309,8 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
 
           {isAdmin && (
             <>
-          <ProfileSection title={text.locationsSectionTitle}>
+          <ProfileSection title={text.locationsSectionTitle} reveal={manageSites}>
+            {manageSites && <h3 ref={sitesHeading} tabIndex={-1}>{text.locationsSectionTitle}</h3>}
             <div className="profile-table-scroll" role="region" aria-label={text.locationsSectionTitle} tabIndex={0}>
             <table>
               <thead>
@@ -1636,12 +1669,14 @@ export default function ProfilePage({ configureCurrency = false }: { configureCu
                 {text.currency}
                 <input
                   ref={currencyInputRef}
+                  aria-describedby={configureCurrency ? "setup-currency-reason" : undefined}
                   type="text"
                   placeholder="USD, HTG, CAD..."
                   value={form.currencyCode}
                   disabled={!isEditing}
                   onChange={(e) => updateForm("currencyCode", e.target.value.toUpperCase())}
                 />
+                {configureCurrency && <small id="setup-currency-reason">{guide.currencyReason}</small>}
               </label>
 
               <label className="full-width">

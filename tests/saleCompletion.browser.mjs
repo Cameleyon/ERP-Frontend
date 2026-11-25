@@ -33,8 +33,8 @@ try {
       if (path === "/api/auth/me") json = { id: 8, companyId: 7, role: "ADMIN", companyName: "Test store" }
       else if (path === "/api/company/locations") json = [{ id: 9, name: "Site", active: true, primaryLocation: true }]
       else if (path === "/api/customers") json = []
-      else if (path === "/api/products") json = [product]
-      else if (path.startsWith("/api/products/sku/")) json = product
+      else if (path === "/api/sales/product-lookup") json = [product]
+      else if (path.startsWith("/api/sales/product-lookup/sku/")) json = product
       else if (path === "/api/company/subscription") json = { invoiceEmailEnabled: true }
       else if (path === "/api/sales" && req.method() === "POST") { creates++; json = sale }
       else if (path === "/api/sales/11") {

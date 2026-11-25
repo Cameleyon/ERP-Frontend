@@ -20,7 +20,7 @@ try {
       requests.push(path)
       let json
       if (path === "/api/auth/me") json = { id: 8, role: "CASHIER", companyId: 7, companyName: "Cashier store", termsAccepted: true, companyTimeZoneId: "Etc/GMT+5" }
-      else if (path === "/api/customers" || path === "/api/products" || path === "/api/sales") json = []
+      else if (path === "/api/customers" || path === "/api/sales/product-lookup" || path === "/api/sales") json = []
       else if (path === "/api/company/locations") json = [{ id: 9, name: "Site A", active: true, primaryLocation: true }]
       else if (path === "/api/company/subscription") json = { status: "ACTIVE", planCode: "BASIC" }
       else throw Error("Unexpected cashier API " + path)
@@ -32,7 +32,10 @@ try {
     assert.equal(await page.locator(".sidebar-footer-actions button").count(), 0)
     assert.equal(await page.locator(".sidebar-logout-button").count(), 1)
     if (width < 1000) await page.locator(".mobile-menu-button").click()
-    await page.locator(".sidebar-nav button").last().click()
+    await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === "/api/sales" && response.ok()),
+      page.locator(".sidebar-nav button").last().click(),
+    ])
     await page.locator("#sales-history-list-heading").waitFor()
     assert.ok(requests.includes("/api/sales"))
     assert.ok(!requests.some(path => path.startsWith("/api/dashboard")))

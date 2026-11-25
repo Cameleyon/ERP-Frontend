@@ -94,6 +94,11 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
   return response.json()
 }
 
+export class SessionReadError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) { super(message); this.status = status }
+}
+
 export async function getMe(token: string): Promise<AuthenticatedUserResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: "GET",
@@ -103,7 +108,7 @@ export async function getMe(token: string): Promise<AuthenticatedUserResponse> {
   })
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response, `Me request failed with status ${response.status}`))
+    throw new SessionReadError(await readErrorMessage(response, `Me request failed with status ${response.status}`), response.status)
   }
 
   return response.json()

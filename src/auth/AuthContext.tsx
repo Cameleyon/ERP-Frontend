@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { getMe, login, type AuthenticatedUserResponse, type LoginRequest } from "./authApi"
+import { getMe, login, SessionReadError, type AuthenticatedUserResponse, type LoginRequest } from "./authApi"
 
 type AuthContextType = {
   user: AuthenticatedUserResponse | null
@@ -8,7 +8,7 @@ type AuthContextType = {
   isLoading: boolean
   loginUser: (payload: LoginRequest) => Promise<void>
   logoutUser: () => void
-  refreshUser: () => Promise<void>
+  refreshUser: (options?: { keepOnTransientError?: boolean }) => Promise<void>
   applySession: (session: { token: string; user: AuthenticatedUserResponse }) => void
 }
 
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(session.user)
   }
 
-  async function refreshUser() {
+  async function refreshUser(options?: { keepOnTransientError?: boolean }) {
     if (!token) {
       setUser(null)
       return
@@ -86,9 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const me = await getMe(token)
+      if (localStorage.getItem(TOKEN_KEY) !== token) return
       setUser(me)
     } catch (err) {
       console.error(err)
+      if (localStorage.getItem(TOKEN_KEY) !== token) throw err
+      if (options?.keepOnTransientError && (!(err instanceof SessionReadError) || err.status >= 500 || err.status === 429)) throw err
       localStorage.removeItem(TOKEN_KEY)
       setToken(null)
       setUser(null)
