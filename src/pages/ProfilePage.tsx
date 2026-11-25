@@ -24,6 +24,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import StripePaymentMethodForm from "../components/billing/StripePaymentMethodForm"
 import { createCheckoutSession } from "../api/companySubscriptionCheckoutApi"
 import { useI18n } from "../i18n/I18nContext"
+import { newPasswordLengthError, passwordRequestError } from "../errors/passwordErrors"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { EmailConsentPreferences } from "../components/common/EmailConsent"
 import { profileValueLabel } from "../components/profile/profileValueCopy"
@@ -843,8 +844,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
       setSubscription(refreshedSubscription)
       setSuccess(text.usersCreateSuccess)
     } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.usersCreateError)
+      setError(passwordRequestError(err, language, text.usersCreateError))
     } finally {
       setCompanyUsersSaving(false)
     }
@@ -1058,6 +1058,12 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
       return
     }
 
+    const lengthError = newPasswordLengthError(passwordForm.newPassword, language)
+    if (lengthError) {
+      setError(lengthError)
+      return
+    }
+
     try {
       setSaving(true)
       setError("")
@@ -1072,8 +1078,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
       setEditingUserField(null)
       setSuccess(text.passwordSuccess)
     } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.passwordError)
+      setError(passwordRequestError(err, language, text.passwordError))
     } finally {
       setSaving(false)
     }

@@ -21,6 +21,7 @@ import {
   type SubscriptionPlanResponse,
 } from "../api/platformAdminApi"
 import { useI18n } from "../i18n/I18nContext"
+import { passwordRequestError } from "../errors/passwordErrors"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { formatCurrency } from "../utils/format"
 
@@ -526,8 +527,7 @@ export default function PlatformConsolePage() {
       }))
       await handleLoadSubscription(response.companyId)
     } catch (err) {
-      console.error(err)
-      setSubscriptionError(err instanceof Error ? err.message : text.createCompanyError)
+      setSubscriptionError(passwordRequestError(err, language, text.createCompanyError))
     } finally {
       setCompanySubmitting(false)
     }
@@ -627,8 +627,7 @@ export default function PlatformConsolePage() {
       setUserSuccess(text.createUserSuccess)
       await loadCompanyUsers(companyId)
     } catch (err) {
-      console.error(err)
-      setUsersError(err instanceof Error ? err.message : text.createUserError)
+      setUsersError(passwordRequestError(err, language, text.createUserError))
     } finally {
       setUserSubmitting(false)
     }

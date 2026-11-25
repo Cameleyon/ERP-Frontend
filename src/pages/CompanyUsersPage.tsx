@@ -5,6 +5,7 @@ import {
   type CompanyUserResponse,
 } from "../api/companyUsersApi"
 import { useI18n } from "../i18n/I18nContext"
+import { passwordRequestError } from "../errors/passwordErrors"
 import ErrorMessage from "../components/common/ErrorMessage"
 
 type FormState = {
@@ -212,7 +213,7 @@ export default function CompanyUsersPage() {
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : text.createError)
+      setError(passwordRequestError(err, language, text.createError))
     } finally {
       setSaving(false)
     }

@@ -9,6 +9,7 @@ import {
 import LanguageSwitcher from "../components/common/LanguageSwitcher"
 import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
+import { newPasswordLengthError, passwordRequestError } from "../errors/passwordErrors"
 import ErrorMessage from "../components/common/ErrorMessage"
 
 type Props = {
@@ -282,13 +283,20 @@ export default function LoginPage({ onGoToHome, onGoToSignup, registeredEmail, o
       return
     }
 
+    const submittedPassword = newPassword.trim()
+    const lengthError = newPasswordLengthError(submittedPassword, language)
+    if (lengthError) {
+      setResetError(lengthError)
+      return
+    }
+
     try {
       setConfirmingReset(true)
       setResetError("")
       const response = await confirmPasswordReset({
         pendingResetId: pendingReset.pendingResetId,
         verificationCode: resetCode.trim(),
-        newPassword: newPassword.trim(),
+        newPassword: submittedPassword,
       })
 
       if (!response.reset) {
@@ -313,8 +321,7 @@ export default function LoginPage({ onGoToHome, onGoToSignup, registeredEmail, o
       setSuccess(text.resetSuccess)
       setPassword("")
     } catch (err) {
-      console.error(err)
-      setResetError(err instanceof Error ? err.message : text.resetFallbackError)
+      setResetError(passwordRequestError(err, language, text.resetFallbackError))
     } finally {
       setConfirmingReset(false)
     }
