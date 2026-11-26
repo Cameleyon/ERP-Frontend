@@ -143,7 +143,8 @@ try {
         await localRoutes(page, path => {
           requests.push(path)
           if (path === "/api/public/plans") return fail ? [503, { message: "internal fixture error" }] : [200, [
-            { id: 1, code: "BASIC", monthlyPrice: 3.99 }, { id: 2, code: "STANDARD", monthlyPrice: 9 },
+            { id: 1, code: "BASIC", monthlyPrice: 3.99, yearlyPrice: hasExtraOffer ? 39 : 39.99 },
+            { id: 2, code: "STANDARD", monthlyPrice: 9, yearlyPrice: 90 },
           ]]
           if (path === "/api/public/promotions") return fail ? [503, { message: "internal fixture error" }] : [200, [
             { id: 1, name: "Standard trial", freeTrialDays: 90 },
@@ -161,7 +162,23 @@ try {
         assert.deepEqual(await page.locator(".home-status").allTextContents(), [text.available, text.planned, text.planned])
         assert.equal(await page.locator(".home-plan:not(.home-basic) button").count(), 0)
         assert.equal(await page.locator(".home-hero").getByText(text.trial).count(), 1)
-        assert.equal(await page.getByText(/3[.,]99|internal fixture error/).count(), 0)
+        assert.equal(await page.getByText("internal fixture error", { exact: true }).count(), 0)
+        const basicCard = page.locator(".home-basic")
+        const prices = basicCard.locator(".home-basic-pricing")
+        if (fail) {
+          assert.equal(await prices.count(), 0)
+          assert.equal(await basicCard.getByRole("link", { name: text.pricing }).count(), 1)
+        } else {
+          await prices.waitFor()
+          const [monthly, annual] = await prices.locator("strong").allTextContents()
+          assert.match(monthly, /^(?:USD\s+3\.99|3\.99\s+USD)$/)
+          const annualAmount = hasExtraOffer ? "39\\.00" : "39\\.99"
+          assert.match(annual, new RegExp(`^(?:USD\\s+${annualAmount}|${annualAmount}\\s+USD)$`))
+          assert.deepEqual(await prices.locator("p").allTextContents(), [
+            text.afterTrial, `${monthly} ${text.perMonth}`, `${annual} ${text.perYear}`,
+          ])
+        }
+        assert.equal(await page.locator(".home-plan:not(.home-basic)").getByText(/USD/).count(), 0)
         if (hasExtraOffer) {
           await page.locator("#homepage-offers").waitFor()
           assert.equal(await page.locator(".home-hero + section").getByText(text.offerDays(100), { exact: true }).count(), 1)

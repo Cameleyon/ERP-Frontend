@@ -7,7 +7,8 @@ type HomepageCopy = {
   dashboard: Pair; inventory: Pair; sale: Pair; benefits: string; featureItems: Pair[];
   journey: string; steps: Pair[]; planTitle: string; available: string; planned: string;
   versions: { tagline: string; description: string; features: string[] }[]; assistant: Pair;
-  pricing: string; questions: string; support: string; faq: Pair[];
+  pricing: string; afterTrial: string; perMonth: string; perYear: string;
+  questions: string; support: string; faq: Pair[];
   final: string; powered: string; privacy: string; terms: string; rights: string;
 }
 
@@ -45,6 +46,7 @@ export const homepageCopy = {
     ],
     assistant: ["AI business assistant", "Planned to help you understand your data and support business decisions."],
     pricing: "Contact us for subscription pricing.",
+    afterTrial: "After the free trial", perMonth: "/ month", perYear: "/ year",
     questions: "Questions before you start?", support: "Email CAMELEYON Dynamics",
     faq: [
       ["How do I get started?", "Create your account, verify your email, and log in. You can start with one product."],
@@ -91,6 +93,7 @@ export const homepageCopy = {
     ],
     assistant: ["Assistant d’entreprise avec IA", "Un outil prévu pour vous aider à comprendre vos données et éclairer vos décisions."],
     pricing: "Contactez-nous pour connaître le prix de l’abonnement.",
+    afterTrial: "Après l’essai gratuit", perMonth: "/ mois", perYear: "/ an",
     questions: "Des questions avant de commencer ?", support: "Écrire à CAMELEYON Dynamics",
     faq: [
       ["Comment démarrer ?", "Créez votre compte, confirmez votre adresse courriel et connectez-vous. Vous pouvez commencer avec un seul produit."],
@@ -137,6 +140,7 @@ export const homepageCopy = {
     ],
     assistant: ["Asistente empresarial con IA", "Una función prevista para ayudarte a entender tus datos y tomar decisiones."],
     pricing: "Contáctanos para conocer el precio de la suscripción.",
+    afterTrial: "Después de la prueba gratuita", perMonth: "/ mes", perYear: "/ año",
     questions: "¿Tienes preguntas antes de empezar?", support: "Escribir a CAMELEYON Dynamics",
     faq: [
       ["¿Cómo empiezo?", "Crea tu cuenta, confirma tu correo electrónico e inicia sesión. Puedes comenzar con un solo producto."],

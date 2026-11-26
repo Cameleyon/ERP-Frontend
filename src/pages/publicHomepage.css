@@ -74,6 +74,8 @@
 .erp-home .home-status { align-self: start; border-radius: 100px; padding: 3px 10px; background: #e7eff4; color: var(--home-navy); font-size: .8rem; font-weight: 750; }
 .erp-home .home-basic .home-status { background: #dff5ec; }
 .erp-home .home-plan-action { margin-top: auto; padding-top: 10px; }
+.erp-home .home-basic-pricing { display: grid; gap: 2px; margin-top: 8px; }
+.erp-home .home-basic-pricing strong { color: var(--home-navy); font-size: 1.125rem; }
 .erp-home .home-plan-action .home-cta { width: 100%; margin-top: 10px; }
 .erp-home .home-assistant { padding: 10px 12px; border-left: 3px solid var(--home-green); background: var(--home-wash); }
 .erp-home .home-questions { align-items: start; }

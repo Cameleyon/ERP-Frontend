@@ -10,12 +10,14 @@ import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
 import { homepageCopy } from "../i18n/homepageCopy"
 import { publicTerms } from "../i18n/publicTerms"
+import { formatCurrency } from "../utils/format"
 import "./publicHomepage.css"
 
 type Props = { onGoToSignup: () => void; onGoToLogin: () => void }
 const versionNames = ["Basic", "Standard", "Premium"]
 const support = "mailto:contact@cameleyondynamics.com"
 const icons = ["▤", "▦", "✓", "≡", "≋", "↗"]
+const billingLocales = { en: "en-US", fr: "fr-CA", es: "es-419" }
 
 function Screenshot({ src, copy, width, height, hero = false }: {
   src: string; copy: readonly [string, string]; width: number; height: number; hero?: boolean
@@ -36,6 +38,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
   const termsDialog = useRef<HTMLDialogElement>(null)
   const [basic, setBasic] = useState<PublicPlanResponse>()
   const [promotions, setPromotions] = useState<PublicPromotionResponse[]>([])
+  const basicPrices = [
+    { amount: basic?.monthlyPrice, period: text.perMonth },
+    { amount: basic?.yearlyPrice, period: text.perYear },
+  ].flatMap(({ amount, period }) => typeof amount === "number" && Number.isFinite(amount) && amount > 0
+    ? [{ amount: formatCurrency(amount, "USD", billingLocales[language]), period }]
+    : [])
 
   useEffect(() => {
     let mounted = true
@@ -152,7 +160,12 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
                 {index === 0 && (
                   <div className="home-plan-action">
                     <p className="home-offer">{text.trial}</p>
-                    {basic && (basic.monthlyPrice != null || basic.yearlyPrice != null) && <p><a href={support}>{text.pricing}</a></p>}
+                    {basicPrices.length > 0 ? (
+                      <div className="home-basic-pricing">
+                        <p>{text.afterTrial}</p>
+                        {basicPrices.map(({ amount, period }) => <p key={period}><strong>{amount}</strong> {period}</p>)}
+                      </div>
+                    ) : <p><a href={support}>{text.pricing}</a></p>}
                     {trialButton()}
                   </div>
                 )}
