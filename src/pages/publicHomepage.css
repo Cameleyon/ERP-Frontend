@@ -95,7 +95,7 @@
   .erp-home .home-bar nav { gap: 20px; }
   .erp-home .home-bar .home-brand img { width: 45px; height: 45px; }
   .erp-home .home-bar .home-languages a { font-size: 16px; }
-  .erp-home .home-bar .home-header-cta { min-height: 57px; padding-inline: 20px; }
+  .erp-home .home-bar .home-header-cta { min-height: 44px; padding: 8px 14px; font-size: 16px; }
 }
 
 @media (max-width: 1100px) {
