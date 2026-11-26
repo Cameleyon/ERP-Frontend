@@ -1,8 +1,9 @@
 import assert from "node:assert/strict"
 import { mkdir, readFile } from "node:fs/promises"
 import { createRequire } from "node:module"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { homepageCopy } from "../src/i18n/homepageCopy.ts"
+import { messages } from "../src/i18n/messages.ts"
 import { demoUser, demoSites, summaryFixture } from "./fixtures/forecast-demo.mjs"
 
 const { chromium } = createRequire(import.meta.url)("playwright")
@@ -30,7 +31,10 @@ async function localRoutes(page, replyFor) {
 }
 
 async function captureDashboard() {
-  const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, timezoneId: "UTC" })
+  const language = process.env.HOMEPAGE_DEMO_LANGUAGE || "en"
+  const mobile = process.env.HOMEPAGE_DEMO_MOBILE === "1"
+  const width = mobile ? 390 : 1600
+  const page = await browser.newPage({ viewport: { width, height: 1000 }, timezoneId: "UTC" })
   const trend = [82, 120, 56, 134, 96, 132, 97, 110].map((sales, index) => {
     const cost = Math.round(sales * .35)
     return { date: `2026-11-${18 + index}`, sales, cost, profit: sales - cost }
@@ -60,13 +64,29 @@ async function captureDashboard() {
     if (path.startsWith("/api/forecasts/")) return [200, { status: "DISABLED" }]
     return [200, method === "GET" ? [] : {}]
   })
-  await page.goto(origin + "/en")
+  await page.goto(origin + "/" + language)
   await page.locator(".summary-card").first().waitFor()
   await page.locator(".recharts-line-curve").first().waitFor()
-  const chart = await page.locator(".sales-trend-card").boundingBox()
-  await page.screenshot({ path: dashboardCapture, animations: "disabled",
-    clip: { x: 0, y: 0, width: 1600, height: Math.ceil(chart.y + chart.height + 14) },
-  })
+  const trendCard = page.locator(".sales-trend-card")
+  if (mobile) {
+    await trendCard.screenshot({ path: dashboardCapture, animations: "disabled", quality: 87 })
+  } else {
+    const chart = await trendCard.boundingBox()
+    await page.screenshot({ path: dashboardCapture, animations: "disabled",
+      clip: { x: 0, y: 0, width, height: Math.ceil(chart.y + chart.height + 14) },
+      ...(dashboardCapture.endsWith(".jpg") ? { quality: 87 } : {}),
+    })
+    if (process.env.HOMEPAGE_DEMO_FEATURES === "1") {
+      for (const [asset, label] of [["inventory", messages[language].sidebar.inventory], ["sales", messages[language].sidebar.newSale]]) {
+        await page.getByRole("button", { name: label, exact: true }).click()
+        await page.locator(".app-content h1").first().waitFor()
+        await page.screenshot({
+          path: join(dirname(dashboardCapture), `homepage-${asset}-${language}.jpg`),
+          animations: "disabled", quality: 84, clip: { x: 0, y: 0, width, height: 540 },
+        })
+      }
+    }
+  }
   await page.close()
 }
 
@@ -134,10 +154,10 @@ try {
   } else {
     for (const language of ["en", "fr", "es"]) {
       const text = homepageCopy[language]
-      for (const [size, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844], ["compact", 320, 720], ["tablet", 768, 1024]]) {
+      for (const [size, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844], ["compact", 320, 720], ["tablet", 768, 1024], ["laptop", 1101, 768]]) {
         const fail = size === "compact"
         const hasExtraOffer = size === "tablet"
-        const page = await browser.newPage({ viewport: { width, height } })
+        const page = await browser.newPage({ viewport: { width, height }, reducedMotion: "reduce" })
         const errors = [], requests = []
         page.on("pageerror", error => errors.push(error.message))
         await localRoutes(page, path => {
@@ -148,16 +168,40 @@ try {
           ]]
           if (path === "/api/public/promotions") return fail ? [503, { message: "internal fixture error" }] : [200, [
             { id: 1, name: "Standard trial", freeTrialDays: 90 },
-            ...(hasExtraOffer ? [{ id: 2, name: "Bonus trial", nameEn: "Bonus trial", nameFr: "Essai prolongé", freeTrialDays: 100 }] : []),
+            ...(hasExtraOffer ? [
+              { id: 2, name: "Bonus trial", nameEn: "Bonus trial", nameFr: "Essai prolongé", freeTrialDays: 100 },
+              { id: 3, name: "USD 3.99", nameEn: "USD 3.99", descriptionFr: "3,99 USD", promoPriceMonthly: 3.99 },
+            ] : []),
           ]]
           return [200, {}]
         })
-        const catalogResponse = page.waitForResponse(response => response.url().endsWith("/api/public/promotions"))
+        const catalogResponses = ["/api/public/plans", "/api/public/promotions"].map(path =>
+          page.waitForResponse(response => response.url().endsWith(path)))
         await page.goto(origin + "/" + language)
-        await catalogResponse
-        await page.getByRole("heading", { level: 1, name: text.headline }).waitFor()
+        await Promise.all(catalogResponses)
+        await page.getByRole("heading", { level: 1, name: text.headline.join(" ") }).waitFor()
         await page.waitForFunction(() => [...document.images].filter(img => img.fetchPriority === "high").every(img => img.complete && img.naturalWidth > 0))
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${language} ${size} overflow`)
+        const heroAction = page.locator(".home-hero").getByRole("button", { name: text.signup })
+        const buttonBox = await heroAction.boundingBox()
+        assert.ok(buttonBox && buttonBox.y + buttonBox.height <= height, `${language} ${size} trial CTA below the fold`)
+        assert.equal(await heroAction.evaluate(button => getComputedStyle(button).transitionDuration), "0s")
+        const mobileDashboard = width <= 620
+        assert.match(await page.locator(".home-stage img").evaluate(img => img.currentSrc),
+          new RegExp(`homepage-dashboard-${language}-${mobileDashboard ? "mobile" : "wide"}[.-]`))
+        for (const asset of ["inventory", "sales"]) {
+          await page.locator(`img[src*="homepage-${asset}-${language}"]`).evaluate(img => {
+            img.loading = "eager"
+            return img.decode()
+          })
+        }
+        if (width >= 1101) {
+          const header = page.locator(".home-bar")
+          const headerButton = header.getByRole("button", { name: text.signup })
+          assert.equal((await header.boundingBox()).width, width)
+          assert.equal((await header.boundingBox()).height, 91)
+          assert.equal((await headerButton.boundingBox()).height, 44)
+        }
         assert.equal(await page.locator("html").getAttribute("lang"), language)
         assert.deepEqual(await page.locator(".home-status").allTextContents(), [text.available, text.planned, text.planned])
         assert.equal(await page.locator(".home-plan:not(.home-basic) button").count(), 0)
@@ -182,23 +226,33 @@ try {
         if (hasExtraOffer) {
           await page.locator("#homepage-offers").waitFor()
           assert.equal(await page.locator(".home-hero + section").getByText(text.offerDays(100), { exact: true }).count(), 1)
+          assert.equal(await page.locator(".home-promos").getByText(/3[.,]99/).count(), 0)
         } else {
           assert.equal(await page.locator("#homepage-offers").count(), 0)
         }
         assert.ok(requests.includes("/api/public/plans") && requests.includes("/api/public/promotions"))
-        await page.locator("summary").nth(3).click()
-        assert.equal(await page.locator("details").nth(3).getAttribute("open"), "")
-        await page.locator("summary").nth(3).click()
+        const expiry = page.locator(".home-questions details").nth(3)
+        await expiry.locator("summary").click()
+        assert.equal(await expiry.getAttribute("open"), "")
+        await expiry.locator("summary").click()
         await page.getByRole("button", { name: text.terms }).click()
         await page.locator("dialog[open]").waitFor()
         await page.keyboard.press("Escape")
         assert.equal(await page.locator("dialog[open]").count(), 0)
         assert.equal(await page.getByRole("link", { name: text.privacy }).getAttribute("href"), `/${language}/privacy`)
+        if (width <= 620) {
+          const menu = page.locator(".home-mobile-menu summary")
+          await menu.focus()
+          await page.keyboard.press("Enter")
+          assert.equal(await page.locator(".home-mobile-menu").getAttribute("open"), "")
+        }
         await page.locator("header").getByRole("link", { name: text.plans }).click()
         assert.equal(new URL(page.url()).hash, "#plans")
+        assert.equal(await page.locator(".home-mobile-menu").getAttribute("open"), null)
         await page.locator(".home-hero").getByRole("link", { name: text.explore }).click()
         assert.equal(new URL(page.url()).hash, "#features")
         if (output && (size === "desktop" || size === "mobile")) {
+          await page.mouse.move(0, 0)
           await page.evaluate(async () => {
             for (const img of document.querySelectorAll("main img")) img.loading = "eager"
             await Promise.all(Array.from(document.querySelectorAll("main img"), img => img.decode()))
@@ -219,13 +273,16 @@ try {
           const target = language === "fr" ? "es" : "fr"
           await page.goto(origin + "/" + language)
           await page.locator(`header a[hreflang="${target}"]`).click()
-          await page.getByRole("heading", { level: 1, name: homepageCopy[target].headline }).waitFor()
+          await page.getByRole("heading", { level: 1, name: homepageCopy[target].headline.join(" ") }).waitFor()
+          await page.getByRole("link", { name: homepageCopy[target].privacy }).click()
+          await page.waitForURL(`**/${target}/privacy`)
+          assert.equal(await page.locator("html").getAttribute("lang"), target)
         }
         assert.deepEqual(errors, [])
         await page.close()
       }
     }
-    console.log("12 localized viewport/navigation cases passed, including 3 catalog failures")
+    console.log("15 localized viewport/navigation cases passed, including 3 catalog failures")
   }
 } finally {
   await browser.close()

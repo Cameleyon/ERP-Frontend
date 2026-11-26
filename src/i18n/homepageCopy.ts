@@ -3,7 +3,7 @@ import type { Language } from "./messages"
 type Pair = readonly [title: string, description: string]
 type HomepageCopy = {
   navigation: string; features: string; plans: string; login: string; signup: string; explore: string;
-  headline: string; lead: string; trial: string; offers: string; offerDays: (days: number) => string;
+  headline: readonly [string, string, string]; lead: string; trial: string; offers: string; offerDays: (days: number) => string;
   dashboard: Pair; inventory: Pair; sale: Pair; benefits: string; featureItems: Pair[];
   journey: string; steps: Pair[]; planTitle: string; available: string; planned: string;
   versions: { tagline: string; description: string; features: string[] }[]; assistant: Pair;
@@ -16,8 +16,8 @@ export const homepageCopy = {
   en: {
     navigation: "Homepage navigation", features: "Features", plans: "Plans", login: "Log in",
     signup: "Start Your Free Trial", explore: "Explore Features",
-    headline: "Manage your stock, sales, and profits in one place.",
-    lead: "Simplify your business management with CAMELEYON-ERP. Organize products, monitor inventory, track sales, understand your profitability, and make better business decisions\u2014all from one easy-to-use platform.",
+    headline: ["Your business.", "Your numbers.", "Your growth."],
+    lead: "Manage products, inventory, sales, and profits in one easy-to-use platform for small and growing businesses.",
     trial: "90 days free. No credit card required.", offers: "Current offers", offerDays: days => `${days} days free`,
     dashboard: ["CAMELEYON-ERP dashboard · Demo data", "Dashboard showing sales, product costs, profit and a sales trend chart"],
     inventory: ["Inventory · Record incoming stock", "Inventory screen with product lookup and stock details"],
@@ -38,13 +38,13 @@ export const homepageCopy = {
       ["Add stock and record a sale", "Enter the stock you have on hand. Record a sale when a customer buys it."],
       ["Monitor performance", "See your sales, product costs, and profit on the dashboard."],
     ],
-    planTitle: "Tools for every stage of your business.", available: "Available", planned: "Planned",
+    planTitle: "Start with Basic.", available: "Available", planned: "Planned",
     versions: [
       { tagline: "Run your business with confidence.", description: "Know what you sell, what’s in stock, and what you earn.", features: ["Products, stock, receipts, and acquisition costs", "Sales recording and sales history", "Profitability dashboards and reports", "Seven-day sales and profit forecasts when eligible history is sufficient"] },
       { tagline: "Understand your costs. Grow your profits.", description: "See more of what it costs to run your business and plan ahead.", features: ["Everything in Basic", "Operating expenses such as rent, utilities, and salaries", "Simplified expense and financial management", "A fuller view of business costs and profitability", "Sales and profit forecasts targeting 30 days"] },
       { tagline: "Predict, optimize, and grow with AI.", description: "Use your business data to make better decisions.", features: ["Everything in Standard", "Advanced forecasting", "Machine-learning-based predictive insights"] },
     ],
-    assistant: ["AI business assistant", "Planned to help you understand your data and support business decisions."],
+    assistant: ["AI business agent", "Planned to help you understand your data and support business decisions."],
     pricing: "Contact us for subscription pricing.",
     afterTrial: "After the free trial", perMonth: "/ month", perYear: "/ year",
     questions: "Questions before you start?", support: "Email CAMELEYON Dynamics",
@@ -63,8 +63,8 @@ export const homepageCopy = {
   fr: {
     navigation: "Navigation de l’accueil", features: "Fonctionnalités", plans: "Forfaits", login: "Se connecter",
     signup: "Commencer mon essai gratuit", explore: "Découvrir les fonctionnalités",
-    headline: "Gérez vos stocks, vos ventes et vos bénéfices au même endroit.",
-    lead: "Simplifiez la gestion de votre entreprise avec CAMELEYON-ERP. Organisez vos produits, suivez vos stocks et vos ventes, comprenez votre rentabilité et prenez de meilleures décisions, le tout sur une plateforme simple à utiliser.",
+    headline: ["Votre activité.", "Vos chiffres.", "Votre croissance."],
+    lead: "Gérez vos produits, vos stocks, vos ventes et vos bénéfices avec une plateforme simple, conçue pour les petites entreprises et celles en croissance.",
     trial: "90 jours gratuits. Aucune carte de crédit requise.", offers: "Offres en cours", offerDays: days => `${days} jours gratuits`,
     dashboard: ["Tableau de bord CAMELEYON-ERP · Données de démonstration", "Tableau de bord avec les ventes, les coûts des produits, le bénéfice et un graphique des ventes"],
     inventory: ["Inventaire · Enregistrer une réception de stock", "Écran d’inventaire avec recherche de produits et détails du stock"],
@@ -85,13 +85,13 @@ export const homepageCopy = {
       ["Ajoutez du stock et enregistrez une vente", "Saisissez le stock disponible, puis enregistrez une vente lorsqu’un client achète le produit."],
       ["Suivez vos résultats", "Consultez vos ventes, les coûts de vos produits et votre bénéfice dans le tableau de bord."],
     ],
-    planTitle: "Des outils pour chaque étape de votre entreprise.", available: "Disponible", planned: "Prévu",
+    planTitle: "Commencez avec Basic.", available: "Disponible", planned: "Prévu",
     versions: [
       { tagline: "Gérez votre entreprise en toute confiance.", description: "Voyez ce que vous vendez, ce que vous avez en stock et ce que vous gagnez.", features: ["Produits, stocks, réceptions et coûts d’acquisition", "Saisie des ventes et historique", "Tableaux de bord et rapports de rentabilité", "Prévisions de ventes et de bénéfice sur sept jours, si l’historique admissible est suffisant"] },
       { tagline: "Comprenez vos coûts. Augmentez vos bénéfices.", description: "Comprenez mieux combien coûte l’exploitation de votre entreprise et planifiez vos activités.", features: ["Toutes les fonctions de Basic", "Suivi des dépenses d’exploitation : loyer, services publics et salaires", "Gestion simplifiée des dépenses et des finances", "Vue élargie des coûts et de la rentabilité", "Prévisions de ventes et de bénéfice visant un horizon de 30 jours"] },
       { tagline: "Anticipez, optimisez et développez votre activité avec l’IA.", description: "Appuyez vos décisions sur les données de votre entreprise.", features: ["Toutes les fonctions de Standard", "Prévisions avancées", "Analyses prédictives par apprentissage automatique"] },
     ],
-    assistant: ["Assistant d’entreprise avec IA", "Un outil prévu pour vous aider à comprendre vos données et éclairer vos décisions."],
+    assistant: ["Agent IA pour votre entreprise", "Un outil prévu pour vous aider à comprendre vos données et éclairer vos décisions."],
     pricing: "Contactez-nous pour connaître le prix de l’abonnement.",
     afterTrial: "Après l’essai gratuit", perMonth: "/ mois", perYear: "/ an",
     questions: "Des questions avant de commencer ?", support: "Écrire à CAMELEYON Dynamics",
@@ -110,8 +110,8 @@ export const homepageCopy = {
   es: {
     navigation: "Navegación de inicio", features: "Funciones", plans: "Planes", login: "Iniciar sesión",
     signup: "Comenzar mi prueba gratuita", explore: "Explorar funciones",
-    headline: "Gestiona tu inventario, ventas y ganancias en un solo lugar.",
-    lead: "Simplifica la gestión de tu negocio con CAMELEYON-ERP. Organiza tus productos, controla el inventario, da seguimiento a tus ventas, comprende tu rentabilidad y toma mejores decisiones desde una plataforma fácil de usar.",
+    headline: ["Tu negocio.", "Tus cifras.", "Tu crecimiento."],
+    lead: "Gestiona productos, inventario, ventas y ganancias en una plataforma fácil de usar para negocios pequeños y en crecimiento.",
     trial: "90 días gratis. No se requiere tarjeta de crédito.", offers: "Ofertas vigentes", offerDays: days => `${days} días gratis`,
     dashboard: ["Panel de CAMELEYON-ERP · Datos de demostración", "Panel con ventas, costos de productos, ganancias y un gráfico de ventas"],
     inventory: ["Inventario · Registrar una entrada de stock", "Pantalla de inventario con búsqueda de productos y detalles de existencias"],
@@ -132,13 +132,13 @@ export const homepageCopy = {
       ["Agrega existencias y registra una venta", "Ingresa las existencias disponibles. Registra una venta cuando un cliente compre el producto."],
       ["Consulta tus resultados", "Revisa tus ventas, costos de productos y ganancias en el panel."],
     ],
-    planTitle: "Herramientas para cada etapa de tu negocio.", available: "Disponible", planned: "Previsto",
+    planTitle: "Empieza con Basic.", available: "Disponible", planned: "Planificado",
     versions: [
       { tagline: "Gestiona tu negocio con confianza.", description: "Conoce lo que vendes, lo que tienes en inventario y lo que ganas.", features: ["Productos, existencias, entradas y costos de adquisición", "Registro e historial de ventas", "Paneles e informes de rentabilidad", "Previsiones de ventas y ganancias a siete días cuando haya suficiente historial elegible"] },
       { tagline: "Comprende tus costos. Aumenta tus ganancias.", description: "Entiende mejor cuánto cuesta operar tu negocio y planifica con antelación.", features: ["Todo lo incluido en Basic", "Gastos operativos como alquiler, servicios y sueldos", "Gestión simplificada de gastos y finanzas", "Una visión más completa de los costos y la rentabilidad", "Previsiones de ventas y ganancias con un objetivo de 30 días"] },
       { tagline: "Predice, optimiza y crece con IA.", description: "Usa los datos de tu negocio para tomar mejores decisiones.", features: ["Todo lo incluido en Standard", "Previsiones avanzadas", "Análisis predictivo mediante aprendizaje automático"] },
     ],
-    assistant: ["Asistente empresarial con IA", "Una función prevista para ayudarte a entender tus datos y tomar decisiones."],
+    assistant: ["Agente de IA para tu negocio", "Una función prevista para ayudarte a entender tus datos y tomar decisiones."],
     pricing: "Contáctanos para conocer el precio de la suscripción.",
     afterTrial: "Después de la prueba gratuita", perMonth: "/ mes", perYear: "/ año",
     questions: "¿Tienes preguntas antes de empezar?", support: "Escribir a CAMELEYON Dynamics",
