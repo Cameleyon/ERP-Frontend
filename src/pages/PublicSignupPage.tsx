@@ -5,6 +5,7 @@ import SupportContact from "../components/common/SupportContact"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import type { Language } from "../i18n/messages"
+import { publicTerms } from "../i18n/publicTerms"
 import { confirmSignupCompany, resendSignupCode, signupCompany, type PublicSignupVerificationStartResponse } from "../api/publicSignupApi"
 import { DEFAULT_COMPANY_TIME_ZONE } from "../utils/companyLocalization"
 import { newSignupAttemptId, signupErrorReason, trackSignupEvent } from "../utils/visitTracking"
@@ -21,7 +22,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
   const text = language === "fr" ? {
     title: "Inscription", home: "Retour à l'accueil", company: "Nom de l'entreprise", email: "Email du propriétaire", password: "Mot de passe",
     passwordHint: "8 caractères minimum", termsPrefix: "J'ai lu et j'accepte les", termsLink: "conditions d'utilisation",
-    termsTitle: "Conditions d'utilisation CAMELEYON ERP", close: "Fermer", cancel: "Annuler",
+    close: "Fermer", cancel: "Annuler",
     submit: "Créer mon compte", submitting: "Envoi du code...", verificationTitle: "Confirmer l'e-mail du propriétaire",
     verificationText: (email: string) => `Saisissez le code envoyé à ${email}.`,
     code: "Code de vérification", confirm: "Confirmer le code", confirming: "Vérification...",
@@ -30,19 +31,10 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     resendHint: "Utilisez le code correspondant à votre dernière demande. Après un renvoi, les codes précédents ne sont plus valides.",
     exhaustedTitle: "Essais épuisés",
     accountLanguage: "Langue du compte",
-    paragraphs: [
-      "CAMELEYON ERP est fourni par CAMELEYON Dynamics pour aider l'entreprise à gérer ses ventes, son inventaire, ses produits, ses prix, ses clients, ses factures et ses opérations.",
-      "L'entreprise confirme que les informations fournies lors de l'inscription sont exactes et que l'administrateur principal est responsable de la gestion des utilisateurs, des accès et des données de l'entreprise.",
-      "L'utilisation de la solution peut dépendre d'un abonnement payant. Tout mois commencé est dû. CAMELEYON se réserve le droit de revoir le prix de l'abonnement au besoin, avec information préalable lorsque nécessaire.",
-      "L'entreprise demeure responsable des données qu'elle saisit dans la solution. CAMELEYON met en place des mesures raisonnables pour protéger la plateforme, mais l'entreprise doit aussi protéger ses identifiants et l'accès à ses comptes.",
-      "Certaines fonctionnalités, comme l'envoi d'e-mails, les paiements automatiques, les rapports ou les intégrations externes, peuvent dépendre de services tiers et de leur disponibilité.",
-      "CAMELEYON peut limiter, suspendre ou bloquer l'accès en cas de non-paiement, d'utilisation abusive, de tentative de fraude, d'atteinte à la sécurité ou de violation des présentes conditions.",
-      "En créant son compte, l'entreprise accepte ces conditions et comprend qu'elles peuvent être mises à jour au besoin pour tenir compte de l'évolution du service.",
-    ],
   } : language === "es" ? {
     title: "Registro", home: "Volver al inicio", company: "Nombre de la empresa", email: "Correo del propietario", password: "Contraseña",
     passwordHint: "Mínimo 8 caracteres", termsPrefix: "He leído y acepto los", termsLink: "términos de uso",
-    termsTitle: "Términos de uso de CAMELEYON ERP", close: "Cerrar", cancel: "Cancelar",
+    close: "Cerrar", cancel: "Cancelar",
     submit: "Crear mi cuenta", submitting: "Enviando código...", verificationTitle: "Confirmar correo del propietario",
     verificationText: (email: string) => `Ingrese el código enviado a ${email}.`,
     code: "Código de verificación", confirm: "Confirmar código", confirming: "Verificando...",
@@ -51,19 +43,10 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     resendHint: "Use el código de su última solicitud. Después de un reenvío, los códigos anteriores dejan de ser válidos.",
     exhaustedTitle: "Intentos agotados",
     accountLanguage: "Idioma de la cuenta",
-    paragraphs: [
-      "CAMELEYON ERP es proporcionado por CAMELEYON Dynamics para ayudar a la empresa a gestionar ventas, inventario, productos, precios, clientes, facturas y operaciones.",
-      "La empresa confirma que la información enviada durante el registro es correcta y que el administrador principal es responsable de gestionar usuarios, accesos y datos de la empresa.",
-      "El uso de la solución puede depender de una suscripción paga. Todo mes iniciado debe pagarse. CAMELEYON se reserva el derecho de revisar el precio de la suscripción cuando sea necesario, con aviso previo cuando corresponda.",
-      "La empresa sigue siendo responsable de los datos que introduce en la solución. CAMELEYON aplica medidas razonables para proteger la plataforma, pero la empresa también debe proteger sus credenciales y el acceso a sus cuentas.",
-      "Algunas funciones, como envío de correos, pagos automáticos, informes o integraciones externas, pueden depender de servicios de terceros y de su disponibilidad.",
-      "CAMELEYON puede limitar, suspender o bloquear el acceso en caso de falta de pago, uso abusivo, intento de fraude, riesgo de seguridad o incumplimiento de estos términos.",
-      "Al crear su cuenta, la empresa acepta estos términos y entiende que pueden actualizarse cuando sea necesario para reflejar la evolución del servicio.",
-    ],
   } : {
     title: "Sign Up", home: "Back to home", company: "Company name", email: "Owner email", password: "Password",
     passwordHint: "At least 8 characters", termsPrefix: "I have read and accept the", termsLink: "terms of use",
-    termsTitle: "CAMELEYON ERP Terms of Use", close: "Close", cancel: "Cancel",
+    close: "Close", cancel: "Cancel",
     submit: "Create my account", submitting: "Sending code...", verificationTitle: "Confirm owner email",
     verificationText: (email: string) => `Enter the code sent to ${email}.`,
     code: "Verification code", confirm: "Confirm code", confirming: "Verifying...",
@@ -72,21 +55,13 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     resendHint: "Use the code from your latest request. After resending, previous codes are no longer valid.",
     exhaustedTitle: "No attempts remaining",
     accountLanguage: "Account language",
-    paragraphs: [
-      "CAMELEYON ERP is provided by CAMELEYON Dynamics to help the company manage sales, inventory, products, pricing, customers, invoices, and operations.",
-      "The company confirms that the information submitted during signup is accurate and that the main administrator is responsible for managing users, access, and company data.",
-      "Use of the solution may depend on a paid subscription. Any month that has started is due. CAMELEYON reserves the right to review subscription pricing when needed, with prior notice when required.",
-      "The company remains responsible for the data it enters into the solution. CAMELEYON applies reasonable measures to protect the platform, but the company must also protect credentials and account access.",
-      "Some features, such as email delivery, automatic payments, reports, or external integrations, may depend on third-party services and their availability.",
-      "CAMELEYON may limit, suspend, or block access in case of non-payment, abusive use, attempted fraud, security risk, or breach of these terms.",
-      "By creating an account, the company accepts these terms and understands that they may be updated when needed to reflect the evolution of the service.",
-    ],
   }
+  const terms = publicTerms[language]
 
   const [companyName, setCompanyName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>("en")
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>(language)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [emailProductUpdatesAccepted, setEmailProductUpdatesAccepted] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -144,7 +119,7 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
     setCompanyName("")
     setEmail("")
     setPassword("")
-    setPreferredLanguage("en")
+    setPreferredLanguage(language)
     setTermsAccepted(false)
     setEmailProductUpdatesAccepted(false)
     setVerificationCode("")
@@ -298,8 +273,8 @@ export default function PublicSignupPage({ onSignupComplete, onGoToHome }: Props
         <button type="button" autoFocus onClick={closeExhaustedNotice}>{text.close}</button>
       </dialog>}
       {showTerms && <dialog ref={termsRef} className="card signup-dialog terms-dialog" aria-labelledby="signup-terms-title" onCancel={() => setShowTerms(false)}>
-        <h2 id="signup-terms-title">{text.termsTitle}</h2>
-        <div className="terms-dialog-body">{text.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
+        <h2 id="signup-terms-title">{terms.title}</h2>
+        <div className="terms-dialog-body">{terms.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
         <button type="button" onClick={() => setShowTerms(false)}>{text.close}</button>
       </dialog>}
     </div>

@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url"
 import { mkdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { homepageCopy } from "../src/i18n/homepageCopy.ts"
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE_PATH
   ? pathToFileURL(process.env.PLAYWRIGHT_MODULE_PATH).href : "playwright")
@@ -13,9 +14,9 @@ const screenshots = join(tmpdir(), "cameleyon-signup-errors")
 await mkdir(screenshots, { recursive: true })
 const token = "12345678-1234-4234-8234-123456789012"
 const labels = {
-  en: { signup: "Sign up", submit: "Create my account", confirm: "Confirm code", resend: "Resend code" },
-  fr: { signup: "S'inscrire", submit: "Créer mon compte", confirm: "Confirmer le code", resend: "Renvoyer le code" },
-  es: { signup: "Registrarse", submit: "Crear mi cuenta", confirm: "Confirmar código", resend: "Reenviar el código" },
+  en: { submit: "Create my account", confirm: "Confirm code", resend: "Resend code" },
+  fr: { submit: "Créer mon compte", confirm: "Confirmer le code", resend: "Renvoyer le code" },
+  es: { submit: "Crear mi cuenta", confirm: "Confirmar código", resend: "Reenviar el código" },
 }
 try {
   for (const language of ["en", "fr", "es"]) {
@@ -64,7 +65,7 @@ try {
         return route.continue()
       })
       await page.goto(origin + "/" + language)
-      await page.locator(".public-nav-primary").click()
+      await page.locator(".home-hero").getByRole("button", { name: homepageCopy[language].signup }).click()
       await page.getByRole("button", { name: labels[language].submit, exact: true }).click()
       const alert = page.locator(".public-signup-form [role=alert]")
       await alert.waitFor()
@@ -78,7 +79,7 @@ try {
       await page.locator('input[autocomplete="organization"]').fill("Example business")
       await page.locator('input[type="email"]').fill("owner@example.com")
       await page.locator('input[type="password"]').fill("password123")
-      await page.locator('input[type="checkbox"]').check()
+      await page.locator('.terms-acceptance input[type="checkbox"]').check()
       await page.getByRole("button", { name: labels[language].submit, exact: true }).click()
       const errorDialog = page.getByRole("alertdialog").filter({ hasText: "INTERNAL_ERROR" })
       await errorDialog.waitFor()
