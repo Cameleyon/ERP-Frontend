@@ -2,11 +2,14 @@ import type { ReactNode, Ref } from "react"
 import "../layout/internalTokens.css"
 import "./stockWorkspace.css"
 
-export function StockHeading({ title, description, headingRef, children }: {
-  title: string; description?: string; headingRef?: Ref<HTMLHeadingElement>; children?: ReactNode
+export function StockHeading({ title, description, headingRef, titleControl, children }: {
+  title: string; description?: string; headingRef?: Ref<HTMLHeadingElement>; titleControl?: ReactNode; children?: ReactNode
 }) {
   return <div className="stock-heading">
-    <div><h1 ref={headingRef} tabIndex={-1}>{title}</h1>{description && <p>{description}</p>}</div>
+    <div>
+      <div className="workspace-page-title"><h1 ref={headingRef} tabIndex={-1}>{title}</h1>{titleControl}</div>
+      {description && <p>{description}</p>}
+    </div>
     {children && <div className="stock-actions">{children}</div>}
   </div>
 }

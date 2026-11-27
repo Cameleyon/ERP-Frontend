@@ -7,19 +7,17 @@
   justify-content: space-between;
   flex: none;
   gap: 12px;
-  min-height: 64px;
-  padding: 8px clamp(20px, 3.5vw, 48px);
+  min-height: 36px;
+  padding: 4px clamp(20px, 3.5vw, 48px);
   border-bottom: 1px solid var(--workspace-line);
   background: var(--workspace-surface);
   color: var(--workspace-text);
   font: 15px/1.4 var(--workspace-font);
 }
-.internal-shell .workspace-context { display: flex; flex: 1; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-width: 0; overflow-wrap: anywhere; }
-.internal-shell .workspace-context [aria-current] { color: var(--workspace-muted); font-size: 13px; }
-.internal-shell .workspace-dashboard-site { width: min(100%, 260px); }
-.internal-shell .workspace-dashboard-site:empty { display: none; }
-.internal-shell .workspace-dashboard-site select {
-  width: 100%;
+.internal-shell .workspace-page-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.internal-shell :is(.dashboard-heading, .stock-heading) > div:has(> .workspace-page-title) { flex: 1; min-width: 0; }
+.internal-shell .workspace-page-site {
+  width: min(100%, 240px);
   min-height: var(--workspace-target);
   padding: 6px 10px;
   border: 1px solid var(--workspace-field-line);
@@ -27,6 +25,7 @@
   background: var(--workspace-surface);
   color: var(--workspace-navy);
 }
+.internal-shell .workspace-topbar:not(:has(.trial-reminder)) { display: none; }
 .internal-shell .workspace-topbar-actions {
   display: flex;
   justify-content: end;
@@ -60,6 +59,8 @@
   overflow-wrap: anywhere;
 }
 .internal-shell .workspace-sidebar :focus-visible { outline-color: currentColor; }
+.internal-shell .workspace-menu-site { display: grid; gap: 4px; min-width: 0; margin-top: 8px; font-size: 13px; }
+.internal-shell .workspace-menu-site select { width: 100%; min-width: 0; min-height: 44px; padding: 6px; }
 .internal-shell .workspace-company {
   padding: 12px;
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
@@ -152,11 +153,9 @@
 }
 
 @media (max-width: 768px) {
-  .internal-shell .workspace-sidebar-desktop, .internal-shell .workspace-context { display: none; }
-  .internal-shell .workspace-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding-inline: 16px; }
+  .internal-shell .workspace-sidebar-desktop { display: none; }
+  .internal-shell .workspace-topbar, .internal-shell .workspace-topbar:not(:has(.trial-reminder)) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding-inline: 16px; }
   .internal-shell .workspace-topbar-actions { grid-column: 1 / -1; justify-content: start; margin: 0; }
   .internal-shell .workspace-mobile-brand { display: block; min-width: 0; }
   .internal-shell .workspace-topbar .mobile-menu-button { display: inline-flex; margin: 0; }
-  .internal-shell .workspace-context:has(.workspace-dashboard-site select) { display: block; grid-column: 1 / -1; }
-  .internal-shell .workspace-context .workspace-breadcrumb { display: none; }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   approveSaleCancellationRequest,
   cancelSale,
@@ -19,6 +19,7 @@ import ScrollableTable from "../components/common/ScrollableTable"
 import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
 import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
+import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 import { useAuth } from "../auth/AuthContext"
 import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
@@ -36,13 +37,15 @@ type SaleItemWithOptionalUnit = {
 
 const SALES_PER_PAGE = 12
 
-export default function SalesHistoryPage() {
+type SitePreference = { initialSiteId?: number | null; menuSelection?: MenuSiteSelection; onSiteChange?: (id: number | null) => void }
+
+export default function SalesHistoryPage(props: SitePreference = {}) {
   const { user } = useAuth()
   if (!user) return null
-  return <SalesHistoryContent key={`${user.id}|${user.companyId}|${user.companyTimeZoneId || ""}`} />
+  return <SalesHistoryContent key={`${user.id}|${user.companyId}|${user.companyTimeZoneId || ""}`} {...props} />
 }
 
-function SalesHistoryContent() {
+function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: SitePreference) {
   const { user } = useAuth()
   const { copy, language } = useI18n()
   const text = copy.salesHistoryPage
@@ -58,6 +61,9 @@ function SalesHistoryContent() {
   const [cancellationApprovalEnabled, setCancellationApprovalEnabled] = useState(false)
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
   const [locationId, setLocationId] = useState("")
+  const siteRef = useRef("")
+  const salesRequest = useRef(0)
+  const cancellationsRequest = useRef(0)
   const [dateRange, setDateRange] = useState(() => salesHistoryRange(user?.role, user?.companyTimeZoneId))
   const [currentPage, setCurrentPage] = useState(1)
   const isAdmin = user?.role === "ADMIN"
@@ -95,31 +101,33 @@ function SalesHistoryContent() {
     return ""
   }, [dateRange.endDate, dateRange.startDate, text.rangeError, text.rangeMissing, text.rangeOrderError])
 
-  async function loadSales(selectedLocationId = locationId) {
+  async function loadSales(selectedLocationId = siteRef.current, range = dateRange) {
+    const request = ++salesRequest.current
     try {
       setLoading(true)
       setError("")
       const data = await getSales({
-        ...(isCashier ? salesHistoryRange(user?.role, user?.companyTimeZoneId) : dateRange),
+        ...(isCashier ? salesHistoryRange(user?.role, user?.companyTimeZoneId) : range),
         locationId: selectedLocationId ? Number(selectedLocationId) : null,
       })
-      setSales(Array.isArray(data) ? data : [])
+      if (request === salesRequest.current) setSales(Array.isArray(data) ? data : [])
     } catch (err) {
+      if (request !== salesRequest.current) return
       console.error("loadSales error:", err)
       setError(err instanceof Error ? err.message : text.loadSalesError)
     } finally {
-      setLoading(false)
+      if (request === salesRequest.current) setLoading(false)
     }
   }
 
-  async function loadCancellationApprovalFeature(selectedLocationId = locationId) {
+  async function loadCancellationApprovalFeature() {
     try {
       const subscription = await getCompanySubscription()
       const enabled = subscription.planCode?.toUpperCase() === "STANDARD"
       setCancellationApprovalEnabled(enabled)
 
       if (enabled && isAdmin) {
-        await loadCancellationRequests(selectedLocationId)
+        await loadCancellationRequests()
       } else {
         setCancellationRequests([])
       }
@@ -130,20 +138,22 @@ function SalesHistoryContent() {
     }
   }
 
-  async function loadCancellationRequests(selectedLocationId = locationId) {
+  async function loadCancellationRequests(selectedLocationId = siteRef.current) {
     if (!isAdmin) {
       return
     }
 
+    const request = ++cancellationsRequest.current
     try {
       setCancellationRequestsLoading(true)
       const data = await getPendingSaleCancellationRequests(selectedLocationId ? Number(selectedLocationId) : null)
-      setCancellationRequests(Array.isArray(data) ? data : [])
+      if (request === cancellationsRequest.current) setCancellationRequests(Array.isArray(data) ? data : [])
     } catch (err) {
+      if (request !== cancellationsRequest.current) return
       console.error("loadCancellationRequests error:", err)
       setError(err instanceof Error ? err.message : text.loadCancellationRequestsError)
     } finally {
-      setCancellationRequestsLoading(false)
+      if (request === cancellationsRequest.current) setCancellationRequestsLoading(false)
     }
   }
 
@@ -282,30 +292,14 @@ function SalesHistoryContent() {
 
   function handleResetFilter() {
     const defaultRange = salesHistoryRange(user?.role, user?.companyTimeZoneId)
-    const defaultLocationId = getDefaultLocationId(locations)
     setDateRange(defaultRange)
-    setLocationId(defaultLocationId)
     setError("")
     setSuccess("")
     setSelectedSale(null)
 
     void (async () => {
-      try {
-        setLoading(true)
-        const data = await getSales({
-          ...defaultRange,
-          locationId: defaultLocationId ? Number(defaultLocationId) : null,
-        })
-        setSales(Array.isArray(data) ? data : [])
-        if (isAdmin && cancellationApprovalEnabled) {
-          await loadCancellationRequests(defaultLocationId)
-        }
-      } catch (err) {
-        console.error("reset loadSales error:", err)
-        setError(err instanceof Error ? err.message : text.loadSalesError)
-      } finally {
-        setLoading(false)
-      }
+      await loadSales(siteRef.current, defaultRange)
+      if (isAdmin && cancellationApprovalEnabled) await loadCancellationRequests()
     })()
   }
 
@@ -316,15 +310,17 @@ function SalesHistoryContent() {
       try {
         const data = await getAccessibleCompanyLocations()
         const activeLocations = Array.isArray(data) ? data.filter((location) => location.active) : []
-        defaultLocationId = getDefaultLocationId(activeLocations)
+        defaultLocationId = initialSiteId === undefined ? getDefaultLocationId(activeLocations)
+          : activeLocations.some(site => site.id === initialSiteId) ? String(initialSiteId) : ""
         setLocations(activeLocations)
+        siteRef.current = defaultLocationId
         setLocationId(defaultLocationId)
       } catch (err) {
         console.error("loadLocations error:", err)
       }
 
       await loadSales(defaultLocationId)
-      await loadCancellationApprovalFeature(defaultLocationId)
+      await loadCancellationApprovalFeature()
     })()
   }, [])
 
@@ -338,6 +334,26 @@ function SalesHistoryContent() {
     }
   }, [currentPage, pageCount])
 
+  function changeSite(next: string, remember = true) {
+    if (next === siteRef.current) return
+    siteRef.current = next
+    setLocationId(next)
+    setSelectedSale(null)
+    setSales([])
+    setCancellationRequests([])
+    salesRequest.current++
+    cancellationsRequest.current++
+    setLoading(false)
+    setCancellationRequestsLoading(false)
+    if (remember) onSiteChange?.(Number(next) || null)
+    if (isAdmin && cancellationApprovalEnabled) void loadCancellationRequests(next)
+    if (!rangeValidationError) {
+      void loadSales(next)
+    }
+  }
+
+  useMenuSiteChange(menuSelection, site => changeSite(site ? String(site) : "", false))
+
   return (
     <div>
       <div className="page-title-row">
@@ -345,7 +361,8 @@ function SalesHistoryContent() {
 
         {locations.length > 0 && (
           <label className="page-title-site-filter">
-            <select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => changeSite(event.target.value)}>
+              <option value="">{copy.dashboardFilters.allLocations}</option>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.name}

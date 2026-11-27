@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { createPortal } from "react-dom"
 import { useI18n } from "../i18n/I18nContext"
 import { useAuth } from "../auth/AuthContext"
 import type { AuthenticatedUserResponse } from "../auth/authApi"
@@ -14,6 +13,7 @@ import SalesTrendChart from "../components/dashboard/SalesTrendChart"
 import TopProductsTable from "../components/dashboard/TopProductsTable"
 import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
+import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 import SetupGuide from "../components/dashboard/SetupGuide"
 import DashboardEmptyState from "../components/dashboard/DashboardEmptyState"
 import { internalCopy } from "../i18n/internalCopy"
@@ -32,9 +32,10 @@ import {
 const noticePriority: ForecastNotice[] = ["unavailable", "aggregate", "data", "noSales", "history", "pending", "limited"]
 
 type DashboardActions = {
+  initialSiteId?: number | null
+  menuSelection?: MenuSiteSelection
   onSetupAction?: (action: SetupAction) => void
   onSiteChange?: (id?: number) => void
-  siteSlot?: HTMLDivElement | null
 }
 
 export default function DashboardPage(actions: DashboardActions = {}) {
@@ -44,7 +45,7 @@ export default function DashboardPage(actions: DashboardActions = {}) {
     user={user} token={token} {...actions} />
 }
 
-function DashboardContent({ user, token, onSetupAction, onSiteChange, siteSlot }: DashboardActions & {
+function DashboardContent({ user, token, onSetupAction, onSiteChange, initialSiteId, menuSelection }: DashboardActions & {
   user: AuthenticatedUserResponse; token: string
 }) {
   const { copy, language } = useI18n()
@@ -67,14 +68,14 @@ function DashboardContent({ user, token, onSetupAction, onSiteChange, siteSlot }
   const [lowestProfitProducts, setLowestProfitProducts] = useState<TopProductResponse[]>([])
   const [lowStock, setLowStock] = useState<LowStockProductResponse[]>([])
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
-  const [locationId, setLocationId] = useState("")
+  const [locationId, setLocationId] = useState(() => initialSiteId ? String(initialSiteId) : "")
   const [preset, setPreset] = useState<DashboardPreset>("this-month")
   const [startDate, setStartDate] = useState(() => presetRange("this-month", today).startDate)
   const [endDate, setEndDate] = useState(today)
   const [applied, setApplied] = useState<DateRange>(() => presetRange("this-month", today))
   const [appliedPeriod, setAppliedPeriod] = useState<DashboardPreset>("this-month")
   const appliedPreset = useRef<DashboardPreset>("this-month")
-  const selectedLocation = useRef("")
+  const selectedLocation = useRef(locationId)
   const requestId = useRef(0)
 
   const loadDashboard = useCallback(async (range: DateRange, site: string) => {
@@ -151,28 +152,29 @@ function DashboardContent({ user, token, onSetupAction, onSiteChange, siteSlot }
     setAppliedPeriod(preset)
     void loadDashboard({ startDate, endDate }, locationId)
   }
-  function changeSite(site: string) {
+  function changeSite(site: string, remember = true) {
     selectedLocation.current = site; setLocationId(site)
     void loadDashboard(applied, site)
-    onSiteChange?.(Number(site) || undefined)
+    if (remember) onSiteChange?.(Number(site) || undefined)
   }
+  useMenuSiteChange(menuSelection, site => changeSite(site ? String(site) : "", false))
   const money = (value: number) => formatCurrency(value, currency || "USD", language)
   const rangeLabel = new Intl.DateTimeFormat(language, { timeZone: "UTC", dateStyle: "medium" }).formatRange(
     new Date(`${applied.startDate}T12:00:00Z`), new Date(`${applied.endDate}T12:00:00Z`),
   )
   const hasRankings = [topProducts, topProfitProducts, lowestSalesProducts, lowestProfitProducts].some(items => items.length > 0)
   return <div className="internal-dashboard">
-    {siteSlot && locations.length > 0 && createPortal(
-      <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => changeSite(event.target.value)}>
-        <option value="">{copy.dashboardFilters.allLocations}</option>
-        {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
-      </select>,
-      siteSlot,
-    )}
     {error && <ErrorMessage message={error === "__unknown" ? text.unknownError : error} onDismiss={() => setError("")} />}
     <div className="dashboard-heading">
       <div>
-        <h1>{text.title}</h1>
+        <div className="workspace-page-title">
+          <h1>{text.title}</h1>
+          {locations.length > 0 && <select className="workspace-page-site" aria-label={copy.dashboardFilters.location}
+            value={locationId} onChange={event => changeSite(event.target.value)}>
+            <option value="">{copy.dashboardFilters.allLocations}</option>
+            {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+          </select>}
+        </div>
         <p>{rangeLabel}</p>
       </div>
     </div>

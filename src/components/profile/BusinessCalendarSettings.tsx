@@ -15,7 +15,9 @@ function companyToday(zone: string) {
   return date.toISOString().slice(0, 10)
 }
 
-export default function BusinessCalendarSettings({ site, zone, view }: { site: number; zone: string; view: View }) {
+export default function BusinessCalendarSettings({ site, zone, view, onSaved: onSiteSettingsSaved }: {
+  site: number; zone: string; view: View; onSaved?: () => void
+}) {
   const { language } = useI18n()
   const text = calendarCopy[language]
   const [month, setMonth] = useState(() => companyToday(zone).slice(0, 7))
@@ -41,7 +43,7 @@ export default function BusinessCalendarSettings({ site, zone, view }: { site: n
     .format(new Date(Date.UTC(2026, 10, 16 + index))))
   const ready = data && loaded === loadKey
   const visibleDates = data?.calendar.dates.filter(item => item.date.startsWith(month)) ?? []
-  function onSaved() { setSaved(true); setRevision(value => value + 1) }
+  function onSaved() { setSaved(true); setRevision(value => value + 1); onSiteSettingsSaved?.() }
   return <section className="calendar-settings-panel">
     {(view !== "hours" || !ready) && <>
       <h2>{view === "hours" ? text.hours : text.calendar}</h2>

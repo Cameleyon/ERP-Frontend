@@ -32,6 +32,7 @@ import { preferredSetupSite } from "../utils/setupGuide"
 import { setupCopy } from "../i18n/setupCopy"
 import { stockWorkspaceCopy } from "../i18n/stockWorkspaceCopy"
 import { StockFacts, StockHeading, StockStatus } from "../components/inventory/StockWorkspace"
+import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 
 type CostAmountMap = Record<number, string>
 type InventoryPageCopy = (typeof messages)[keyof typeof messages]["inventoryPage"]
@@ -57,7 +58,8 @@ type PendingReceipt = {
 type ReceiptDraft = Omit<PendingReceipt, "key">
 type CostReview = { draft: ReceiptDraft; type: ReceiptConfirmationType; firstZeroId?: number }
 
-type OpeningProps = { productId?: number; preferredSiteId?: number; inspectStock?: boolean; onReviewProducts?: () => void }
+type OpeningProps = { productId?: number; preferredSiteId?: number; menuSelection?: MenuSiteSelection;
+  onSiteChange?: (id: number) => void; inspectStock?: boolean; onReviewProducts?: () => void }
 
 export default function InventoryPage(props: OpeningProps = {}) {
   const { user } = useAuth()
@@ -66,7 +68,7 @@ export default function InventoryPage(props: OpeningProps = {}) {
   return <InventoryContent key={scope} storageKey={scope} {...props} />
 }
 
-function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock, onReviewProducts }: OpeningProps & { storageKey: string }) {
+function InventoryContent({ storageKey, productId, preferredSiteId, menuSelection, onSiteChange, inspectStock, onReviewProducts }: OpeningProps & { storageKey: string }) {
   const { copy, language } = useI18n()
   const { user } = useAuth()
   const text = copy.inventoryPage
@@ -158,7 +160,7 @@ function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock
         const pendingLocation = activeLocations.find(location => location.id === pending?.payload.locationId)
         const guidedLocation = preferredSetupSite(activeLocations, preferredSiteId)
         const defaultLocationId = pending ? (pendingLocation ? String(pendingLocation.id) : "")
-          : handoffId ? String(guidedLocation?.id ?? "") : getDefaultLocationId(activeLocations)
+          : handoffId || preferredSiteId ? String(guidedLocation?.id ?? "") : getDefaultLocationId(activeLocations)
 
         setLocations(activeLocations)
         setLocationId(defaultLocationId)
@@ -209,16 +211,25 @@ function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock
     if (request === receiptListRequest.current) setActiveReceipts(openReceipts)
   }
 
-  async function handleLocationChange(nextLocationId: string, confirmed = false) {
+  useMenuSiteChange(menuSelection, site => {
+    if (rubricsLoading || saveLoading || pending || siteReview !== null || costReview
+      || productCode || selectedProduct || editingReceiptId || withdrawalReceiptId) return
+    const next = locations.find(location => location.id === site)
+    const id = next ? String(next.id) : getDefaultLocationId(locations)
+    if (id !== locationId) void handleLocationChange(id, false, false)
+  })
+
+  async function handleLocationChange(nextLocationId: string, confirmed = false, remember = true) {
     if (pending || receiptInFlight.current) return
     if (nextLocationId && !locations.some(site => String(site.id) === nextLocationId && site.active)) return
-    if (!confirmed && handoffId && selectedProduct && (quantity !== "1" || notes.trim()
+    if (!confirmed && selectedProduct && (quantity !== "1" || notes.trim()
         || Object.values(costAmounts).some(value => value.trim()))) {
       setSiteReview(nextLocationId)
       return
     }
     clearProductSelection()
     setLocationId(nextLocationId)
+    if (remember && nextLocationId) onSiteChange?.(Number(nextLocationId))
     setFocusedReceiptProduct(null)
     setProductCode("")
     setWithdrawalReceiptId(null)
@@ -556,18 +567,17 @@ function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock
   const selectedSiteName = locations.find(site => String(site.id) === locationId)?.name
   const opening = !!handoffId && !inspectStock
   const showReceiptEditor = view === "receive"
-  const siteField = (label: string) => locations.length > 0 && <label className="stock-field">
-    {label}
-    <select ref={siteControl} aria-label={guide.site} value={locationId} disabled={saveLoading || !!pending}
+  const siteField = locations.length > 0 && <select className="workspace-page-site" ref={siteControl}
+    aria-label={guide.site} value={locationId} disabled={saveLoading || !!pending}
       onChange={event => void handleLocationChange(event.target.value)}>
       {!locationId && <option value="">{guide.selectSite}</option>}
       {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
     </select>
-  </label>
 
   return (
     <div className="stock-workspace">
-      <StockHeading headingRef={inventoryHeading} title={text.title} description={showReceiptEditor ? labels.receiveHelp : labels.activeHelp}>
+      <StockHeading headingRef={inventoryHeading} title={text.title} titleControl={siteField}
+        description={showReceiptEditor ? labels.receiveHelp : labels.activeHelp}>
         {!showReceiptEditor && <button type="button" className="workspace-primary" onClick={() => setView("receive")}>{text.receiveStock}</button>}
       </StockHeading>
       <div className="stock-view-switch" role="group" aria-label={text.title}>
@@ -606,8 +616,7 @@ function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock
               {showScanner ? text.closeScanner : text.scannerTitle}
             </button></div>
           {showScanner && <div className="scanner-container"><BarcodeScanner onDetected={handleDetectedBarcode} /></div>}
-          <div className="stock-field-pair">
-          {showReceiptEditor && siteField(labels.site)}
+          <div>
           <ProductLookup key={locationId} embedded disabled={saveLoading || !!pending || rubricsLoading || !locationId}
             value={productCode} lookupLoading={lookupLoading} onError={setError}
             onChange={value => { setHandoffId(undefined); setHandoffError(""); clearProductSelection(); setProductCode(value) }}
@@ -735,7 +744,6 @@ function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock
           text={text}
           locale={dateLocales[language]}
           money={money}
-          siteField={!showReceiptEditor && siteField(guide.site)}
           siteName={selectedSiteName}
           focusedProduct={focusedReceiptProduct}
           onClearFocusedProduct={() => setFocusedReceiptProduct(null)}
@@ -775,7 +783,6 @@ function ActiveReceiptTable({
   text,
   locale,
   money,
-  siteField,
   siteName,
   focusedProduct,
   onClearFocusedProduct,
@@ -800,7 +807,6 @@ function ActiveReceiptTable({
   text: InventoryPageCopy
   locale: string
   money: (value: number) => string
-  siteField: ReactNode
   siteName?: string
   focusedProduct: { id: number; name: string } | null
   onClearFocusedProduct: () => void
@@ -864,7 +870,6 @@ function ActiveReceiptTable({
       <div className="stock-panel-heading"><h2 id="active-receipts-heading">{text.activeReceipts}</h2>
         {siteName && <StockStatus active={false}>{siteName}</StockStatus>}</div>
       <div className="stock-field-pair">
-      {siteField}
       <label className="inventory-receipt-filter">
         {text.filter}
         <input

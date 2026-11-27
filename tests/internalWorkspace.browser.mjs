@@ -101,20 +101,33 @@ try {
     const filters = page.locator(".dashboard-filter-panel")
     const header = page.locator(".workspace-topbar")
     const headerSale = header.getByRole("button", { name: copy.sidebar.newSale, exact: true })
-    const siteFilter = header.getByRole("combobox", { name: copy.dashboardFilters.location, exact: true })
-    const openNewSale = async () => {
+    const siteFilter = page.locator(".dashboard-heading").getByRole("combobox", { name: copy.dashboardFilters.location, exact: true })
+    const openPage = async (name) => {
       if (mobile) await page.locator(".mobile-menu-button").click()
-      await page.locator(".workspace-sidebar:visible").getByRole("button", { name: copy.sidebar.newSale, exact: true }).click()
+      await page.locator(".workspace-sidebar:visible").getByRole("button", { name, exact: true }).click()
+    }
+    const changeDefault = async id => {
+      if (mobile) await page.locator(".mobile-menu-button").click()
+      const menuSite = page.locator(".workspace-sidebar:visible .workspace-menu-site select")
+      await menuSite.waitFor()
+      assert.deepEqual(await menuSite.locator("option:enabled").allTextContents(), sites.map(site => site.name))
+      await menuSite.selectOption(id)
+      if (mobile) {
+        await page.keyboard.press("Escape")
+        await page.locator(".workspace-menu-dialog").waitFor({ state: "hidden" })
+      }
     }
     const trial = header.locator(".trial-reminder")
     assert.equal(await headerSale.count(), 0)
     assert.equal(await siteFilter.isVisible(), true)
     if (!mobile) {
-      const breadcrumb = await header.locator(".workspace-breadcrumb").boundingBox()
+      const heading = await page.locator(".dashboard-heading h1").boundingBox()
       const selector = await siteFilter.boundingBox()
-      assert.ok(selector.x >= breadcrumb.x + breadcrumb.width, "Site selector sits beside the breadcrumb")
+      assert.ok(selector.x >= heading.x + heading.width, "Site selector sits beside the page title")
     }
     assert.equal(await siteFilter.inputValue(), "")
+    assert.equal(await siteFilter.locator('option[value=""]:enabled').textContent(), copy.dashboardFilters.allLocations)
+    assert.equal(await header.getByRole("combobox").count(), 0)
     assert.equal(await filters.getByRole("combobox", { name: copy.dashboardFilters.location, exact: true }).count(), 0)
     assert.equal(await header.getByRole("button", { name: copy.common.profile, exact: true }).count(), 0)
     assert.equal(await filters.getAttribute("open") !== null, !mobile)
@@ -127,7 +140,7 @@ try {
       assert.equal(await page.locator("main .trial-reminder").count(), 0)
       assert.ok(!requests.some(url => url.pathname.startsWith("/api/forecasts/")))
       await capture(page, `first-use-${language}-${device}`)
-      await openNewSale()
+      await openPage(copy.sidebar.newSale)
       await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
       assert.equal(await trial.isVisible(), true)
       assert.equal(await headerSale.count(), 0)
@@ -165,19 +178,45 @@ try {
       assert.ok(requests.some(url => url.pathname.endsWith("/summary") && url.searchParams.get("endDate") === "2026-10-31"))
       await page.getByRole("heading", { name: copy.lowStockTable.title, exact: true }).waitFor()
       await capture(page, `empty-period-${language}-${device}`)
-      await openNewSale()
+      await openPage(copy.sidebar.newSale)
       await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
-      await page.waitForFunction(() => document.querySelector("main select")?.value === "10")
+      const saleSite = page.locator(".page-title-site-filter select")
+      await saleSite.waitFor()
+      assert.equal(await saleSite.inputValue(), "9")
+      await saleSite.selectOption("10")
+      await openPage(copy.sidebar.dashboard)
+      assert.equal(await siteFilter.inputValue(), "10")
+      await changeDefault("9")
+      assert.equal(await siteFilter.inputValue(), "9")
+      await openPage(copy.sidebar.newSale)
+      await saleSite.waitFor()
+      assert.equal(await saleSite.inputValue(), "9")
+      await changeDefault("10")
+      await page.waitForFunction(() => document.querySelector(".page-title-site-filter select")?.value === "10")
+      await openPage(copy.sidebar.salesHistory)
+      const historySite = page.locator(".page-title-site-filter select")
+      await historySite.waitFor()
+      assert.equal(await historySite.inputValue(), "10")
+      await Promise.all([
+        page.waitForResponse(response => {
+          const url = new URL(response.url())
+          return url.pathname === "/api/sales" && url.searchParams.get("locationId") === "9" && response.ok()
+        }),
+        historySite.selectOption("9"),
+      ])
       for (const [label, target] of [
         [copy.sidebar.products, "products"], [copy.sidebar.inventory, "inventory"], [calendarCopy[language].settings, "settings"],
       ]) {
-        if (mobile) await page.locator(".mobile-menu-button").click()
-        await page.locator(".workspace-sidebar:visible").getByRole("button", { name: label, exact: true }).click()
-        await page.locator(".workspace-context [aria-current=page]").filter({ hasText: label }).waitFor({ state: "attached" })
+        await openPage(label)
         assert.equal(await page.locator(".internal-dashboard").count(), 0, target)
         assert.equal(await page.locator(".workspace-dashboard-content").count(), 0, target)
         await page.locator("main h1").waitFor()
         if (target === "settings") await page.locator(".business-calendar").waitFor()
+        if (target !== "products") {
+          const pageSite = page.locator("main .workspace-page-site")
+          await pageSite.waitFor()
+          assert.equal(await pageSite.inputValue(), "10")
+        }
         assert.equal(await page.locator("main").evaluate(node => node.scrollWidth <= node.clientWidth), true, target)
       }
     }

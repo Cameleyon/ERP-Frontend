@@ -113,7 +113,7 @@ try {
     assert.ok(requests.includes(lookupPath + "/sku/CAFE-B?locationId=9"))
     assert.equal(await input.inputValue(), "Café moulu")
     assert.equal(await options.count(), 0)
-    const site = page.locator(inventory ? "#stock-receiving-view select" : ".page-title-site-filter select")
+    const site = page.locator(inventory ? ".stock-heading .workspace-page-site" : ".page-title-site-filter select")
     await site.selectOption("10")
     await input.fill("moulu")
     await options.first().click()

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useI18n } from "../i18n/I18nContext"
+import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
@@ -39,7 +40,9 @@ function resolveUnitPrice(product: SalesProduct, itemQuantity: number) {
   }
 }
 
-export default function NewSalePage({ preferredSiteId, onSetupReturn }: { preferredSiteId?: number; onSetupReturn?: () => void } = {}) {
+export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChange, onSetupReturn }: {
+  preferredSiteId?: number; menuSelection?: MenuSiteSelection; onSiteChange?: (id: number) => void; onSetupReturn?: () => void
+} = {}) {
   const { user } = useAuth()
   const { copy, language } = useI18n()
   const text = copy.newSalePage
@@ -71,6 +74,14 @@ export default function NewSalePage({ preferredSiteId, onSetupReturn }: { prefer
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [completedSaleId, setCompletedSaleId] = useState<number | null>(null)
   const lookupRequestRef = useRef(0)
+
+  useMenuSiteChange(menuSelection, site => {
+    if (locationsLoading || saleLoading || cartItems.length || productCode || selectedProduct
+      || selectedCustomerId !== "WALK_IN" || customerSearch || paymentMethod !== "CASH"
+      || paymentReference || paymentAuthorizationCode || paymentConfirmedManually) return
+    const next = locations.find(location => location.id === site)
+    setLocationId(next ? String(next.id) : getDefaultLocationId(locations))
+  })
 
   useEffect(() => {
     void loadCustomers()
@@ -263,7 +274,6 @@ export default function NewSalePage({ preferredSiteId, onSetupReturn }: { prefer
       setPaymentReference("")
       setPaymentAuthorizationCode("")
       setPaymentConfirmedManually(false)
-      setLocationId(getDefaultLocationId(locations))
     } catch (err) {
       console.error(err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -350,7 +360,8 @@ export default function NewSalePage({ preferredSiteId, onSetupReturn }: { prefer
               setSelectedProduct(null)
               setProductCode("")
               setLocationId(event.target.value)
-            }} disabled={locationsLoading}>
+              if (event.target.value) onSiteChange?.(Number(event.target.value))
+            }} disabled={locationsLoading || saleLoading || cartItems.length > 0}>
               {!locationId && <option value="">{guide.selectSite}</option>}
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>

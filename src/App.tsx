@@ -39,11 +39,27 @@ function AppContent() {
   type Navigation = { page: Page; productId?: number; siteId?: number; inspectStock?: boolean; guidedProduct?: boolean; resumeProduct?: boolean; manageSites?: boolean }
   const [route, setRoute] = useState<{ scope: string; nav: Navigation }>()
   const nav: Navigation = route?.scope === scope ? route.nav : { page: "dashboard" }
-  const [dashboardSite, setDashboardSite] = useState<{ scope: string; id?: number }>()
-  const [dashboardSiteSlot, setDashboardSiteSlot] = useState<HTMLDivElement | null>(null)
-  const preferredSite = dashboardSite?.scope === scope ? dashboardSite.id : undefined
+  const [sitePreferences, setSitePreferences] = useState<{ scope: string; defaultSite: number | null; revision: number; pages: Partial<Record<Page, number | null>> }>()
+  const preferences = sitePreferences?.scope === scope ? sitePreferences : undefined
+  const menuSite = preferences?.defaultSite ?? null
+  const siteRevision = preferences?.revision ?? 0
+  const menuSelection = { site: menuSite, revision: siteRevision }
+  function pageSite(page: Page) {
+    const chosen = preferences?.pages[page]
+    return chosen === undefined ? menuSite : chosen
+  }
+  function rememberSite(page: Page, site: number | null) {
+    setSitePreferences(previous => {
+      const current = previous?.scope === scope ? previous : { scope, defaultSite: null, revision: 0, pages: {} }
+      return { ...current, pages: { ...current.pages, [page]: site } }
+    })
+  }
+  function changeMenuSite(site: number) {
+    setSitePreferences(previous => ({
+      scope, defaultSite: site, revision: (previous?.scope === scope ? previous.revision : 0) + 1, pages: {},
+    }))
+  }
   function navigate(next: Navigation, currency = false) {
-    if (next.page === "dashboard" && nav.page !== "dashboard") setDashboardSite(undefined)
     setConfigureCurrency(currency)
     setRoute({ scope, nav: next })
   }
@@ -88,7 +104,7 @@ function AppContent() {
   useEffect(() => {
     if (!user?.companyId) {
       setRoute(undefined)
-      setDashboardSite(undefined)
+      setSitePreferences(undefined)
       setCurrencyRequired(false)
       setConfigureCurrency(false)
       setTermsRequired(false)
@@ -226,25 +242,30 @@ function AppContent() {
   }
 
   return (
-      <AppLayout key={scope} page={safePage}
-        onNavigate={page => navigate({ page, siteId: page === "new-sale" && safePage === "dashboard" ? preferredSite : undefined })}
-        dashboardSiteRef={setDashboardSiteSlot}>
-        {safePage === "dashboard" && <DashboardPage siteSlot={dashboardSiteSlot}
-          onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })} />}
+      <AppLayout key={scope} page={safePage} onNavigate={page => navigate({ page })}
+        menuSite={menuSite} onMenuSiteChange={changeMenuSite}>
+        {safePage === "dashboard" && <DashboardPage initialSiteId={pageSite("dashboard")} menuSelection={menuSelection}
+          onSetupAction={followSetup} onSiteChange={id => rememberSite("dashboard", id ?? null)} />}
         {safePage === "customers" && <CustomersPage />}
         {(safePage === "products" || retainProducts) && isAdmin &&
           <div hidden={retainProducts}><ProductsPage guided={nav.guidedProduct} visible={!retainProducts}
-            onOpeningStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite })}
-            onInspectStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite, inspectStock: true })} /></div>}
+            onOpeningStock={productId => navigate({ page: "inventory", productId })}
+            onInspectStock={productId => navigate({ page: "inventory", productId, inspectStock: true })} /></div>}
         {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage onBack={() => navigate({ page: "inventory" })} />}
-        {safePage === "new-sale" && <NewSalePage preferredSiteId={nav.siteId} onSetupReturn={() => navigate({ page: "dashboard" })} />}
-        {safePage === "sales-history" && <SalesHistoryPage />}
-        {safePage === "inventory" && isAdmin && <InventoryPage productId={nav.productId} preferredSiteId={nav.siteId} inspectStock={nav.inspectStock}
+        {safePage === "new-sale" && <NewSalePage preferredSiteId={nav.siteId ?? pageSite("new-sale") ?? undefined} menuSelection={menuSelection}
+          onSiteChange={id => rememberSite("new-sale", id)} onSetupReturn={() => navigate({ page: "dashboard" })} />}
+        {safePage === "sales-history" && <SalesHistoryPage initialSiteId={siteRevision || preferences?.pages["sales-history"] !== undefined ? pageSite("sales-history") : undefined}
+          menuSelection={menuSelection}
+          onSiteChange={id => rememberSite("sales-history", id)} />}
+        {safePage === "inventory" && isAdmin && <InventoryPage productId={nav.productId} preferredSiteId={nav.siteId ?? pageSite("inventory") ?? undefined}
+          menuSelection={menuSelection}
+          onSiteChange={id => rememberSite("inventory", id)} inspectStock={nav.inspectStock}
           onReviewProducts={() => navigate({ page: "products" })} />}
         {safePage === "profile" && <ProfilePage configureCurrency={route?.scope === scope && configureCurrency}
           manageSites={nav.manageSites} returnToProduct={retainProducts}
           onCurrencyReturn={() => navigate(retainProducts ? { page: "products", guidedProduct: nav.guidedProduct } : { page: "dashboard" })} />}
-        {safePage === "settings" && isAdmin && <SettingsPage onBack={() => navigate({ page: "profile" })} />}
+        {safePage === "settings" && isAdmin && <SettingsPage initialSiteId={pageSite("settings")} menuSelection={menuSelection}
+          onSiteChange={id => rememberSite("settings", id)} onBack={() => navigate({ page: "profile" })} />}
         {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
           onConfigure={() => {
             setCurrencyRequired(false)

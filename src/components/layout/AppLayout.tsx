@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import Sidebar from "./Sidebar"
 import type { Page } from "../../types/navigation"
 import { useI18n } from "../../i18n/I18nContext"
 import { useAuth } from "../../auth/AuthContext"
+import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../../api/companyLocationsApi"
 import { internalCopy } from "../../i18n/internalCopy"
-import { calendarCopy } from "../profile/calendarCopy"
 import TrialReminder from "./TrialReminder"
 import WorkspaceBrand from "./WorkspaceBrand"
 import { contrastingText } from "./workspaceAppearance"
@@ -15,26 +15,33 @@ type Props = {
     children: ReactNode
     page: Page
     onNavigate: (page: Page) => void
-    dashboardSiteRef?: Ref<HTMLDivElement>
+    menuSite: number | null
+    onMenuSiteChange: (id: number) => void
 }
 
-export default function AppLayout({ children, page, onNavigate, dashboardSiteRef }: Props) {
+export default function AppLayout({ children, page, onNavigate, menuSite, onMenuSiteChange }: Props) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+    const [menuSites, setMenuSites] = useState<CompanyLocationResponse[]>([])
     const dialog = useRef<HTMLDialogElement>(null)
     const { copy, language } = useI18n()
     const { user } = useAuth()
     const text = internalCopy[language]
-    const pageLabel = { dashboard: copy.sidebar.dashboard, customers: copy.sidebar.customers,
-        products: copy.sidebar.products, "cost-rubrics": copy.sidebar.costRubrics, "new-sale": copy.sidebar.newSale,
-        "sales-history": copy.sidebar.salesHistory, inventory: copy.sidebar.inventory, profile: copy.common.profile,
-        settings: calendarCopy[language].settings,
-    }[page]
+    const companyId = user?.companyId
     const appearance = {
         "--workspace-sidebar": user?.companySidebarColor || undefined,
         "--workspace-sidebar-text": contrastingText(user?.companySidebarColor),
         "--workspace-action": user?.companyPrimaryColor || undefined,
         "--workspace-action-text": contrastingText(user?.companyPrimaryColor),
     } as CSSProperties
+
+    useEffect(() => {
+        if (!companyId) return
+        let active = true
+        getAccessibleCompanyLocations()
+            .then(sites => { if (active) setMenuSites(sites.filter(site => site.active)) })
+            .catch(() => { if (active) setMenuSites([]) })
+        return () => { active = false }
+    }, [companyId, page])
 
     useEffect(() => {
         const viewport = matchMedia("(max-width: 768px)")
@@ -55,7 +62,7 @@ export default function AppLayout({ children, page, onNavigate, dashboardSiteRef
 
     return (
         <div className="app-shell internal-shell" style={appearance}>
-            <Sidebar page={page} onNavigate={handleNavigate} />
+            <Sidebar page={page} onNavigate={handleNavigate} menuSites={menuSites} menuSite={menuSite} onMenuSiteChange={onMenuSiteChange} />
             <div className="workspace-main">
                 <header className="workspace-topbar">
                     <div className="workspace-mobile-brand"><WorkspaceBrand /></div>
@@ -64,13 +71,6 @@ export default function AppLayout({ children, page, onNavigate, dashboardSiteRef
                             dialog.current?.showModal()
                             setMobileSidebarOpen(true)
                         }}>{copy.common.menu}</button>
-                    <div className="workspace-context">
-                        <div className="workspace-breadcrumb">
-                            {user?.companyName && <>{user.companyName}<span aria-hidden="true"> / </span></>}
-                            <span aria-current="page">{pageLabel}</span>
-                        </div>
-                        {page === "dashboard" && <div className="workspace-dashboard-site" ref={dashboardSiteRef} />}
-                    </div>
                     <div className="workspace-topbar-actions">
                         <TrialReminder />
                     </div>
@@ -86,7 +86,8 @@ export default function AppLayout({ children, page, onNavigate, dashboardSiteRef
                     <div className="workspace-dialog-actions">
                         <button type="button" className="workspace-outline" onClick={closeMobileMenu}>{text.closeMenu}</button>
                     </div>
-                    {mobileSidebarOpen && <Sidebar page={page} onNavigate={handleNavigate} mobile />}
+                    {mobileSidebarOpen && <Sidebar page={page} onNavigate={handleNavigate} mobile
+                        menuSites={menuSites} menuSite={menuSite} onMenuSiteChange={onMenuSiteChange} />}
                 </div>
             </dialog>
         </div>
