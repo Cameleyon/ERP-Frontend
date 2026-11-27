@@ -93,7 +93,7 @@
 .internal-dashboard .summary-forecast-sales .summary-forecast-value { color: #105c82; }
 .internal-dashboard .summary-forecast-profit .summary-forecast-value { color: #086047; }
 .internal-dashboard .dashboard-section { margin: 0; }
-.internal-dashboard .dashboard-bottom-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.internal-dashboard .dashboard-bottom-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .internal-dashboard .dashboard-empty { padding: 18px 4px; text-align: center; }
 .internal-dashboard .dashboard-empty strong { font-size: 17px; color: var(--workspace-navy); }
 .internal-dashboard .dashboard-empty p { color: var(--workspace-muted); margin: 4px 0 0; }
