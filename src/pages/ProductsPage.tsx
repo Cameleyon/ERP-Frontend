@@ -1318,25 +1318,24 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             <button type="button" className="workspace-outline" onClick={() => showView("tools")}>{text.scannerTitle}</button>
           </div>
 
-          <label>
-            {text.category}
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value)
-                setPage(1)
-              }}
-            >
-              <option value="ALL">{text.allCategories}</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="product-filter-actions">
+          <div className="product-category-filters">
+            <label className="stock-field">
+              {text.category}
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value)
+                  setPage(1)
+                }}
+              >
+                <option value="ALL">{text.allCategories}</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="button" className="secondary-button" onClick={handleClearFilters}>
               {text.clearFilters}
             </button>

@@ -131,8 +131,7 @@ try {
       await page.screenshot({ path: process.env.HISTORY_SCREENSHOT_DIR + "/calendar-hours-" + language + ".png", fullPage: true })
     }
     const back = language === "fr" ? "Retour au profil" : language === "es" ? "Volver al perfil" : "Back to Profile"
-    await page.getByRole("button", { name: back, exact: true }).click()
-    assert.equal(await page.title(), "Back to Profile")
+    assert.equal(await page.getByRole("button", { name: back, exact: true }).count(), 0)
     await page.close()
     console.log("Settings calendar and hours passed:", language, width)
   }

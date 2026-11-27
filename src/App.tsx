@@ -265,7 +265,7 @@ function AppContent() {
           manageSites={nav.manageSites} returnToProduct={retainProducts}
           onCurrencyReturn={() => navigate(retainProducts ? { page: "products", guidedProduct: nav.guidedProduct } : { page: "dashboard" })} />}
         {safePage === "settings" && isAdmin && <SettingsPage initialSiteId={pageSite("settings")} menuSelection={menuSelection}
-          onSiteChange={id => rememberSite("settings", id)} onBack={() => navigate({ page: "profile" })} />}
+          onSiteChange={id => rememberSite("settings", id)} />}
         {currencyRequired && <CurrencyRequiredDialog canConfigure={isAdmin} onClose={() => setCurrencyRequired(false)}
           onConfigure={() => {
             setCurrencyRequired(false)

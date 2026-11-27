@@ -8,9 +8,9 @@ import { useI18n } from "../i18n/I18nContext"
 import { DEFAULT_COMPANY_TIME_ZONE } from "../utils/companyLocalization"
 import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 
-export default function SettingsPage({ initialSiteId, menuSelection, onSiteChange, onBack }: {
-  initialSiteId?: number | null; menuSelection?: MenuSiteSelection; onSiteChange?: (id: number) => void; onBack: () => void
-}) {
+export default function SettingsPage({ initialSiteId, menuSelection, onSiteChange }: {
+  initialSiteId?: number | null; menuSelection?: MenuSiteSelection; onSiteChange?: (id: number) => void
+} = {}) {
   const { language } = useI18n()
   const text = calendarCopy[language]
   const [sites, setSites] = useState<CompanyLocationResponse[]>([])
@@ -50,7 +50,6 @@ export default function SettingsPage({ initialSiteId, menuSelection, onSiteChang
       }}>
         {sites.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
       </select>}
-      <button type="button" onClick={onBack}>{text.back}</button>
     </div>
     {failed && <ErrorMessage message={text.error} onDismiss={() => setFailed(false)} />}
     {loading ? <p role="status">{text.loading}</p> : selected ? <>

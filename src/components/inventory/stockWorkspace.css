@@ -85,6 +85,7 @@
   background: #fff;
   color: var(--workspace-navy, #062e49);
 }
+.stock-workspace .workspace-page-title select.workspace-page-site { width: min(100%, 240px); }
 .stock-workspace :is(input, select, textarea)[aria-invalid="true"] { border-color: #a52323; }
 .stock-workspace :is(input, select, textarea):disabled { background: #f5f7fa; color: #435e74; }
 .stock-workspace :is(button, a, input, select, summary, [tabindex]):focus-visible {
@@ -166,7 +167,9 @@
 .stock-workspace :is(.stock-product-cards, .stock-product-card-sort, .stock-cell-label, .stock-mobile-sort) { display: none; }
 .stock-workspace .product-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; margin: 10px 0; padding: 0; background: transparent; }
 .stock-workspace :is(.product-filter-actions, .stock-product-table .stock-actions) { justify-content: end; }
-.stock-workspace .product-filter-actions .secondary-button { min-height: 44px; background: #fff; border: 1px solid #9bb3c6; color: #044975; }
+.stock-workspace .product-category-filters { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: end; gap: 8px 10px; }
+.stock-workspace .product-category-filters .stock-field { flex: 1 1 190px; max-width: 300px; min-width: min(100%, 190px); margin: 0; }
+.stock-workspace .product-category-filters .secondary-button { min-height: 44px; background: #fff; border: 1px solid #9bb3c6; color: #044975; }
 .stock-workspace .stock-product-table th:last-child { width: 24%; }
 .stock-workspace .stock-product-table .stock-actions button { padding-inline: 6px; }
 .stock-workspace .table-pagination { flex-wrap: wrap; }

@@ -1,6 +1,6 @@
 export const calendarCopy = {
   en: {
-    settings: "Settings", back: "Back to Profile", site: "Site", hours: "Opening days and hours",
+    settings: "Settings", site: "Site", hours: "Opening days and hours",
     calendar: "Events and closures", zone: "Time zone",
     effective: "Effective from", day: "Day", open: "Open", opens: "Opens", closes: "Closes",
     nextDay: "Closing time is on the following day", editHours: "Edit opening hours", saveHours: "Save opening hours", saveDate: "Save date", saved: "Saved.",
@@ -10,7 +10,7 @@ export const calendarCopy = {
     loading: "Loading…", error: "Could not load or save calendar settings.", noSites: "No accessible active site.",
   },
   fr: {
-    settings: "Paramètres", back: "Retour au profil", site: "Site", hours: "Jours et heures d’ouverture",
+    settings: "Paramètres", site: "Site", hours: "Jours et heures d’ouverture",
     calendar: "Événements et fermetures", zone: "Fuseau horaire",
     effective: "En vigueur à partir du", day: "Jour", open: "Ouvert", opens: "Ouverture", closes: "Fermeture",
     nextDay: "L’heure de fermeture est le lendemain", editHours: "Modifier les horaires", saveHours: "Enregistrer les horaires", saveDate: "Enregistrer la date", saved: "Enregistré.",
@@ -20,7 +20,7 @@ export const calendarCopy = {
     loading: "Chargement…", error: "Impossible de charger ou d’enregistrer les paramètres du calendrier.", noSites: "Aucun site actif accessible.",
   },
   es: {
-    settings: "Configuración", back: "Volver al perfil", site: "Sede", hours: "Días y horas de apertura",
+    settings: "Configuración", site: "Sede", hours: "Días y horas de apertura",
     calendar: "Eventos y cierres", zone: "Zona horaria",
     effective: "Vigente desde", day: "Día", open: "Abierto", opens: "Apertura", closes: "Cierre",
     nextDay: "La hora de cierre corresponde al día siguiente", editHours: "Editar horario", saveHours: "Guardar horario", saveDate: "Guardar fecha", saved: "Guardado.",

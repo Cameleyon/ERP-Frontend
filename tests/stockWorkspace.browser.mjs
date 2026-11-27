@@ -121,6 +121,13 @@ try {
     const search = list.locator(".stock-search input")
     await button(labels.view, list).first().waitFor()
     assert.equal(await button(labels.view, list).count(), 12)
+    if (width > 768) {
+      const category = await list.locator(".product-category-filters select").boundingBox()
+      const reset = await button(text.clearFilters, list).boundingBox()
+      assert.ok(category.width <= 301, "The category selector stays compact")
+      assert.ok(Math.abs(reset.x - category.x - category.width - 10) < 2, "Clear filters stays beside the selector")
+      assert.ok(Math.abs(reset.y + reset.height - category.y - category.height) < 2, "Both controls align on the same row")
+    }
     await fits()
     await capture(page, prefix + "-products")
     await button(text.nextPage, list).click()
@@ -209,6 +216,14 @@ try {
     const receiptEditor = page.locator("#stock-receiving-view")
     await receiptEditor.getByText("Opening stock product", { exact: true }).first().waitFor()
     const inventorySite = page.locator(".stock-heading").getByRole("combobox", { name: guide.site, exact: true })
+    async function checkInventoryTitle() {
+      if (width <= 768) return
+      const title = await page.locator(".stock-heading h1").boundingBox()
+      const filter = await inventorySite.boundingBox()
+      assert.ok(filter.x >= title.x + title.width, "The site filter sits to the right of Inventory")
+      assert.ok(filter.y < title.y + title.height && title.y < filter.y + filter.height, "The title and filter share a row")
+    }
+    await checkInventoryTitle()
     await inventorySite.selectOption("10")
     await receiptEditor.locator("#receipt-quantity").fill("5")
     await receiptEditor.locator("#receipt-cost-1").fill("100")
@@ -236,6 +251,7 @@ try {
     const active = page.locator("#stock-active-view")
     await active.waitFor()
     assert.equal(await inventorySite.inputValue(), "10")
+    await checkInventoryTitle()
     assert.equal(await active.locator(".inventory-receipt-filter input").inputValue(), "Opening stock product")
     const row = active.getByRole("row").filter({ hasText: "Opening stock product" })
     await row.waitFor()
