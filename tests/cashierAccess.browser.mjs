@@ -32,12 +32,13 @@ try {
     const sidebar = page.locator(".workspace-sidebar:visible")
     assert.equal(await sidebar.locator(".sidebar-nav button").count(), 2)
     assert.equal(await sidebar.locator(".sidebar-logout-button").count(), 1)
-    assert.equal(await page.locator(".workspace-profile").count(), 0)
+    assert.equal(await page.locator(".workspace-topbar-actions button").count(), 0)
     await Promise.all([
       page.waitForResponse(response => new URL(response.url()).pathname === "/api/sales" && response.ok()),
       sidebar.locator(".sidebar-nav button").last().click(),
     ])
     await page.locator("#sales-history-list-heading").waitFor()
+    assert.equal(await page.locator(".workspace-topbar-actions button").count(), 1)
     assert.ok(requests.includes("/api/sales"))
     assert.ok(!requests.some(path => path.startsWith("/api/dashboard")))
     // Even an isolated direct render of the client page must not load client data.

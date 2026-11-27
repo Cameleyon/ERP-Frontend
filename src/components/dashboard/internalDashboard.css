@@ -23,7 +23,6 @@
 .internal-dashboard h1 { font-size: 32px; font-weight: 800; }
 .internal-dashboard h2 { font-size: 20px; font-weight: 750; }
 .internal-dashboard .dashboard-heading,
-.internal-dashboard .dashboard-heading-actions,
 .internal-dashboard .dashboard-table-heading {
   display: flex;
   align-items: center;
@@ -36,14 +35,6 @@
   color: var(--workspace-muted);
   font-size: 13px;
   line-height: 1.45;
-}
-.internal-dashboard .dashboard-heading .trial-reminder {
-  position: static;
-  margin: 0;
-  padding: 4px 9px;
-  z-index: auto;
-  border-radius: 100px;
-  font-size: 12px;
 }
 .internal-dashboard .dashboard-filter-panel summary,
 .internal-dashboard .dashboard-rank-section summary {
@@ -181,7 +172,6 @@
   .internal-dashboard h2 { font-size: 18px; }
   .internal-dashboard .workspace-panel { padding: 12px; }
   .internal-dashboard .dashboard-heading { align-items: flex-start; flex-direction: column; }
-  .internal-dashboard .dashboard-heading-actions { justify-content: flex-start; }
   .internal-dashboard :is(.dashboard-primary-kpis, .dashboard-secondary-kpis, .setup-guide .setup-milestones) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

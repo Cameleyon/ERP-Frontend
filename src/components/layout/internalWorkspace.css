@@ -16,7 +16,23 @@
 }
 .internal-shell .workspace-context { overflow-wrap: anywhere; }
 .internal-shell .workspace-context [aria-current] { color: var(--workspace-muted); font-size: 13px; }
-.internal-shell .workspace-topbar .workspace-profile { padding-inline: 2px; text-decoration: underline; }
+.internal-shell .workspace-topbar-actions {
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+  margin-inline-start: auto;
+}
+.internal-shell .workspace-topbar-actions:empty { display: none; }
+.internal-shell .workspace-topbar .trial-reminder {
+  position: static;
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: 100px;
+  font-size: 12px;
+}
 .internal-shell .workspace-mobile-brand, .internal-shell .workspace-topbar .mobile-menu-button { display: none; }
 .internal-shell .workspace-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; overflow-wrap: anywhere; }
 .internal-shell .workspace-brand img { flex: none; display: block; border-radius: 8px; }
@@ -125,9 +141,9 @@
 }
 
 @media (max-width: 768px) {
-  .internal-shell .workspace-sidebar-desktop, .internal-shell .workspace-context,
-  .internal-shell .workspace-topbar .workspace-profile { display: none; }
-  .internal-shell .workspace-topbar { padding-inline: 16px; }
+  .internal-shell .workspace-sidebar-desktop, .internal-shell .workspace-context { display: none; }
+  .internal-shell .workspace-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding-inline: 16px; }
+  .internal-shell .workspace-topbar-actions { grid-column: 1 / -1; justify-content: start; margin: 0; }
   .internal-shell .workspace-mobile-brand { display: block; min-width: 0; }
   .internal-shell .workspace-topbar .mobile-menu-button { display: inline-flex; margin: 0; }
 }

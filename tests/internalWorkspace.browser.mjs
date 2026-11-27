@@ -99,16 +99,26 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth &&
       document.querySelector("main").scrollWidth <= document.querySelector("main").clientWidth), true)
     const filters = page.locator(".dashboard-filter-panel")
+    const header = page.locator(".workspace-topbar")
+    const headerSale = header.getByRole("button", { name: copy.sidebar.newSale, exact: true })
+    const trial = header.locator(".trial-reminder")
+    assert.equal(await header.getByRole("button", { name: copy.common.profile, exact: true }).count(), 0)
     assert.equal(await filters.getAttribute("open") !== null, !mobile)
     if (firstUse) {
       await page.getByRole("region", { name: setupCopy[language].title }).waitFor()
       assert.equal(await page.locator(".setup-milestones li").count(), 4)
       assert.equal(await page.locator(".setup-milestones [aria-current=step]").count(), 1)
       await page.getByText(labels.noSales, { exact: true }).waitFor()
-      await page.locator(".trial-reminder").waitFor()
+      await trial.waitFor()
+      assert.equal(await page.locator("main .trial-reminder").count(), 0)
       assert.ok(!requests.some(url => url.pathname.startsWith("/api/forecasts/")))
       await capture(page, `first-use-${language}-${device}`)
+      await headerSale.click()
+      await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
+      assert.equal(await trial.isVisible(), true)
+      assert.equal(await headerSale.count(), 0)
     } else {
+      assert.equal(await trial.count(), 0)
       if (mobile) await filters.locator("summary").click()
       await filters.getByRole("combobox", { name: labels.period, exact: true }).selectOption("this-week")
       await filters.getByRole("button", { name: copy.dashboardFilters.apply, exact: true }).click()
@@ -138,8 +148,9 @@ try {
       assert.ok(requests.some(url => url.pathname.endsWith("/summary") && url.searchParams.get("endDate") === "2026-10-31"))
       await page.getByRole("heading", { name: copy.lowStockTable.title, exact: true }).waitFor()
       await capture(page, `empty-period-${language}-${device}`)
-      await page.locator(".dashboard-heading").getByRole("button", { name: copy.sidebar.newSale, exact: true }).click()
+      await headerSale.click()
       await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
+      await page.waitForFunction(() => document.querySelector("main select")?.value === "10")
       for (const [label, target] of [
         [copy.sidebar.products, "products"], [copy.sidebar.inventory, "inventory"], [calendarCopy[language].settings, "settings"],
       ]) {

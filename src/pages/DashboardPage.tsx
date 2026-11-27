@@ -15,7 +15,6 @@ import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
 import SetupGuide from "../components/dashboard/SetupGuide"
 import DashboardEmptyState from "../components/dashboard/DashboardEmptyState"
-import TrialReminder from "../components/layout/TrialReminder"
 import { internalCopy } from "../i18n/internalCopy"
 import "../components/layout/internalTokens.css"
 import "../components/dashboard/internalDashboard.css"
@@ -34,7 +33,6 @@ const noticePriority: ForecastNotice[] = ["unavailable", "aggregate", "data", "n
 type DashboardActions = {
   onSetupAction?: (action: SetupAction) => void
   onSiteChange?: (id?: number) => void
-  onNewSale?: (siteId?: number) => void
 }
 
 export default function DashboardPage(actions: DashboardActions = {}) {
@@ -44,7 +42,7 @@ export default function DashboardPage(actions: DashboardActions = {}) {
     user={user} token={token} {...actions} />
 }
 
-function DashboardContent({ user, token, onSetupAction, onSiteChange, onNewSale }: DashboardActions & {
+function DashboardContent({ user, token, onSetupAction, onSiteChange }: DashboardActions & {
   user: AuthenticatedUserResponse; token: string
 }) {
   const { copy, language } = useI18n()
@@ -168,12 +166,6 @@ function DashboardContent({ user, token, onSetupAction, onSiteChange, onNewSale 
       <div>
         <h1>{text.title}</h1>
         <p>{[user.companyName, siteLabel, rangeLabel].filter(Boolean).join(" · ")}</p>
-      </div>
-      <div className="dashboard-heading-actions">
-        <TrialReminder />
-        {onNewSale && user.role === "ADMIN" && <button className="workspace-primary" type="button" onClick={() => onNewSale(selectedSite ?? undefined)}>
-          <span aria-hidden="true">+ </span>{copy.sidebar.newSale}
-        </button>}
       </div>
     </div>
     {onSetupAction && user.role === "ADMIN" && user.companyOwner && user.companyId &&

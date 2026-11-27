@@ -15,13 +15,15 @@ type Props = {
     children: ReactNode
     page: Page
     onNavigate: (page: Page) => void
+    onNewSale?: () => void
 }
 
-export default function AppLayout({ children, page, onNavigate }: Props) {
+export default function AppLayout({ children, page, onNavigate, onNewSale }: Props) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
     const dialog = useRef<HTMLDialogElement>(null)
     const { copy, language } = useI18n()
     const { user } = useAuth()
+    const canStartSale = page !== "new-sale" && (user?.role === "ADMIN" || user?.role === "CASHIER")
     const text = internalCopy[language]
     const pageLabel = { dashboard: copy.sidebar.dashboard, customers: copy.sidebar.customers,
         products: copy.sidebar.products, "cost-rubrics": copy.sidebar.costRubrics, "new-sale": copy.sidebar.newSale,
@@ -62,16 +64,20 @@ export default function AppLayout({ children, page, onNavigate }: Props) {
                         <span aria-current="page">{pageLabel}</span>
                     </div>
                     <div className="workspace-mobile-brand"><WorkspaceBrand /></div>
-                    {user?.role === "ADMIN" &&
-                        <button type="button" className="workspace-profile workspace-text-action" onClick={() => handleNavigate("profile")}>{copy.common.profile}</button>}
                     <button type="button" className="mobile-menu-button workspace-outline" aria-haspopup="dialog"
                         aria-expanded={mobileSidebarOpen} aria-controls="workspace-mobile-navigation" onClick={() => {
                             dialog.current?.showModal()
                             setMobileSidebarOpen(true)
                         }}>{copy.common.menu}</button>
+                    <div className="workspace-topbar-actions">
+                        <TrialReminder />
+                        {canStartSale && <button type="button" className="workspace-primary"
+                            onClick={() => onNewSale ? onNewSale() : handleNavigate("new-sale")}>
+                            <span aria-hidden="true">+</span>{copy.sidebar.newSale}
+                        </button>}
+                    </div>
                 </header>
                 <main className={`app-content ${page === "dashboard" ? "workspace-dashboard-content" : ""}`.trim()}>
-                    {page !== "dashboard" && <TrialReminder />}
                     {children}
                 </main>
             </div>
