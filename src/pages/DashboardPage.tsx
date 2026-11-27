@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { useI18n } from "../i18n/I18nContext"
 import { useAuth } from "../auth/AuthContext"
 import type { AuthenticatedUserResponse } from "../auth/authApi"
@@ -33,6 +34,7 @@ const noticePriority: ForecastNotice[] = ["unavailable", "aggregate", "data", "n
 type DashboardActions = {
   onSetupAction?: (action: SetupAction) => void
   onSiteChange?: (id?: number) => void
+  siteSlot?: HTMLDivElement | null
 }
 
 export default function DashboardPage(actions: DashboardActions = {}) {
@@ -42,7 +44,7 @@ export default function DashboardPage(actions: DashboardActions = {}) {
     user={user} token={token} {...actions} />
 }
 
-function DashboardContent({ user, token, onSetupAction, onSiteChange }: DashboardActions & {
+function DashboardContent({ user, token, onSetupAction, onSiteChange, siteSlot }: DashboardActions & {
   user: AuthenticatedUserResponse; token: string
 }) {
   const { copy, language } = useI18n()
@@ -155,24 +157,30 @@ function DashboardContent({ user, token, onSetupAction, onSiteChange }: Dashboar
     onSiteChange?.(Number(site) || undefined)
   }
   const money = (value: number) => formatCurrency(value, currency || "USD", language)
-  const siteLabel = locations.find(site => site.id === selectedSite)?.name ?? copy.dashboardFilters.allLocations
   const rangeLabel = new Intl.DateTimeFormat(language, { timeZone: "UTC", dateStyle: "medium" }).formatRange(
     new Date(`${applied.startDate}T12:00:00Z`), new Date(`${applied.endDate}T12:00:00Z`),
   )
   const hasRankings = [topProducts, topProfitProducts, lowestSalesProducts, lowestProfitProducts].some(items => items.length > 0)
   return <div className="internal-dashboard">
+    {siteSlot && locations.length > 0 && createPortal(
+      <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => changeSite(event.target.value)}>
+        <option value="">{copy.dashboardFilters.allLocations}</option>
+        {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+      </select>,
+      siteSlot,
+    )}
     {error && <ErrorMessage message={error === "__unknown" ? text.unknownError : error} onDismiss={() => setError("")} />}
     <div className="dashboard-heading">
       <div>
         <h1>{text.title}</h1>
-        <p>{[user.companyName, siteLabel, rangeLabel].filter(Boolean).join(" · ")}</p>
+        <p>{rangeLabel}</p>
       </div>
     </div>
     {onSetupAction && user.role === "ADMIN" && user.companyOwner && user.companyId &&
       <SetupGuide key={`${user.companyId}:${user.id}`} ownerKey={`${user.companyId}:${user.id}`}
         sites={locations} siteId={Number(locationId) || undefined} onAction={onSetupAction} />}
     <DashboardFilters preset={preset} appliedPreset={appliedPeriod} startDate={startDate} endDate={endDate}
-      locations={locations} locationId={locationId} siteLabel={siteLabel} onLocationChange={changeSite} onPresetChange={handlePresetChange}
+      onPresetChange={handlePresetChange}
       onStartDateChange={date => { setStartDate(date); setPreset("custom") }}
       onEndDateChange={date => { setEndDate(date); setPreset("custom") }} onApply={handleApply} />
     {loading ? <div className="workspace-panel dashboard-loading" role="status">{text.loading}</div> : summary && <>

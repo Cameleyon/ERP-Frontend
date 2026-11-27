@@ -1,5 +1,4 @@
 import { useState } from "react"
-import type { CompanyLocationResponse } from "../../api/companyLocationsApi"
 import { useI18n } from "../../i18n/I18nContext"
 import { internalCopy } from "../../i18n/internalCopy"
 
@@ -10,10 +9,6 @@ type Props = {
   appliedPreset: Preset
   startDate: string
   endDate: string
-  locations: CompanyLocationResponse[]
-  locationId: string
-  siteLabel: string
-  onLocationChange: (value: string) => void
   onPresetChange: (value: Preset) => void
   onStartDateChange: (value: string) => void
   onEndDateChange: (value: string) => void
@@ -25,10 +20,6 @@ export default function DashboardFilters({
   appliedPreset,
   startDate,
   endDate,
-  locations,
-  locationId,
-  siteLabel,
-  onLocationChange,
   onPresetChange,
   onStartDateChange,
   onEndDateChange,
@@ -42,15 +33,8 @@ export default function DashboardFilters({
 
   return (
     <details className="workspace-panel dashboard-filter-panel" open={initiallyOpen}>
-      <summary>{labels.filters} · {siteLabel} · {presets[appliedPreset]}</summary>
+      <summary>{labels.filters} · {presets[appliedPreset]}</summary>
       <div className="dashboard-filter-fields">
-        {locations.length > 0 && <label>
-          <span>{text.location}</span>
-          <select aria-label={text.location} value={locationId} onChange={event => onLocationChange(event.target.value)}>
-            <option value="">{text.allLocations}</option>
-            {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
-          </select>
-        </label>}
         <label>
           <span>{labels.period}</span>
           <select aria-label={labels.period} value={preset} onChange={event => onPresetChange(event.target.value as Preset)}>

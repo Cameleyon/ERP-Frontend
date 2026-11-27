@@ -40,6 +40,7 @@ function AppContent() {
   const [route, setRoute] = useState<{ scope: string; nav: Navigation }>()
   const nav: Navigation = route?.scope === scope ? route.nav : { page: "dashboard" }
   const [dashboardSite, setDashboardSite] = useState<{ scope: string; id?: number }>()
+  const [dashboardSiteSlot, setDashboardSiteSlot] = useState<HTMLDivElement | null>(null)
   const preferredSite = dashboardSite?.scope === scope ? dashboardSite.id : undefined
   function navigate(next: Navigation, currency = false) {
     if (next.page === "dashboard" && nav.page !== "dashboard") setDashboardSite(undefined)
@@ -225,9 +226,11 @@ function AppContent() {
   }
 
   return (
-      <AppLayout key={scope} page={safePage} onNavigate={page => navigate({ page })}
-        onNewSale={() => navigate({ page: "new-sale", siteId: safePage === "dashboard" ? preferredSite : undefined })}>
-        {safePage === "dashboard" && <DashboardPage onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })} />}
+      <AppLayout key={scope} page={safePage}
+        onNavigate={page => navigate({ page, siteId: page === "new-sale" && safePage === "dashboard" ? preferredSite : undefined })}
+        dashboardSiteRef={setDashboardSiteSlot}>
+        {safePage === "dashboard" && <DashboardPage siteSlot={dashboardSiteSlot}
+          onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })} />}
         {safePage === "customers" && <CustomersPage />}
         {(safePage === "products" || retainProducts) && isAdmin &&
           <div hidden={retainProducts}><ProductsPage guided={nav.guidedProduct} visible={!retainProducts}

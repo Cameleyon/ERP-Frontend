@@ -47,7 +47,7 @@
 .internal-dashboard .dashboard-filter-panel { padding-block: 10px; }
 .internal-dashboard .dashboard-filter-fields {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   gap: 8px 10px;
   align-items: end;
 }

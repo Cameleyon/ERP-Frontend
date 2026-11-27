@@ -14,8 +14,19 @@
   color: var(--workspace-text);
   font: 15px/1.4 var(--workspace-font);
 }
-.internal-shell .workspace-context { overflow-wrap: anywhere; }
+.internal-shell .workspace-context { display: flex; flex: 1; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-width: 0; overflow-wrap: anywhere; }
 .internal-shell .workspace-context [aria-current] { color: var(--workspace-muted); font-size: 13px; }
+.internal-shell .workspace-dashboard-site { width: min(100%, 260px); }
+.internal-shell .workspace-dashboard-site:empty { display: none; }
+.internal-shell .workspace-dashboard-site select {
+  width: 100%;
+  min-height: var(--workspace-target);
+  padding: 6px 10px;
+  border: 1px solid var(--workspace-field-line);
+  border-radius: var(--workspace-radius);
+  background: var(--workspace-surface);
+  color: var(--workspace-navy);
+}
 .internal-shell .workspace-topbar-actions {
   display: flex;
   justify-content: end;
@@ -146,4 +157,6 @@
   .internal-shell .workspace-topbar-actions { grid-column: 1 / -1; justify-content: start; margin: 0; }
   .internal-shell .workspace-mobile-brand { display: block; min-width: 0; }
   .internal-shell .workspace-topbar .mobile-menu-button { display: inline-flex; margin: 0; }
+  .internal-shell .workspace-context:has(.workspace-dashboard-site select) { display: block; grid-column: 1 / -1; }
+  .internal-shell .workspace-context .workspace-breadcrumb { display: none; }
 }

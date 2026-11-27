@@ -38,7 +38,7 @@ try {
       sidebar.locator(".sidebar-nav button").last().click(),
     ])
     await page.locator("#sales-history-list-heading").waitFor()
-    assert.equal(await page.locator(".workspace-topbar-actions button").count(), 1)
+    assert.equal(await page.locator(".workspace-topbar-actions button").count(), 0)
     assert.ok(requests.includes("/api/sales"))
     assert.ok(!requests.some(path => path.startsWith("/api/dashboard")))
     // Even an isolated direct render of the client page must not load client data.

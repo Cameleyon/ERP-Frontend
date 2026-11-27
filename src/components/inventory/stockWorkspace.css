@@ -163,9 +163,8 @@
   color: var(--workspace-blue, #044975);
 }
 .stock-workspace .inventory-receipt-filter { min-width: 0; margin: 0; }
-.stock-workspace .stock-product-cards, .stock-workspace .stock-cell-label, .stock-workspace .stock-mobile-sort { display: none; }
-.stock-workspace .product-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 10px; margin: 10px 0; padding: 0; background: transparent; }
-.stock-workspace .stock-search { grid-column: 1 / 3; }
+.stock-workspace :is(.stock-product-cards, .stock-product-card-sort, .stock-cell-label, .stock-mobile-sort) { display: none; }
+.stock-workspace .product-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; margin: 10px 0; padding: 0; background: transparent; }
 .stock-workspace :is(.product-filter-actions, .stock-product-table .stock-actions) { justify-content: end; }
 .stock-workspace .product-filter-actions .secondary-button { min-height: 44px; background: #fff; border: 1px solid #9bb3c6; color: #044975; }
 .stock-workspace .stock-product-table th:last-child { width: 24%; }
@@ -220,6 +219,8 @@
   .stock-workspace :is(.stock-split, .stock-receive-layout) { grid-template-columns: minmax(0, 1fr); }
   .stock-workspace .stock-receive-summary { grid-column: 1; grid-row: auto; }
   .stock-workspace .stock-product-table { display: none; }
+  .stock-workspace .stock-product-card-sort { display: flex; flex-wrap: wrap; gap: 0 8px; padding-block: 4px; border-bottom: 1px solid var(--workspace-line, #d4e1eb); }
+  .stock-workspace .stock-product-card-sort button { min-height: 44px; padding-inline: 6px; font-size: 13px; }
   .stock-workspace .stock-product-cards { display: grid; list-style: none; padding: 0; margin: 6px 0 0; }
   .stock-workspace .stock-product-cards li { padding: 12px 0; border-bottom: 1px solid var(--workspace-line, #d4e1eb); }
 }
@@ -230,7 +231,6 @@
   .stock-workspace :is(h2, h3) { font-size: 18px; }
   .stock-workspace .stock-panel { padding: 12px; }
   .stock-workspace .stock-field-pair { grid-template-columns: minmax(0, 1fr); }
-  .stock-workspace .stock-search { grid-column: auto; }
   .stock-workspace .product-filters { grid-template-columns: minmax(0, 1fr); }
   .stock-workspace .product-filter-actions { justify-content: start; }
 }

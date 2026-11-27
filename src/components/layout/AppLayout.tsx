@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react"
 import Sidebar from "./Sidebar"
 import type { Page } from "../../types/navigation"
 import { useI18n } from "../../i18n/I18nContext"
@@ -15,15 +15,14 @@ type Props = {
     children: ReactNode
     page: Page
     onNavigate: (page: Page) => void
-    onNewSale?: () => void
+    dashboardSiteRef?: Ref<HTMLDivElement>
 }
 
-export default function AppLayout({ children, page, onNavigate, onNewSale }: Props) {
+export default function AppLayout({ children, page, onNavigate, dashboardSiteRef }: Props) {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
     const dialog = useRef<HTMLDialogElement>(null)
     const { copy, language } = useI18n()
     const { user } = useAuth()
-    const canStartSale = page !== "new-sale" && (user?.role === "ADMIN" || user?.role === "CASHIER")
     const text = internalCopy[language]
     const pageLabel = { dashboard: copy.sidebar.dashboard, customers: copy.sidebar.customers,
         products: copy.sidebar.products, "cost-rubrics": copy.sidebar.costRubrics, "new-sale": copy.sidebar.newSale,
@@ -59,22 +58,21 @@ export default function AppLayout({ children, page, onNavigate, onNewSale }: Pro
             <Sidebar page={page} onNavigate={handleNavigate} />
             <div className="workspace-main">
                 <header className="workspace-topbar">
-                    <div className="workspace-context">
-                        {user?.companyName && <>{user.companyName}<span aria-hidden="true"> / </span></>}
-                        <span aria-current="page">{pageLabel}</span>
-                    </div>
                     <div className="workspace-mobile-brand"><WorkspaceBrand /></div>
                     <button type="button" className="mobile-menu-button workspace-outline" aria-haspopup="dialog"
                         aria-expanded={mobileSidebarOpen} aria-controls="workspace-mobile-navigation" onClick={() => {
                             dialog.current?.showModal()
                             setMobileSidebarOpen(true)
                         }}>{copy.common.menu}</button>
+                    <div className="workspace-context">
+                        <div className="workspace-breadcrumb">
+                            {user?.companyName && <>{user.companyName}<span aria-hidden="true"> / </span></>}
+                            <span aria-current="page">{pageLabel}</span>
+                        </div>
+                        {page === "dashboard" && <div className="workspace-dashboard-site" ref={dashboardSiteRef} />}
+                    </div>
                     <div className="workspace-topbar-actions">
                         <TrialReminder />
-                        {canStartSale && <button type="button" className="workspace-primary"
-                            onClick={() => onNewSale ? onNewSale() : handleNavigate("new-sale")}>
-                            <span aria-hidden="true">+</span>{copy.sidebar.newSale}
-                        </button>}
                     </div>
                 </header>
                 <main className={`app-content ${page === "dashboard" ? "workspace-dashboard-content" : ""}`.trim()}>

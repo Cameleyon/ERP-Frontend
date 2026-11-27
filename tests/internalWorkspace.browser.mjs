@@ -101,7 +101,21 @@ try {
     const filters = page.locator(".dashboard-filter-panel")
     const header = page.locator(".workspace-topbar")
     const headerSale = header.getByRole("button", { name: copy.sidebar.newSale, exact: true })
+    const siteFilter = header.getByRole("combobox", { name: copy.dashboardFilters.location, exact: true })
+    const openNewSale = async () => {
+      if (mobile) await page.locator(".mobile-menu-button").click()
+      await page.locator(".workspace-sidebar:visible").getByRole("button", { name: copy.sidebar.newSale, exact: true }).click()
+    }
     const trial = header.locator(".trial-reminder")
+    assert.equal(await headerSale.count(), 0)
+    assert.equal(await siteFilter.isVisible(), true)
+    if (!mobile) {
+      const breadcrumb = await header.locator(".workspace-breadcrumb").boundingBox()
+      const selector = await siteFilter.boundingBox()
+      assert.ok(selector.x >= breadcrumb.x + breadcrumb.width, "Site selector sits beside the breadcrumb")
+    }
+    assert.equal(await siteFilter.inputValue(), "")
+    assert.equal(await filters.getByRole("combobox", { name: copy.dashboardFilters.location, exact: true }).count(), 0)
     assert.equal(await header.getByRole("button", { name: copy.common.profile, exact: true }).count(), 0)
     assert.equal(await filters.getAttribute("open") !== null, !mobile)
     if (firstUse) {
@@ -113,10 +127,11 @@ try {
       assert.equal(await page.locator("main .trial-reminder").count(), 0)
       assert.ok(!requests.some(url => url.pathname.startsWith("/api/forecasts/")))
       await capture(page, `first-use-${language}-${device}`)
-      await headerSale.click()
+      await openNewSale()
       await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
       assert.equal(await trial.isVisible(), true)
       assert.equal(await headerSale.count(), 0)
+      assert.equal(await siteFilter.count(), 0)
     } else {
       assert.equal(await trial.count(), 0)
       if (mobile) await filters.locator("summary").click()
@@ -137,7 +152,9 @@ try {
       } else {
         await capture(page, `navigation-${language}-desktop`, false)
       }
-      await filters.getByRole("combobox", { name: copy.dashboardFilters.location, exact: true }).selectOption("10")
+      await siteFilter.selectOption("10")
+      assert.doesNotMatch(await filters.locator("summary").innerText(), /Second site/)
+      assert.doesNotMatch(await page.locator(".dashboard-heading p").innerText(), /Second site/)
       await page.locator(".summary-forecast").first().waitFor()
       assert.ok(requests.some(url => url.pathname.endsWith("/summary") && url.searchParams.get("locationId") === "10"))
       await filters.locator("input[type=date]").first().fill("2026-10-01")
@@ -148,7 +165,7 @@ try {
       assert.ok(requests.some(url => url.pathname.endsWith("/summary") && url.searchParams.get("endDate") === "2026-10-31"))
       await page.getByRole("heading", { name: copy.lowStockTable.title, exact: true }).waitFor()
       await capture(page, `empty-period-${language}-${device}`)
-      await headerSale.click()
+      await openNewSale()
       await page.getByRole("heading", { name: copy.newSalePage.title, exact: true }).waitFor()
       await page.waitForFunction(() => document.querySelector("main select")?.value === "10")
       for (const [label, target] of [

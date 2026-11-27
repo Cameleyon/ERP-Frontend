@@ -71,8 +71,7 @@ type ImportRunResult = {
   failedRows: Array<{ rowNumber: number; message: string }>
 }
 
-type ProductSortKey = "name" | "sku" | "barcode" | "category" | "unitName" |
-  "unitPrice" | "costPrice" | "currentStock" | "minimumStock" | "active"
+type ProductSortKey = "name" | "unitName" | "unitPrice" | "currentStock" | "active"
 
 function normalizeCsvHeader(value: string) {
   return value.trim().replace(/[\s_-]+/g, "").toLowerCase()
@@ -137,19 +136,6 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
   const [categorySelection, setCategorySelection] = useState("")
   const [sort, setSort] = useState<{ key: ProductSortKey; direction: "asc" | "desc" } | null>(null)
   const [page, setPage] = useState(1)
-
-  const productColumns: { key: ProductSortKey; label: string }[] = [
-    { key: "name", label: text.name },
-    { key: "sku", label: text.sku },
-    { key: "barcode", label: text.barcode },
-    { key: "category", label: text.category },
-    { key: "unitName", label: text.unit },
-    { key: "unitPrice", label: text.unitPrice },
-    { key: "costPrice", label: text.referenceCost },
-    { key: "currentStock", label: text.stock },
-    { key: "minimumStock", label: text.minimumStock },
-    { key: "active", label: text.status },
-  ]
 
   const isEditMode = editingProductId !== null
   const guidedForm = guided && !isEditMode
@@ -603,6 +589,25 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
     setSearchTerm("")
     setSelectedCategory("ALL")
     setPage(1)
+  }
+
+  function cycleSort(key: ProductSortKey) {
+    setSort(current => {
+      if (current?.key !== key) return { key, direction: "asc" }
+      return current.direction === "asc" ? { key, direction: "desc" } : null
+    })
+    setPage(1)
+  }
+
+  function sortButton(key: ProductSortKey, label: string, mobile = false) {
+    const direction = sort?.key === key ? sort.direction : undefined
+    return <button type="button" className="table-sort-button"
+      aria-pressed={mobile ? direction !== undefined : undefined}
+      aria-description={mobile ? direction === "asc" ? labels.ascending : direction === "desc" ? labels.descending : labels.defaultSort : undefined}
+      onClick={() => cycleSort(key)}>
+      <span>{label}</span>
+      <span aria-hidden="true">{direction === "asc" ? "↑" : direction === "desc" ? "↓" : "↕"}</span>
+    </button>
   }
 
   function handleDetectedBarcode(value: string) {
@@ -1331,21 +1336,6 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             </select>
           </label>
 
-          <label>
-            {labels.sortBy}
-            <select aria-label={labels.sortBy} value={sort ? `${sort.key}:${sort.direction}` : ""} onChange={event => {
-              const [key, direction] = event.target.value.split(":") as [ProductSortKey, "asc" | "desc"]
-              setSort(key ? { key, direction } : null)
-              setPage(1)
-            }}>
-              <option value="">{labels.defaultSort}</option>
-              {productColumns.map(column => <optgroup label={column.label} key={column.key}>
-                <option value={`${column.key}:asc`}>{column.label} · {labels.ascending}</option>
-                <option value={`${column.key}:desc`}>{column.label} · {labels.descending}</option>
-              </optgroup>)}
-            </select>
-          </label>
-
           <div className="product-filter-actions">
             <button type="button" className="secondary-button" onClick={handleClearFilters}>
               {text.clearFilters}
@@ -1362,13 +1352,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                     const direction = sort?.key === key ? sort.direction : undefined
                     return (
                       <th key={key} scope="col" aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : undefined}>
-                        <button type="button" className="table-sort-button" onClick={() => {
-                          setSort({ key, direction: direction === "asc" ? "desc" : "asc" })
-                          setPage(1)
-                        }}>
-                          <span>{label}</span>
-                          <span aria-hidden="true">{direction === "asc" ? "↑" : direction === "desc" ? "↓" : "↕"}</span>
-                        </button>
+                        {sortButton(key, label)}
                       </th>
                     )
                   })}
@@ -1396,6 +1380,9 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                 ))}
               </tbody>
             </table>
+            <div className="stock-product-card-sort" role="group" aria-label={labels.sortBy}>
+              {listColumns.map(({ key, label }) => <span key={key}>{sortButton(key, label, true)}</span>)}
+            </div>
             <ul className="stock-product-cards" role="list">{visibleProducts.map(product => (
               <li key={product.id}>
                 <div className="stock-panel-heading"><h4>{product.name}</h4>
