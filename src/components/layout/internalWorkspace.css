@@ -70,6 +70,31 @@
   margin-inline: -4px;
   padding: 4px;
 }
+@media (forced-colors: none) {
+  .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll) {
+    --sidebar-scroll-track: var(--workspace-sidebar, var(--workspace-navy));
+    --sidebar-scroll-thumb: color-mix(in srgb, var(--workspace-sidebar-text) 44%, var(--sidebar-scroll-track));
+    scrollbar-width: thin;
+    scrollbar-color: var(--sidebar-scroll-thumb) var(--sidebar-scroll-track);
+  }
+  @supports selector(::-webkit-scrollbar) {
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll) { scrollbar-width: auto; scrollbar-color: auto; }
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll)::-webkit-scrollbar { width: 9px; }
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll)::-webkit-scrollbar-track {
+      background: var(--sidebar-scroll-track);
+      border-radius: 100px;
+    }
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll)::-webkit-scrollbar-thumb {
+      background: var(--sidebar-scroll-thumb);
+      border: 2px solid var(--sidebar-scroll-track);
+      border-radius: 100px;
+    }
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll)::-webkit-scrollbar-thumb:hover {
+      background: color-mix(in srgb, var(--workspace-sidebar-text) 62%, var(--sidebar-scroll-track));
+    }
+    .internal-shell :is(.workspace-sidebar, .workspace-sidebar-scroll)::-webkit-scrollbar-button { display: none; }
+  }
+}
 .internal-shell .workspace-sidebar :focus-visible { outline-color: currentColor; }
 .internal-shell .workspace-menu-site {
   position: relative;
