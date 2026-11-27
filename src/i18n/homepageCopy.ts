@@ -2,7 +2,7 @@ import type { Language } from "./messages"
 
 type Pair = readonly [title: string, description: string]
 type HomepageCopy = {
-  navigation: string; features: string; plans: string; login: string; signup: string; explore: string;
+  navigation: string; features: string; plans: string; login: string; headerSignup: string; signup: string; explore: string;
   headline: readonly [string, string, string]; lead: string; trial: string; offers: string; offerDays: (days: number) => string;
   dashboard: Pair; inventory: Pair; sale: Pair; benefits: string; featureItems: Pair[];
   journey: string; steps: Pair[]; planTitle: string; available: string; planned: string;
@@ -15,7 +15,7 @@ type HomepageCopy = {
 export const homepageCopy = {
   en: {
     navigation: "Homepage navigation", features: "Features", plans: "Plans", login: "Log in",
-    signup: "Start Your Free Trial", explore: "Explore Features",
+    headerSignup: "Sign Up", signup: "Start Your Free Trial", explore: "Explore Features",
     headline: ["Your business.", "Your numbers.", "Your growth."],
     lead: "Manage products, inventory, sales, and profits in one easy-to-use platform for small and growing businesses.",
     trial: "90 days free. No credit card required.", offers: "Current offers", offerDays: days => `${days} days free`,
@@ -62,7 +62,7 @@ export const homepageCopy = {
   },
   fr: {
     navigation: "Navigation de l’accueil", features: "Fonctionnalités", plans: "Forfaits", login: "Se connecter",
-    signup: "Commencer mon essai gratuit", explore: "Découvrir les fonctionnalités",
+    headerSignup: "S’inscrire", signup: "Commencer mon essai gratuit", explore: "Découvrir les fonctionnalités",
     headline: ["Votre activité.", "Vos chiffres.", "Votre croissance."],
     lead: "Gérez vos produits, vos stocks, vos ventes et vos bénéfices avec une plateforme simple, conçue pour les petites entreprises et celles en croissance.",
     trial: "90 jours gratuits. Aucune carte de crédit requise.", offers: "Offres en cours", offerDays: days => `${days} jours gratuits`,
@@ -109,7 +109,7 @@ export const homepageCopy = {
   },
   es: {
     navigation: "Navegación de inicio", features: "Funciones", plans: "Planes", login: "Iniciar sesión",
-    signup: "Comenzar mi prueba gratuita", explore: "Explorar funciones",
+    headerSignup: "Registrarse", signup: "Comenzar mi prueba gratuita", explore: "Explorar funciones",
     headline: ["Tu negocio.", "Tus cifras.", "Tu crecimiento."],
     lead: "Gestiona productos, inventario, ventas y ganancias en una plataforma fácil de usar para negocios pequeños y en crecimiento.",
     trial: "90 días gratis. No se requiere tarjeta de crédito.", offers: "Ofertas vigentes", offerDays: days => `${days} días gratis`,

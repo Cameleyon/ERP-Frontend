@@ -65,11 +65,10 @@
   color: white;
   background: #072f4b;
 }
-.erp-home .home-hero-head { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 30px; align-items: end; padding-block: clamp(30px, 6vw, 82px) 36px; }
+.erp-home .home-hero-head { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 30px; align-items: end; padding-block: clamp(30px, 6vw, 82px) 36px; }
 .erp-home .home-hero h1 { color: inherit; font-size: 94px; line-height: .98; font-weight: 880; }
 .erp-home .home-hero h1 span { display: block; }
 .erp-home .home-hero h1 span:last-child { color: var(--home-mint); }
-.erp-home:is([lang="fr"], [lang="es"]) .home-hero h1 { font-size: 76px; }
 .erp-home .home-lead { margin: 0; max-width: 46ch; font-size: 21px; color: #ecf6fa; }
 .erp-home .home-actions { margin-top: 18px; gap: 9px; }
 .erp-home .home-offer, .erp-home figcaption { font-size: .875rem; }
@@ -144,7 +143,6 @@
 
 @media (max-width: 1250px) {
   .erp-home .home-hero h1 { font-size: 72px; }
-  .erp-home:is([lang="fr"], [lang="es"]) .home-hero h1 { font-size: 60px; }
   .erp-home h2 { font-size: 52px; }
   .erp-home .home-lead { font-size: 18px; }
 }
@@ -176,7 +174,6 @@
   .erp-home .home-languages a { min-width: 44px; }
   .erp-home .home-hero-head { padding-block: 25px 16px; gap: 14px; }
   .erp-home .home-hero h1 { font-size: 46px; }
-  .erp-home:is([lang="fr"], [lang="es"]) .home-hero h1 { font-size: 40px; }
   .erp-home h2 { font-size: 37px; }
   .erp-home h3 { font-size: 23px; }
   .erp-home .home-actions { margin-top: 14px; gap: 3px; }
@@ -193,6 +190,5 @@
 
 @media (max-width: 360px) {
   .erp-home .home-hero h1 { font-size: 38px; }
-  .erp-home:is([lang="fr"], [lang="es"]) .home-hero h1 { font-size: 33px; }
   .erp-home h2 { font-size: 32px; }
 }

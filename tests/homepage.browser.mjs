@@ -152,6 +152,7 @@ try {
     await readFile(join(consentBuild, "index.html"))
     await verifyConsent()
   } else {
+    const headingSizes = new Map()
     for (const language of ["en", "fr", "es"]) {
       const text = homepageCopy[language]
       for (const [size, width, height] of [["desktop", 1440, 900], ["mobile", 390, 844], ["compact", 320, 720], ["tablet", 768, 1024], ["laptop", 1101, 768]]) {
@@ -179,7 +180,11 @@ try {
           page.waitForResponse(response => response.url().endsWith(path)))
         await page.goto(origin + "/" + language)
         await Promise.all(catalogResponses)
-        await page.getByRole("heading", { level: 1, name: text.headline.join(" ") }).waitFor()
+        const headline = page.getByRole("heading", { level: 1, name: text.headline.join(" ") })
+        await headline.waitFor()
+        const headingSize = await headline.evaluate(node => getComputedStyle(node).fontSize)
+        if (language === "en") headingSizes.set(width, headingSize)
+        else assert.equal(headingSize, headingSizes.get(width), `${language} ${size} headline differs from English`)
         await page.waitForFunction(() => [...document.images].filter(img => img.fetchPriority === "high").every(img => img.complete && img.naturalWidth > 0))
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${language} ${size} overflow`)
         const heroAction = page.locator(".home-hero").getByRole("button", { name: text.signup })
@@ -197,7 +202,7 @@ try {
         }
         if (width >= 1101) {
           const header = page.locator(".home-bar")
-          const headerButton = header.getByRole("button", { name: text.signup })
+          const headerButton = header.getByRole("button", { name: text.headerSignup, exact: true })
           assert.equal((await header.boundingBox()).width, width)
           assert.equal((await header.boundingBox()).height, 91)
           assert.equal((await headerButton.boundingBox()).height, 44)
@@ -261,7 +266,10 @@ try {
           await page.screenshot({ path: `${output}/homepage-${language}-${size}.png`, fullPage: true })
           await page.screenshot({ path: `${output}/hero-${language}-${size}.png` })
         }
-        await page.locator(".home-final").getByRole("button", { name: text.signup }).click()
+        const signup = size === "laptop"
+          ? page.locator("header").getByRole("button", { name: text.headerSignup, exact: true })
+          : page.locator(".home-final").getByRole("button", { name: text.signup })
+        await signup.click()
         await page.getByRole("heading", { level: 1, name: signupTitles[language] }).waitFor()
         assert.equal(await page.locator("select").first().inputValue(), language)
         assert.equal(await page.evaluate(() => window.scrollY), 0)

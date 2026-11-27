@@ -85,8 +85,8 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
     callback()
   }
 
-  const trialButton = (className = "") => (
-    <button className={`home-cta ${className}`.trim()} type="button" onClick={() => goTo(onGoToSignup)}>{text.signup}</button>
+  const trialButton = () => (
+    <button className="home-cta" type="button" onClick={() => goTo(onGoToSignup)}>{text.signup}</button>
   )
   // The normal trial already appears in the hero and on Basic.
   const additionalOffers = promotions.filter(promo =>
@@ -114,7 +114,7 @@ export default function PublicLandingPage({ onGoToSignup, onGoToLogin }: Props) 
             </details>
             <LanguageSwitcher className="home-languages" linkToHomepage />
             <button className="home-link" type="button" onClick={() => goTo(onGoToLogin)}>{text.login}</button>
-            {trialButton("home-header-cta")}
+            <button className="home-cta home-header-cta" type="button" onClick={() => goTo(onGoToSignup)}>{text.headerSignup}</button>
           </nav>
         </div>
       </header>
