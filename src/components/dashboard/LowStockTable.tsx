@@ -1,5 +1,6 @@
 import type { LowStockProductResponse } from "../../api/dashboardApi"
 import { useI18n } from "../../i18n/I18nContext"
+import { internalCopy } from "../../i18n/internalCopy"
 import { formatNumber } from "../../utils/format"
 
 type Props = {
@@ -7,40 +8,32 @@ type Props = {
 }
 
 export default function LowStockTable({ rows }: Props) {
-  const { copy } = useI18n()
+  const { copy, language } = useI18n()
   const text = copy.lowStockTable
 
   return (
-    <div className="card">
-      <h3>{text.title}</h3>
-      <table>
+    <section className="workspace-panel dashboard-low-stock">
+      <div className="dashboard-table-heading"><h2>{text.title}</h2>
+        {rows.length > 0 && <span className="workspace-status workspace-stock-status">{internalCopy[language].stockAttention}</span>}
+      </div>
+      {rows.length === 0 ? <p className="dashboard-muted">{text.empty}</p> : <table className="dashboard-table" aria-label={text.title}>
         <thead>
           <tr>
-            <th>{text.product}</th>
-            <th>{text.sku}</th>
-            <th>{text.currentStock}</th>
-            <th>{text.minimumStock}</th>
-            <th>{text.shortage}</th>
+            <th scope="col">{text.product} · {text.sku}</th>
+            <th scope="col">{text.currentStock} / {text.minimumStock}</th>
+            <th scope="col">{text.shortage}</th>
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={5}>{text.empty}</td>
-            </tr>
-          ) : (
-            rows.map((row) => (
+          {rows.map((row) => (
               <tr key={row.productId}>
-                <td>{row.name}</td>
-                <td>{row.sku}</td>
-                <td>{formatNumber(row.currentStock)}</td>
-                <td>{formatNumber(row.minimumStock)}</td>
+                <th scope="row">{row.name}<small>{row.sku}</small></th>
+                <td>{formatNumber(row.currentStock)} / {formatNumber(row.minimumStock)}</td>
                 <td>{formatNumber(row.shortage)}</td>
               </tr>
-            ))
-          )}
+          ))}
         </tbody>
-      </table>
-    </div>
+      </table>}
+    </section>
   )
 }

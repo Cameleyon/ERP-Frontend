@@ -225,7 +225,8 @@ function AppContent() {
 
   return (
       <AppLayout key={scope} page={safePage} onNavigate={page => navigate({ page })}>
-        {safePage === "dashboard" && <DashboardPage onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })} />}
+        {safePage === "dashboard" && <DashboardPage onSetupAction={followSetup} onSiteChange={id => setDashboardSite({ scope, id })}
+          onNewSale={siteId => navigate({ page: "new-sale", siteId })} />}
         {safePage === "customers" && <CustomersPage />}
         {(safePage === "products" || retainProducts) && isAdmin &&
           <div hidden={retainProducts}><ProductsPage guided={nav.guidedProduct} visible={!retainProducts}

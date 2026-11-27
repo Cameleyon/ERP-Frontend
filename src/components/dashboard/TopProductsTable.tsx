@@ -15,43 +15,35 @@ export default function TopProductsTable({ rows, profitRows, lowest = false, cur
   const title = lowest ? text.lowestTitle : text.title
 
   return (
-    <div className="card top-products-card">
-      <h3>{title}</h3>
-      <div className="top-products-scroll" role="region" aria-label={title} tabIndex={0}>
-      <table>
-        <thead>
-          <tr>
-            <th>{text.product}</th>
-            <th>{text.sku}</th>
-            <th>{text.quantitySold}</th>
-            <th>{text.salesAmount}</th>
-            <th>{text.profitAmount}</th>
-          </tr>
-        </thead>
-        {[{ title: text.bySales, products: rows }, { title: text.byProfit, products: profitRows }].map(section => (
-        <tbody key={section.title}>
-          <tr className="top-products-section">
-            <th colSpan={5} scope="rowgroup">{section.title}</th>
-          </tr>
-          {section.products.length === 0 ? (
-            <tr>
-              <td colSpan={5}>{text.empty}</td>
-            </tr>
-          ) : (
-            section.products.map((row) => (
-              <tr key={row.productId}>
-                <td>{row.productName}</td>
-                <td>{row.sku}</td>
-                <td>{formatNumber(row.totalQuantitySold)}</td>
-                <td>{formatCurrency(row.totalSalesAmount, currency, language)}</td>
-                <td>{formatCurrency(row.totalProfitAmount, currency, language)}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-        ))}
-      </table>
-      </div>
-    </div>
+    <section className="workspace-panel top-products-card">
+      <h2>{title}</h2>
+      {[{ label: text.bySales, products: rows }, { label: text.byProfit, products: profitRows }].map((section, index) => (
+        <details key={index} className="dashboard-rank-section" open={index === 0}>
+          <summary>{section.label}</summary>
+          {section.products.length === 0 ? <p className="dashboard-muted">{text.empty}</p> :
+            <table className="dashboard-table" aria-label={`${title} · ${section.label}`}>
+              <thead>
+                <tr>
+                  <th scope="col">{text.product} · {text.sku}</th>
+                  <th scope="col">{text.quantitySold}</th>
+                  <th scope="col">{index === 0 ? text.salesAmount : text.profitAmount}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.products.map(row => (
+                  <tr key={row.productId}>
+                    <th scope="row">{row.productName}<small>{row.sku}</small></th>
+                    <td>{formatNumber(row.totalQuantitySold)}</td>
+                    <td>
+                      <span>{formatCurrency(index === 0 ? row.totalSalesAmount : row.totalProfitAmount, currency, language)}</span>
+                      <small>{index === 0 ? text.profitAmount : text.salesAmount}: {formatCurrency(index === 0 ? row.totalProfitAmount : row.totalSalesAmount, currency, language)}</small>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>}
+        </details>
+      ))}
+    </section>
   )
 }

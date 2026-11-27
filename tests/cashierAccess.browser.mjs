@@ -28,13 +28,14 @@ try {
     })
     await page.goto(origin + "/tests/fixtures/cashier-app.html")
     await page.locator(".product-lookup-card").waitFor()
-    assert.equal(await page.locator(".sidebar-nav button").count(), 2)
-    assert.equal(await page.locator(".sidebar-footer-actions button").count(), 0)
-    assert.equal(await page.locator(".sidebar-logout-button").count(), 1)
-    if (width < 1000) await page.locator(".mobile-menu-button").click()
+    if (width <= 768) await page.locator(".mobile-menu-button").click()
+    const sidebar = page.locator(".workspace-sidebar:visible")
+    assert.equal(await sidebar.locator(".sidebar-nav button").count(), 2)
+    assert.equal(await sidebar.locator(".sidebar-logout-button").count(), 1)
+    assert.equal(await page.locator(".workspace-profile").count(), 0)
     await Promise.all([
       page.waitForResponse(response => new URL(response.url()).pathname === "/api/sales" && response.ok()),
-      page.locator(".sidebar-nav button").last().click(),
+      sidebar.locator(".sidebar-nav button").last().click(),
     ])
     await page.locator("#sales-history-list-heading").waitFor()
     assert.ok(requests.includes("/api/sales"))

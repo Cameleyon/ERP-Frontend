@@ -4,13 +4,16 @@ import { useI18n } from "../../i18n/I18nContext"
 import { formatCurrency } from "../../utils/format"
 import { formatBusinessDate, type TrendRow } from "../../utils/dashboardForecast"
 import { forecastCopy } from "./forecastCopy"
+import { internalCopy } from "../../i18n/internalCopy"
+import DashboardEmptyState from "./DashboardEmptyState"
 
-type Props = { rows: TrendRow[]; currency: string; notice?: string; loading?: boolean }
-const colors = { sales: "#2563eb", profit: "#16a34a", cost: "#dc2626" }
+type Props = { rows: TrendRow[]; currency: string; notice?: string; loading?: boolean; context: string; noSales: boolean }
+const colors = { sales: "#0b6aa3", profit: "#08785d", cost: "#98490f" }
 
-export default function SalesTrendChart({ rows, currency, notice, loading }: Props) {
+export default function SalesTrendChart({ rows, currency, notice, loading, context, noSales }: Props) {
   const { copy, language } = useI18n()
   const text = copy.salesTrendChart, forecast = forecastCopy[language]
+  const labels = internalCopy[language]
   const [showForecast, setShowForecast] = useState(true)
   const hasSalesForecast = rows.some(row => row.forecastSales !== null)
   const hasProfitForecast = rows.some(row => row.forecastProfit !== null)
@@ -25,19 +28,20 @@ export default function SalesTrendChart({ rows, currency, notice, loading }: Pro
       ...(hasProfitForecast ? [{ key: "forecastProfit", label: forecast.profit, color: colors.profit }] : []),
     ] : []),
   ]
-  return <div className="card sales-trend-card">
+  return <section className="workspace-panel sales-trend-card" aria-labelledby="dashboard-trend-title">
     <div className="sales-trend-header">
-      <h3>{text.title}</h3>
+      <div><h2 id="dashboard-trend-title">{text.title}</h2><p className="dashboard-muted">{context}</p></div>
       {hasForecast && <label className="forecast-toggle"><input type="checkbox" checked={showForecast}
         onChange={event => setShowForecast(event.target.checked)} />{forecast.show}</label>}
     </div>
     {(loading || notice) && <p className="forecast-notice" role="status">{loading ? forecast.loading : notice}</p>}
-    {!hasValues ? <p>{text.empty}</p> : <div className="chart-container">
+    {!hasValues ? <DashboardEmptyState title={noSales ? labels.noSales : text.empty}
+      description={noSales ? labels.noSalesDetail : undefined} /> : <div className="chart-container">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: 0 }} accessibilityLayer>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" tickFormatter={date => formatBusinessDate(String(date), language)} minTickGap={20} />
-          <YAxis width={55} />
+          <CartesianGrid stroke="#d7e4ed" vertical={false} />
+          <XAxis dataKey="date" tickFormatter={date => formatBusinessDate(String(date), language)} minTickGap={20} tick={{ fontSize: 12 }} />
+          <YAxis width={53} tick={{ fontSize: 12 }} />
           <Tooltip content={({ active, payload, label }) => {
             if (!active || !payload?.length || !label) return null
             const point = rows.find(row => row.date === String(label))
@@ -67,5 +71,5 @@ export default function SalesTrendChart({ rows, currency, notice, loading }: Pro
         </LineChart>
       </ResponsiveContainer>
     </div>}
-  </div>
+  </section>
 }

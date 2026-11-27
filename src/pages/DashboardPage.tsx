@@ -14,6 +14,11 @@ import TopProductsTable from "../components/dashboard/TopProductsTable"
 import LowStockTable from "../components/dashboard/LowStockTable"
 import DashboardFilters from "../components/dashboard/DashboardFilters"
 import SetupGuide from "../components/dashboard/SetupGuide"
+import DashboardEmptyState from "../components/dashboard/DashboardEmptyState"
+import TrialReminder from "../components/layout/TrialReminder"
+import { internalCopy } from "../i18n/internalCopy"
+import "../components/layout/internalTokens.css"
+import "../components/dashboard/internalDashboard.css"
 import type { SetupAction } from "../utils/setupGuide"
 import { useDashboardForecast } from "../components/dashboard/useDashboardForecast"
 import { forecastCopy } from "../components/dashboard/forecastCopy"
@@ -26,21 +31,25 @@ import {
 
 const noticePriority: ForecastNotice[] = ["unavailable", "aggregate", "data", "noSales", "history", "pending", "limited"]
 
-export default function DashboardPage({ onSetupAction, onSiteChange }: {
-  onSetupAction?: (action: SetupAction) => void; onSiteChange?: (id?: number) => void
-} = {}) {
+type DashboardActions = {
+  onSetupAction?: (action: SetupAction) => void
+  onSiteChange?: (id?: number) => void
+  onNewSale?: (siteId?: number) => void
+}
+
+export default function DashboardPage(actions: DashboardActions = {}) {
   const { user, token } = useAuth()
   if (!user || !token) return null
   return <DashboardContent key={`${token}|${user.companyId}|${user.companyTimeZoneId}|${user.companyCurrencyCode}`}
-    user={user} token={token} onSetupAction={onSetupAction} onSiteChange={onSiteChange} />
+    user={user} token={token} {...actions} />
 }
 
-function DashboardContent({ user, token, onSetupAction, onSiteChange }: {
+function DashboardContent({ user, token, onSetupAction, onSiteChange, onNewSale }: DashboardActions & {
   user: AuthenticatedUserResponse; token: string
-  onSetupAction?: (action: SetupAction) => void; onSiteChange?: (id?: number) => void
 }) {
   const { copy, language } = useI18n()
   const text = copy.dashboardPage, forecastText = forecastCopy[language]
+  const labels = internalCopy[language]
   const configuredZone = user.companyTimeZoneId || DEFAULT_COMPANY_TIME_ZONE
   const zoneValid = isValidTimeZone(configuredZone)
   const zone = zoneValid ? configuredZone : DEFAULT_COMPANY_TIME_ZONE
@@ -145,46 +154,58 @@ function DashboardContent({ user, token, onSetupAction, onSiteChange }: {
   function changeSite(site: string) {
     selectedLocation.current = site; setLocationId(site)
     void loadDashboard(applied, site)
+    onSiteChange?.(Number(site) || undefined)
   }
   const money = (value: number) => formatCurrency(value, currency || "USD", language)
-  return <div>
+  const siteLabel = locations.find(site => site.id === selectedSite)?.name ?? copy.dashboardFilters.allLocations
+  const rangeLabel = new Intl.DateTimeFormat(language, { timeZone: "UTC", dateStyle: "medium" }).formatRange(
+    new Date(`${applied.startDate}T12:00:00Z`), new Date(`${applied.endDate}T12:00:00Z`),
+  )
+  const hasRankings = [topProducts, topProfitProducts, lowestSalesProducts, lowestProfitProducts].some(items => items.length > 0)
+  return <div className="internal-dashboard">
     {error && <ErrorMessage message={error === "__unknown" ? text.unknownError : error} onDismiss={() => setError("")} />}
-    <div className="page-title-row">
-      <h1>{text.title}</h1>
-      {locations.length > 0 && <label className="page-title-site-filter">
-        <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => {
-          changeSite(event.target.value)
-          onSiteChange?.(Number(event.target.value) || undefined)
-        }}>
-          <option value="">{copy.dashboardFilters.allLocations}</option>
-          {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
-        </select>
-      </label>}
+    <div className="dashboard-heading">
+      <div>
+        <h1>{text.title}</h1>
+        <p>{[user.companyName, siteLabel, rangeLabel].filter(Boolean).join(" · ")}</p>
+      </div>
+      <div className="dashboard-heading-actions">
+        <TrialReminder />
+        {onNewSale && user.role === "ADMIN" && <button className="workspace-primary" type="button" onClick={() => onNewSale(selectedSite ?? undefined)}>
+          <span aria-hidden="true">+ </span>{copy.sidebar.newSale}
+        </button>}
+      </div>
     </div>
     {onSetupAction && user.role === "ADMIN" && user.companyOwner && user.companyId &&
       <SetupGuide key={`${user.companyId}:${user.id}`} ownerKey={`${user.companyId}:${user.id}`}
         sites={locations} siteId={Number(locationId) || undefined} onAction={onSetupAction} />}
-    <DashboardFilters preset={preset} startDate={startDate} endDate={endDate} onPresetChange={handlePresetChange}
+    <DashboardFilters preset={preset} appliedPreset={appliedPeriod} startDate={startDate} endDate={endDate}
+      locations={locations} locationId={locationId} siteLabel={siteLabel} onLocationChange={changeSite} onPresetChange={handlePresetChange}
       onStartDateChange={date => { setStartDate(date); setPreset("custom") }}
       onEndDateChange={date => { setEndDate(date); setPreset("custom") }} onApply={handleApply} />
-    {loading ? <p role="status">{text.loading}</p> : <>
-      {summary && <div className="summary-grid">
-        <SummaryCard title={text.totalSales} value={money(summary.totalSales)} forecast={secondary("sales")} />
-        <SummaryCard title={text.totalTax} value={money(summary.totalTax)} />
-        <SummaryCard title={text.totalCost} value={money(summary.totalCost)} />
-        <SummaryCard title={text.totalProfit} value={money(summary.totalProfit)} forecast={secondary("profit")} />
-        <SummaryCard title={text.transactions} value={formatNumber(summary.totalTransactions)} />
-        <SummaryCard title={text.lowStock} value={formatNumber(summary.lowStockProducts)} />
-        <SummaryCard title={text.outOfStock} value={formatNumber(summary.outOfStockProducts)} />
-      </div>}
+    {loading ? <div className="workspace-panel dashboard-loading" role="status">{text.loading}</div> : summary && <>
+      <div className="summary-grid">
+        <div className="dashboard-primary-kpis">
+          <SummaryCard title={text.totalSales} value={money(summary.totalSales)} forecast={secondary("sales")} />
+          <SummaryCard title={text.totalCost} value={money(summary.totalCost)} description={labels.costOfGoods} />
+          <SummaryCard title={text.totalProfit} value={money(summary.totalProfit)} forecast={secondary("profit")} featured />
+        </div>
+        <div className="dashboard-secondary-kpis">
+          <SummaryCard title={text.totalTax} value={money(summary.totalTax)} />
+          <SummaryCard title={text.transactions} value={formatNumber(summary.totalTransactions)} />
+          <SummaryCard title={text.lowStock} value={formatNumber(summary.lowStockProducts)} />
+          <SummaryCard title={text.outOfStock} value={formatNumber(summary.outOfStockProducts)} />
+        </div>
+      </div>
       <div className="dashboard-section">
         <SalesTrendChart key={`${scope}|${applied.startDate}|${applied.endDate}`} rows={rows} currency={currency || "USD"}
-          notice={notice} loading={forecast.loading} />
+          notice={notice} loading={forecast.loading} context={currency ? `${rangeLabel} · ${currency}` : rangeLabel}
+          noSales={summary.totalTransactions === 0} />
       </div>
-      <div className="dashboard-bottom-grid">
+      {hasRankings ? <div className="dashboard-bottom-grid">
         <TopProductsTable rows={topProducts} profitRows={topProfitProducts} currency={currency || "USD"} />
         <TopProductsTable rows={lowestSalesProducts} profitRows={lowestProfitProducts} currency={currency || "USD"} lowest />
-      </div>
+      </div> : <section className="workspace-panel"><DashboardEmptyState title={labels.noRankings} description={labels.noRankingsDetail} /></section>}
       <div className="dashboard-section"><LowStockTable rows={lowStock} /></div>
     </>}
   </div>

@@ -9,9 +9,9 @@ const screenshots = process.env.FORECAST_SCREENSHOT_DIR || "docs/screenshots/pha
 await mkdir(screenshots, { recursive: true })
 const browser = await chromium.launch({ headless: true, channel: "msedge" })
 const words = {
-  en: { title: "Dashboard", period: "Filters", week: "This week's forecast", daily: "Today's forecast", show: "Show forecast", apply: "Apply", site: "Site", provisional: "Provisional forecast" },
-  fr: { title: "Tableau de bord", period: "Filtres", week: "Prévision de la semaine", daily: "Prévision du jour", show: "Afficher les prévisions", apply: "Appliquer", site: "Site", provisional: "Prévision provisoire" },
-  es: { title: "Panel", period: "Filtros", week: "Previsión de esta semana", daily: "Previsión de hoy", show: "Mostrar previsiones", apply: "Aplicar", site: "Sitio", provisional: "Previsión provisional" },
+  en: { title: "Dashboard", period: "Period", week: "This week's forecast", daily: "Today's forecast", show: "Show forecast", apply: "Apply", site: "Site", provisional: "Provisional forecast" },
+  fr: { title: "Tableau de bord", period: "Période", week: "Prévision de la semaine", daily: "Prévision du jour", show: "Afficher les prévisions", apply: "Appliquer", site: "Site", provisional: "Prévision provisoire" },
+  es: { title: "Panel", period: "Período", week: "Previsión de esta semana", daily: "Previsión de hoy", show: "Mostrar previsiones", apply: "Aplicar", site: "Sitio", provisional: "Previsión provisional" },
 }
 async function setup({ language = "en", width = 1440, mode = "available", role = "ADMIN", delay = false, currency = "USD", productRows = false } = {}) {
   const context = await browser.newContext({ viewport: { width, height: 1100 }, timezoneId: "Asia/Tokyo" })
@@ -52,6 +52,8 @@ async function setup({ language = "en", width = 1440, mode = "available", role =
   return { page, state, context, language }
 }
 async function applyPeriod(test, value) {
+  const filters = test.page.locator(".dashboard-filter-panel")
+  if (await filters.getAttribute("open") === null) await filters.locator("summary").click()
   await test.page.getByLabel(words[test.language].period, { exact: true }).selectOption(value)
   await test.page.getByRole("button", { name: words[test.language].apply, exact: true }).click()
   await test.page.locator(".summary-card").first().waitFor()
@@ -83,13 +85,13 @@ try {
     assert.ok(await t.page.locator(".summary-forecast-profit .summary-forecast-value").textContent().then(text => text.includes("-")))
     await verifyLayout(t, `weekly-${language}`)
     if (language === "en") {
-      const dot = t.page.locator("circle[stroke='#2563eb']").nth(2)
+      const dot = t.page.locator("circle[stroke='#0b6aa3']").nth(2)
       await dot.hover({ force: true })
       await t.page.locator(".forecast-chart-tooltip").filter({ hasText: "Today’s recorded values are incomplete." }).waitFor()
       const tooltip = await t.page.locator(".forecast-chart-tooltip").textContent()
       assert.ok(tooltip.includes("Forecasted sales")); assert.ok(tooltip.includes("Cost")); assert.ok(tooltip.includes("-USD\u00a010.00"))
       await t.page.screenshot({ path: `${screenshots}/weekly-current-day-tooltip.png`, fullPage: true })
-      const future = t.page.locator("circle[stroke='#2563eb']").last()
+      const future = t.page.locator("circle[stroke='#0b6aa3']").last()
       await future.hover({ force: true })
       await t.page.locator(".forecast-chart-tooltip").filter({ hasText: "Nov 29" }).waitFor()
       const futureTooltip = await t.page.locator(".forecast-chart-tooltip").textContent()
@@ -201,8 +203,11 @@ try {
     await applyPeriod(cad, "this-week")
     await cad.page.locator(".summary-forecast").first().waitFor()
     assert.equal(await cad.page.locator(".summary-value").first().textContent(), amount)
-    assert.equal(await cad.page.locator(".top-products-card").first().getByText(amount, { exact: true }).count(), 2)
-    assert.equal(await cad.page.locator(".top-products-card").last().getByText(amount, { exact: true }).count(), 2)
+    for (const card of await cad.page.locator(".top-products-card").all()) {
+      assert.equal(await card.getByText(amount, { exact: true }).count(), 1)
+      await card.locator("details").nth(1).locator("summary").click()
+      assert.equal(await card.locator("details").nth(1).locator("td small").filter({ hasText: amount.replace("\u00a0", " ") }).isVisible(), true)
+    }
     await verifyLayout(cad, `currency-cad-${language}-mobile`)
     await close(cad)
   }

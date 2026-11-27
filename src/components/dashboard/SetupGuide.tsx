@@ -38,21 +38,21 @@ export default function SetupGuide({ ownerKey, sites, siteId, onAction }: {
         if (!isSetupStatus(result)) {
           setPhase("error"); return
         }
+        if (result.hasCurrency) {
+          setHidden(current => current === "currency" ? "" : current)
+          try { if (localStorage.getItem(key) === "currency") localStorage.removeItem(key) } catch { /* Presentation only. */ }
+        }
         setStatus(result)
         setPhase("ready")
       })
       .catch(() => { if (!controller.signal.aborted) setPhase("error") })
     return () => controller.abort()
-  }, [revision])
+  }, [key, revision])
 
   function toggle(next: string) {
     setHidden(next)
     try { if (next) localStorage.setItem(key, next); else localStorage.removeItem(key) } catch { /* Presentation only. */ }
   }
-
-  useEffect(() => {
-    if (status?.hasCurrency && hidden === "currency") toggle("")
-  }, [hidden, status])
 
   if (!status) return null
   const confirmedSite = sites.find(site => site.id === siteId && site.active)?.id
@@ -73,24 +73,26 @@ export default function SetupGuide({ ownerKey, sites, siteId, onAction }: {
   }[action.kind]
   const milestones = [status.hasCurrency, status.hasProduct, status.hasRecordedStock, status.hasEverCompletedSale]
   const completed = milestones.filter(Boolean).length
-  return <section className="card setup-guide" aria-labelledby="setup-heading">
+  const current = milestones.findIndex(done => !done)
+  return <section className="workspace-panel setup-guide" aria-labelledby="setup-heading">
     <div>
+      {!repair && <p className="workspace-status setup-progress">{text.progress.replace("{n}", String(completed))}</p>}
       <h2 ref={heading} tabIndex={-1} id="setup-heading">{text.title}</h2>
-      {!repair && <p>{text.progress.replace("{n}", String(completed))}</p>}
       <p role="status">{phase === "loading" ? text.loading : phase === "error" ? text.failed : reason}</p>
-      {!repair && <ul className="setup-milestones" role="list">
+      {!repair && <ol className="setup-milestones" role="list">
         {text.milestones.map((label, index) =>
-          <li key={label} aria-label={`${label}: ${milestones[index] ? text.done : text.notDone}`}>
-            <span aria-hidden="true">{milestones[index] ? "✓ " : "○ "}</span>{label}
+          <li key={label} aria-current={current === index ? "step" : undefined}
+            aria-label={`${label}: ${milestones[index] ? text.done : text.notDone}`}>
+            <span aria-hidden="true">{milestones[index] ? "✓" : index + 1} · </span>{label}
           </li>)}
-      </ul>}
+      </ol>}
     </div>
     <div className="setup-actions">
-      {phase === "error" ? <button type="button" onClick={refresh}>{text.retry}</button> :
-        <button type="button" disabled={phase !== "ready" || action.kind === "sale" && !siteName} onClick={() => onAction(action)}>
+      {phase === "error" ? <button className="workspace-primary" type="button" onClick={refresh}>{text.retry}</button> :
+        <button className="workspace-primary" type="button" disabled={phase !== "ready" || action.kind === "sale" && !siteName} onClick={() => onAction(action)}>
           {text[action.kind]}
         </button>}
-      {canHide && <button type="button" className="link-button" onClick={() => {
+      {canHide && <button type="button" className="workspace-text-action" onClick={() => {
         toggle(action.kind === "currency" ? "currency" : "setup")
         requestAnimationFrame(() => showButton.current?.focus())
       }}>{text.hide}</button>}

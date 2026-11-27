@@ -1,0 +1,72 @@
+:is(.internal-shell, .internal-dashboard) {
+  --workspace-navy: #062e49;
+  --workspace-blue: #044975;
+  --workspace-focus: #0b6aa3;
+  --workspace-mint: #8aefcb;
+  --workspace-mint-wash: #e5f7ef;
+  --workspace-mint-line: #9bd5be;
+  --workspace-wash: #f5f7fa;
+  --workspace-surface: #fff;
+  --workspace-line: #d4e1eb;
+  --workspace-field-line: #9bb3c6;
+  --workspace-text: #14324a;
+  --workspace-muted: #435e74;
+  --workspace-font: "Segoe UI", system-ui, sans-serif;
+  --workspace-radius: 8px;
+  --workspace-target: 44px;
+}
+
+:is(.internal-dashboard, .internal-shell :is(.workspace-topbar, .workspace-sidebar, .workspace-menu-dialog))
+  :is(button, a, summary, input, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--workspace-focus);
+  outline-offset: 3px;
+}
+
+:is(.internal-shell, .internal-dashboard) :is(.workspace-primary, .workspace-outline, .workspace-text-action) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--workspace-target);
+  padding: 7px 16px;
+  font: 700 14px/1.3 var(--workspace-font);
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: 100px;
+}
+
+:is(.internal-shell, .internal-dashboard) .workspace-primary {
+  background: var(--workspace-action, var(--workspace-blue));
+  color: var(--workspace-action-text, #fff);
+}
+
+:is(.internal-shell, .internal-dashboard) .workspace-outline {
+  color: var(--workspace-blue);
+  background: var(--workspace-surface);
+  border-color: var(--workspace-field-line);
+}
+
+:is(.internal-shell, .internal-dashboard) .workspace-text-action {
+  color: var(--workspace-blue);
+  background: transparent;
+}
+
+:is(.internal-shell, .internal-dashboard) .workspace-text-action:hover { text-decoration: underline; }
+
+.internal-dashboard .workspace-panel {
+  min-width: 0;
+  padding: 16px;
+  background: var(--workspace-surface);
+  border: 1px solid var(--workspace-line);
+  border-radius: var(--workspace-radius);
+}
+
+.internal-dashboard .workspace-status {
+  display: inline-block;
+  padding: 4px 9px;
+  background: #d9f5e9;
+  color: #0e513f;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+}
