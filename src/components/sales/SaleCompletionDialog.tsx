@@ -1,12 +1,16 @@
 import { useEffect, useId, useRef, useState } from "react"
-import { getSaleDetail, type SaleDetailResponse } from "../../api/salesApi"
+import { getSaleDetail, type CreateSaleResponse, type SaleDetailResponse } from "../../api/salesApi"
 import { useI18n } from "../../i18n/I18nContext"
 import SaleInvoicePreview from "./SaleInvoicePreview"
+import RecordedSaleTotals from "./RecordedSaleTotals"
+import { salesWorkspaceCopy } from "./salesWorkspaceCopy"
 
-export default function SaleCompletionDialog({ saleId, message, companyName, onClose }: {
-  saleId: number; message: string; companyName?: string | null; onClose: () => void
+export default function SaleCompletionDialog({ recorded, companyName, onClose }: {
+  recorded: CreateSaleResponse; companyName?: string | null; onClose: () => void
 }) {
   const { copy, language } = useI18n()
+  const labels = salesWorkspaceCopy[language]
+  const saleId = recorded.id
   const ref = useRef<HTMLDialogElement>(null)
   const id = useId()
   const [sale, setSale] = useState<SaleDetailResponse | null>(null)
@@ -27,15 +31,23 @@ export default function SaleCompletionDialog({ saleId, message, companyName, onC
     return () => { ignore = true }
   }, [saleId, attempt])
 
-  return <dialog ref={ref} className="card sale-completion-dialog" aria-labelledby={id}
-    onCancel={event => { event.preventDefault(); onClose() }}>
+  function finish() {
+    ref.current?.close()
+    onClose()
+  }
+
+  return <dialog ref={ref} className="card sale-completion-dialog stock-workspace sales-workspace" aria-labelledby={id}
+    onCancel={event => { event.preventDefault(); finish() }}>
     <div className="sale-completion-header">
-      <h2 id={id}>{message}</h2>
-      <button type="button" className="secondary-button" autoFocus onClick={onClose}>{copy.common.close}</button>
+      <h2 id={id}>{labels.recorded}</h2>
+      <button type="button" className="workspace-outline" autoFocus onClick={finish}>{copy.common.close}</button>
     </div>
+    <p><strong>{recorded.saleNumber}</strong>{[recorded.locationName, recorded.customerName].filter(Boolean).map(value => " · " + value).join("")}</p>
+    <RecordedSaleTotals sale={recorded} />
     {sale ? <SaleInvoicePreview sale={sale} companyName={companyName} revealOnAction />
       : failed ? <div role="alert"><p>{text.error}</p><button type="button" onClick={() => {
         setFailed(false); setAttempt(value => value + 1)
       }}>{text.retry}</button></div> : <p role="status">{text.loading}</p>}
+    <div className="stock-actions"><button type="button" className="workspace-primary" onClick={finish}>{labels.nextSale}</button></div>
   </dialog>
 }

@@ -6,7 +6,7 @@ import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { getCustomers, type CustomerResponse } from "../api/customerApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import { findSalesProduct, type SalesProduct } from "../api/productApi"
-import { createSale } from "../api/salesApi"
+import { createSale, type CreateSaleResponse } from "../api/salesApi"
 import ProductLookup from "../components/sales/ProductLookup"
 import CartTable from "../components/sales/CartTable"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
@@ -18,6 +18,9 @@ import { getDefaultLocationId } from "../utils/locations"
 import { setupCopy } from "../i18n/setupCopy"
 import { parseExactDecimal, parseStockQuantity } from "../utils/decimalInput"
 import { receiptErrorMessage } from "../i18n/inventoryReceiptMessages"
+import { StockFacts } from "../components/inventory/StockWorkspace"
+import { salesWorkspaceCopy } from "../components/sales/salesWorkspaceCopy"
+import "../components/sales/salesWorkspace.css"
 
 type CartItem = {
   productId: number
@@ -46,8 +49,12 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
   const { user } = useAuth()
   const { copy, language } = useI18n()
   const text = copy.newSalePage
+  const labels = salesWorkspaceCopy[language]
+  const money = (value: number) => formatCurrency(value, user?.companyCurrencyCode || "USD", language)
   const guide = setupCopy[language]
   const saleHeading = useRef<HTMLHeadingElement>(null)
+  const summaryHeading = useRef<HTMLHeadingElement>(null)
+  const submittingSale = useRef(false)
 
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -57,7 +64,6 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
   const [showScanner, setShowScanner] = useState(false)
 
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
   const [selectedProduct, setSelectedProduct] = useState<SalesProduct | null>(null)
   const [customers, setCustomers] = useState<CustomerResponse[]>([])
   const [locations, setLocations] = useState<CompanyLocationResponse[]>([])
@@ -72,7 +78,7 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
   const [quantity, setQuantity] = useState("1")
   const [quantityError, setQuantityError] = useState("")
   const [cartItems, setCartItems] = useState<CartItem[]>([])
-  const [completedSaleId, setCompletedSaleId] = useState<number | null>(null)
+  const [completedSale, setCompletedSale] = useState<CreateSaleResponse | null>(null)
   const lookupRequestRef = useRef(0)
 
   useMenuSiteChange(menuSelection, site => {
@@ -131,7 +137,6 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
       setLookupLoading(true)
       setSelectedProduct(null)
       setError("")
-      setSuccess("")
 
       const product = await findSalesProduct(selected?.sku ?? code.trim(), locationId, !!selected)
       if (request !== lookupRequestRef.current) return
@@ -227,6 +232,7 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
   }
 
   async function handleCreateSale() {
+    if (submittingSale.current || completedSale) return
     if (cartItems.length === 0) {
       setError(text.cartEmpty)
       return
@@ -238,10 +244,9 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
     }
 
     try {
+      submittingSale.current = true
       setSaleLoading(true)
       setError("")
-      setSuccess("")
-
       const customerName =
         selectedCustomerId === "WALK_IN"
           ? text.walkInCustomer
@@ -262,8 +267,7 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
         })),
       })
 
-      setSuccess(text.saleSuccess(response.saleNumber))
-      setCompletedSaleId(response.id)
+      setCompletedSale(response)
       setCartItems([])
       setSelectedProduct(null)
       setProductCode("")
@@ -280,6 +284,7 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
         setError(err instanceof Error ? err.message : text.saleError)
       }
     } finally {
+      submittingSale.current = false
       setSaleLoading(false)
     }
   }
@@ -348,7 +353,7 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
   const selectedPricing = selectedProduct ? resolveUnitPrice(selectedProduct, quantityValue) : null
 
   return (
-    <div>
+    <div className="stock-workspace sales-workspace">
       <div className="page-title-row">
         <h1 ref={saleHeading} tabIndex={-1}>{text.title}</h1>
 
@@ -372,6 +377,10 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
           </label>
         )}
       </div>
+      <button type="button" className="workspace-outline sales-summary-jump" onClick={() => {
+        summaryHeading.current?.focus()
+        summaryHeading.current?.scrollIntoView({ block: "start" })
+      }}>{labels.viewSummary}</button>
       {preferredSiteId && !locationsLoading && !locationId && <div className="card">
         <p role="status">{locations.length ? guide.unavailable : guide.siteBlocked}</p>
         {onSetupReturn && <button type="button" className="secondary-button" onClick={onSetupReturn}>{guide.back}</button>}
@@ -379,26 +388,13 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
 
-      <div className="card nested-card scanner-toggle-card">
-        <div className="scanner-header">
-          <h3>{text.scannerTitle}</h3>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => setShowScanner((prev) => !prev)}
-          >
-            {showScanner ? text.closeScanner : text.openScanner}
-          </button>
-        </div>
-
-        {showScanner && (
-          <div className="scanner-container">
-            <BarcodeScanner onDetected={handleDetectedBarcode} />
-          </div>
-        )}
-      </div>
-
+      <div className="sales-layout">
+      <div className="sales-stack">
+      <section className="stock-panel">
       <ProductLookup
+        embedded
+        headingAction={<button type="button" className="workspace-outline" aria-expanded={showScanner}
+          onClick={() => setShowScanner(previous => !previous)}>{showScanner ? text.closeScanner : text.openScanner}</button>}
         key={locationId}
         salesLocationId={locationId}
         disabled={!locationId}
@@ -417,16 +413,18 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
           void handleLookup(product.sku, product)
         }}
       />
+      {showScanner && <div className="scanner-container"><BarcodeScanner onDetected={handleDetectedBarcode} /></div>}
+      </section>
 
       {selectedProduct && (
-        <div className="card">
+        <section className="stock-panel">
           <h3>{text.selectedProduct}</h3>
           <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
           <p><strong>{text.sku}:</strong> {selectedProduct.sku}</p>
-          <p><strong>{text.basePrice}:</strong> {formatCurrency(selectedProduct.unitPrice)}</p>
+          <p><strong>{text.basePrice}:</strong> {money(selectedProduct.unitPrice)}</p>
           {selectedPricing && (
             <p>
-              <strong>{text.appliedPrice}:</strong> {formatCurrency(selectedPricing.unitPrice)}
+              <strong>{text.appliedPrice}:</strong> {money(selectedPricing.unitPrice)}
               {selectedPricing.appliedTier
                 ? ` (${selectedPricing.appliedTier.label || text.wholesalePriceApplied})`
                 : ""}
@@ -457,18 +455,20 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
 
           <p>
             <strong>{text.linePreview}:</strong>{" "}
-            {formatCurrency(quantityValue * (selectedPricing?.unitPrice ?? selectedProduct.unitPrice))}
+            {money(quantityValue * (selectedPricing?.unitPrice ?? selectedProduct.unitPrice))}
           </p>
-        </div>
+        </section>
       )}
 
-      <CartTable items={cartItems} onRemove={handleRemoveFromCart} />
+      <CartTable items={cartItems} money={money} onRemove={handleRemoveFromCart} />
 
-      <div className="card">
-        <h3>{text.customer}</h3>
+      <section className="stock-panel">
+        <h2 className="sales-panel-title">{labels.customerPayment}</h2>
 
         <div className="sale-customer-payment-row">
-          <div className="sale-customer-search-block">
+          <div className="sale-customer-search-block" onBlur={event => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setCustomerSuggestionsOpen(false)
+          }}>
             <label className="sale-inline-field sale-customer-search-field">
               <span>{text.chooseCustomer}</span>
               <input
@@ -486,11 +486,6 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
                     setCustomerSuggestionsOpen(true)
                   }
                 }}
-                onBlur={() => {
-                  window.setTimeout(() => {
-                    setCustomerSuggestionsOpen(false)
-                  }, 120)
-                }}
                 placeholder={text.searchCustomerPlaceholder}
                 disabled={customersLoading}
               />
@@ -505,8 +500,8 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
                     className={`sale-customer-suggestion ${selectedCustomerId === String(customer.id) ? "selected" : ""}`}
                     onMouseDown={(event) => {
                       event.preventDefault()
-                      handleSelectCustomer(customer)
                     }}
+                    onClick={() => handleSelectCustomer(customer)}
                   >
                     {customer.name}
                   </button>
@@ -520,21 +515,24 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
             <div className="sale-payment-choice-buttons">
               <button
                 type="button"
-                className={`secondary-button ${paymentMethod === "CASH" ? "active-choice" : ""}`}
+                className={`workspace-outline ${paymentMethod === "CASH" ? "active-choice" : ""}`}
+                aria-pressed={paymentMethod === "CASH"}
                 onClick={() => handlePaymentMethodChange("CASH")}
               >
                 {text.cash}
               </button>
               <button
                 type="button"
-                className={`secondary-button ${paymentMethod === "CREDIT_CARD" ? "active-choice" : ""}`}
+                className={`workspace-outline ${paymentMethod === "CREDIT_CARD" ? "active-choice" : ""}`}
+                aria-pressed={paymentMethod === "CREDIT_CARD"}
                 onClick={() => handlePaymentMethodChange("CREDIT_CARD")}
               >
                 {text.creditCard}
               </button>
               <button
                 type="button"
-                className={`secondary-button ${paymentMethod === "DEBIT_CARD" ? "active-choice" : ""}`}
+                className={`workspace-outline ${paymentMethod === "DEBIT_CARD" ? "active-choice" : ""}`}
+                aria-pressed={paymentMethod === "DEBIT_CARD"}
                 onClick={() => handlePaymentMethodChange("DEBIT_CARD")}
               >
                 {text.debitCard}
@@ -588,17 +586,29 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
             </div>
           )}
         </div>
+      </section>
       </div>
-
-      <div className="card">
-        <button onClick={handleCreateSale} disabled={saleLoading || cartItems.length === 0}>
+      <aside className="stock-panel stock-highlight sales-summary" aria-labelledby="sale-summary-heading">
+        <h2 id="sale-summary-heading" ref={summaryHeading} tabIndex={-1}>{labels.summary}</h2>
+        <StockFacts entries={[
+          [guide.site, locations.find(site => String(site.id) === locationId)?.name ?? "-"],
+          [text.customer, selectedCustomer?.name ?? text.walkInCustomer],
+          [text.paymentMethod, paymentMethod === "CREDIT_CARD" ? text.creditCard : paymentMethod === "DEBIT_CARD" ? text.debitCard : text.cash],
+        ]} />
+        <div>
+          <span>{copy.cartTable.subtotal}</span>
+          <strong className="sales-subtotal">{money(cartItems.reduce((sum, item) => sum + item.lineTotal, 0))}</strong>
+        </div>
+        <p className="stock-muted">{labels.finalTotalNote}</p>
+        <button type="button" className="workspace-primary" onClick={handleCreateSale} disabled={saleLoading || cartItems.length === 0}>
           {saleLoading ? text.creating : text.submit}
         </button>
+      </aside>
       </div>
 
-      {completedSaleId !== null && (
-        <SaleCompletionDialog saleId={completedSaleId} message={success} companyName={user?.companyName}
-          onClose={() => { setCompletedSaleId(null); setSuccess("") }} />
+      {completedSale && (
+        <SaleCompletionDialog recorded={completedSale} companyName={user?.companyName}
+          onClose={() => { setCompletedSale(null); saleHeading.current?.focus() }} />
       )}
     </div>
   )

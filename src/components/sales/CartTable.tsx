@@ -1,5 +1,5 @@
 import { useI18n } from "../../i18n/I18nContext"
-import { formatCurrency, formatNumber } from "../../utils/format"
+import { formatNumber } from "../../utils/format"
 
 type CartItem = {
   productId: number
@@ -13,17 +13,17 @@ type CartItem = {
 
 type Props = {
   items: CartItem[]
+  money: (value: number) => string
   onRemove: (productId: number) => void
 }
 
-export default function CartTable({ items, onRemove }: Props) {
+export default function CartTable({ items, money, onRemove }: Props) {
   const { copy } = useI18n()
   const text = copy.cartTable
-  const grandTotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
 
   return (
-    <div className="card">
-      <h3>{text.title}</h3>
+    <section className="stock-panel">
+      <h2>{text.title}{items.length > 0 ? ` · ${formatNumber(items.length)}` : ""}</h2>
 
       <table className="cart-line-table" role="table">
         <thead role="rowgroup">
@@ -53,14 +53,14 @@ export default function CartTable({ items, onRemove }: Props) {
                 </td>
                 <td role="cell">
                   <span className="cart-mobile-label" aria-hidden="true">{text.unitPrice}</span>
-                  {formatCurrency(item.unitPrice)}
+                  {money(item.unitPrice)}
                 </td>
                 <td role="cell" className="cart-line-total">
                   <span className="cart-mobile-label" aria-hidden="true">{text.lineTotal}</span>
-                  {formatCurrency(item.lineTotal)}
+                  {money(item.lineTotal)}
                 </td>
                 <td role="cell" className="cart-line-actions">
-                  <button type="button" onClick={() => onRemove(item.productId)}>{text.remove}</button>
+                  <button type="button" className="workspace-text-action" onClick={() => onRemove(item.productId)}>{text.remove}</button>
                 </td>
               </tr>
             ))
@@ -68,9 +68,6 @@ export default function CartTable({ items, onRemove }: Props) {
         </tbody>
       </table>
 
-      <div className="cart-total">
-        <strong>{text.subtotal}:</strong> {formatCurrency(grandTotal)}
-      </div>
-    </div>
+    </section>
   )
 }

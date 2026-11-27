@@ -3,11 +3,14 @@ import { getCompanySubscription } from "../../api/companySubscriptionApi"
 import { sendSaleInvoiceEmail, type SaleDetailResponse } from "../../api/salesApi"
 import { useI18n } from "../../i18n/I18nContext"
 import { formatCurrency, formatDateTime, formatNumber } from "../../utils/format"
+import { useAuth } from "../../auth/AuthContext"
+import { salePaymentLabel } from "./salesWorkspaceCopy"
 
 type Props = {
   sale: SaleDetailResponse
   companyName?: string | null
   revealOnAction?: boolean
+  showHeading?: boolean
 }
 
 type BarcodeBar = {
@@ -19,8 +22,10 @@ const BARCODE_NARROW = 2
 const BARCODE_WIDE = 5
 const BARCODE_HEIGHT = 72
 
-export default function SaleInvoicePreview({ sale, companyName, revealOnAction = false }: Props) {
-  const { language } = useI18n()
+export default function SaleInvoicePreview({ sale, companyName, revealOnAction = false, showHeading = false }: Props) {
+  const { copy, language } = useI18n()
+  const { user } = useAuth()
+  const money = (amount: number) => formatCurrency(amount, user?.companyCurrencyCode || "USD", language)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const printRef = useRef<HTMLElement | null>(null)
   const [sendingEmail, setSendingEmail] = useState(false)
@@ -235,17 +240,17 @@ export default function SaleInvoicePreview({ sale, companyName, revealOnAction =
   }
 
   return (
-    <div className={revealOnAction ? "sale-completion-receipt" : "card"}>
+    <div className={showHeading ? "stock-panel sale-invoice-actions" : revealOnAction ? "sale-completion-receipt" : "card"}>
       {emailError && <div className="card error">{emailError}</div>}
       {emailSuccess && <div className="card success">{emailSuccess}</div>}
 
       <div className="table-actions" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-        {!revealOnAction && <h3 style={{ margin: 0 }}>{text.title}</h3>}
+        {(showHeading || !revealOnAction) && <h3 style={{ margin: 0 }}>{text.title}</h3>}
         <div className="table-actions">
-          {(sale.customerEmail || revealOnAction) && (
+          {(sale.customerEmail || (revealOnAction && !showHeading)) && (
             <button
               type="button"
-              className="secondary-button"
+              className={revealOnAction ? "workspace-outline" : "secondary-button"}
               onClick={handleEmailInvoice}
               disabled={sendingEmail || !invoiceEmailEnabled || !sale.customerEmail}
               title={!sale.customerEmail ? (language === "fr" ? "Aucune adresse e-mail pour ce client." : language === "es" ? "Este cliente no tiene correo electrónico." : "No email address for this customer.") : invoiceEmailEnabled ? undefined : text.invoiceEmailUnavailable}
@@ -254,7 +259,7 @@ export default function SaleInvoicePreview({ sale, companyName, revealOnAction =
             </button>
           )}
 
-          <button type="button" onClick={handlePrintInvoice}>
+          <button type="button" className={revealOnAction ? "workspace-outline" : undefined} onClick={handlePrintInvoice}>
             {text.print}
           </button>
         </div>
@@ -294,7 +299,7 @@ export default function SaleInvoicePreview({ sale, companyName, revealOnAction =
           )}
           <div>
             <span>{text.paymentMethod}</span>
-            <strong>{sale.paymentMethod || "-"}</strong>
+            <strong>{salePaymentLabel(sale.paymentMethod, copy.newSalePage)}</strong>
           </div>
         </div>
 
@@ -317,8 +322,8 @@ export default function SaleInvoicePreview({ sale, companyName, revealOnAction =
                 <tr key={`${item.productId}-${index}`} className="invoice-item-row" role="row">
                   <td role="cell">{item.productName || "-"}</td>
                   <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.quantity}</span>{formatNumber(item.quantity)}</td>
-                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.unitPrice}</span>{formatCurrency(item.unitPrice)}</td>
-                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.lineTotal}</span><strong>{formatCurrency(item.lineTotal)}</strong></td>
+                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.unitPrice}</span>{money(item.unitPrice)}</td>
+                  <td role="cell"><span className="invoice-mobile-label" aria-hidden="true">{text.lineTotal}</span><strong>{money(item.lineTotal)}</strong></td>
                 </tr>
               ))
             )}
@@ -326,9 +331,9 @@ export default function SaleInvoicePreview({ sale, companyName, revealOnAction =
         </table>
 
         <div className="invoice-summary">
-          <p><span>{text.subtotal}</span><strong>{formatCurrency(sale.subtotalAmount)}</strong></p>
-          <p><span>{text.tax}</span><strong>{formatCurrency(sale.taxAmount)}</strong></p>
-          <p className="invoice-total-row"><span>{text.total}</span><strong>{formatCurrency(sale.totalAmount)}</strong></p>
+          <p><span>{text.subtotal}</span><strong>{money(sale.subtotalAmount)}</strong></p>
+          <p><span>{text.tax}</span><strong>{money(sale.taxAmount)}</strong></p>
+          <p className="invoice-total-row"><span>{text.total}</span><strong>{money(sale.totalAmount)}</strong></p>
         </div>
 
         <div className="invoice-barcode-block">

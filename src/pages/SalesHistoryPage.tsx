@@ -15,9 +15,7 @@ import { getCompanySubscription } from "../api/companySubscriptionApi"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
 import StatusBadge from "../components/common/StatusBadge"
 import TablePagination from "../components/common/TablePagination"
-import ScrollableTable from "../components/common/ScrollableTable"
-import SaleInvoicePreview from "../components/sales/SaleInvoicePreview"
-import { formatCurrency, formatDateTime, formatNumber } from "../utils/format"
+import { formatCurrency, formatDateTime } from "../utils/format"
 import { getDefaultLocationId } from "../utils/locations"
 import { useMenuSiteChange, type MenuSiteSelection } from "../components/layout/useMenuSiteChange"
 import { useAuth } from "../auth/AuthContext"
@@ -25,15 +23,11 @@ import { useI18n } from "../i18n/I18nContext"
 import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { salesHistoryRange } from "../utils/salesDates"
-
-type SaleItemWithOptionalUnit = {
-  productId: number
-  productName: string
-  quantity: number
-  unitPrice: number
-  lineTotal: number
-  unitName?: string | null
-}
+import { StockFacts } from "../components/inventory/StockWorkspace"
+import SaleHistoryDetails from "../components/sales/SaleHistoryDetails"
+import SaleCancellationDialog, { type SaleCancellationAction, type SaleCancellationReview } from "../components/sales/SaleCancellationDialog"
+import { salePaymentLabel, salesWorkspaceCopy } from "../components/sales/salesWorkspaceCopy"
+import "../components/sales/salesWorkspace.css"
 
 const SALES_PER_PAGE = 12
 
@@ -49,6 +43,16 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
   const { user } = useAuth()
   const { copy, language } = useI18n()
   const text = copy.salesHistoryPage
+  const labels = salesWorkspaceCopy[language]
+  const money = (value: number) => formatCurrency(value, user?.companyCurrencyCode || "USD", language)
+  const date = (value: string) => formatDateTime(value, language, user?.companyTimeZoneId || undefined)
+  const payment = (value: string | null) => salePaymentLabel(value, copy.newSalePage)
+  const [review, setReview] = useState<SaleCancellationReview | null>(null)
+  const reviewTrigger = useRef<HTMLElement | null>(null)
+  const historyHeading = useRef<HTMLHeadingElement>(null)
+  const viewing = useRef(0)
+  const reviewing = useRef(false)
+  const [showFiltersInitially] = useState(() => matchMedia("(min-width: 769px)").matches)
   const [sales, setSales] = useState<SaleResponse[]>([])
   const [selectedSale, setSelectedSale] = useState<SaleDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -158,29 +162,32 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
   }
 
   async function handleViewDetails(saleId: number) {
+    const request = ++viewing.current
     try {
       setDetailLoading(true)
       setError("")
       const detail = await getSaleDetail(saleId)
+      if (request !== viewing.current) return
 
       setSelectedSale({
         ...detail,
         items: Array.isArray(detail.items) ? detail.items : [],
       })
+      requestAnimationFrame(() => document.getElementById("sale-detail-heading")?.focus())
     } catch (err) {
+      if (request !== viewing.current) return
       console.error("handleViewDetails error:", err)
       setError(err instanceof Error ? err.message : text.loadDetailError)
       setSelectedSale(null)
     } finally {
-      setDetailLoading(false)
+      if (request === viewing.current) setDetailLoading(false)
     }
   }
 
   async function handleCancelSale(saleId: number) {
-    const confirmed = window.confirm(text.cancelConfirm)
-    if (!confirmed) return
-
+    const selection = viewing.current
     try {
+      setRequestActionLoading(saleId)
       setError("")
       setSuccess("")
       await cancelSale(saleId)
@@ -188,22 +195,19 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
 
       await loadSales()
 
-      if (selectedSale && selectedSale.id === saleId) {
-        const updated = await getSaleDetail(saleId)
-        setSelectedSale({
-          ...updated,
-          items: Array.isArray(updated.items) ? updated.items : [],
-        })
-      }
+      await refreshSaleDetails(saleId, selection)
     } catch (err) {
       console.error("handleCancelSale error:", err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
         setError(err instanceof Error ? err.message : text.cancelError)
       }
+    } finally {
+      setRequestActionLoading(null)
     }
   }
 
   async function handleRequestCancellationApproval(saleId: number) {
+    const selection = viewing.current
     try {
       setRequestActionLoading(saleId)
       setError("")
@@ -212,13 +216,7 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
       setSuccess(text.cancellationRequestSuccess)
       await loadSales()
 
-      if (selectedSale && selectedSale.id === saleId) {
-        const updated = await getSaleDetail(saleId)
-        setSelectedSale({
-          ...updated,
-          items: Array.isArray(updated.items) ? updated.items : [],
-        })
-      }
+      await refreshSaleDetails(saleId, selection)
     } catch (err) {
       console.error("handleRequestCancellationApproval error:", err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -230,6 +228,7 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
   }
 
   async function handleApproveCancellationRequest(requestId: number, saleId: number) {
+    const selection = viewing.current
     try {
       setRequestActionLoading(requestId)
       setError("")
@@ -238,13 +237,7 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
       setSuccess(text.cancellationApproveSuccess)
       await Promise.all([loadSales(), loadCancellationRequests()])
 
-      if (selectedSale && selectedSale.id === saleId) {
-        const updated = await getSaleDetail(saleId)
-        setSelectedSale({
-          ...updated,
-          items: Array.isArray(updated.items) ? updated.items : [],
-        })
-      }
+      await refreshSaleDetails(saleId, selection)
     } catch (err) {
       console.error("handleApproveCancellationRequest error:", err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -255,7 +248,8 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
     }
   }
 
-  async function handleRejectCancellationRequest(requestId: number) {
+  async function handleRejectCancellationRequest(requestId: number, saleId: number) {
+    const selection = viewing.current
     try {
       setRequestActionLoading(requestId)
       setError("")
@@ -264,6 +258,7 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
       setSuccess(text.cancellationRejectSuccess)
       await loadCancellationRequests()
       await loadSales()
+      await refreshSaleDetails(saleId, selection)
     } catch (err) {
       console.error("handleRejectCancellationRequest error:", err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -272,6 +267,12 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
     } finally {
       setRequestActionLoading(null)
     }
+  }
+
+  async function refreshSaleDetails(saleId: number, selection: number) {
+    if (selection !== viewing.current || selectedSale?.id !== saleId) return
+    const updated = await getSaleDetail(saleId)
+    if (selection === viewing.current) setSelectedSale({ ...updated, items: Array.isArray(updated.items) ? updated.items : [] })
   }
 
   function handleApplyFilter(e: React.FormEvent) {
@@ -339,6 +340,8 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
     siteRef.current = next
     setLocationId(next)
     setSelectedSale(null)
+    viewing.current++
+    setDetailLoading(false)
     setSales([])
     setCancellationRequests([])
     salesRequest.current++
@@ -354,262 +357,139 @@ function SalesHistoryContent({ initialSiteId, menuSelection, onSiteChange }: Sit
 
   useMenuSiteChange(menuSelection, site => changeSite(site ? String(site) : "", false))
 
-  return (
-    <div>
-      <div className="page-title-row">
-        <h1>{text.title}</h1>
+  function openReview(sale: SaleDetailResponse, action: SaleCancellationAction) {
+    reviewTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setReview({ ...action, saleNumber: sale.saleNumber, locationName: sale.locationName, totalAmount: sale.totalAmount })
+  }
 
-        {locations.length > 0 && (
-          <label className="page-title-site-filter">
-            <select aria-label={copy.dashboardFilters.location} value={locationId} onChange={event => changeSite(event.target.value)}>
-              <option value="">{copy.dashboardFilters.allLocations}</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+  function closeReview() {
+    setReview(null)
+    requestAnimationFrame(() => reviewTrigger.current?.focus())
+  }
+
+  async function confirmReview() {
+    if (!review || reviewing.current) return
+    reviewing.current = true
+    setReview(null)
+    try {
+      switch (review.kind) {
+        case "cancel": await handleCancelSale(review.saleId); break
+        case "request": await handleRequestCancellationApproval(review.saleId); break
+        case "approve": await handleApproveCancellationRequest(review.requestId, review.saleId); break
+        case "reject": await handleRejectCancellationRequest(review.requestId, review.saleId); break
+      }
+    } finally {
+      reviewing.current = false
+      requestAnimationFrame(() => document.getElementById("sale-detail-heading")?.focus())
+    }
+  }
+
+  const pendingForSale = selectedSale && cancellationRequests.find(request => request.saleId === selectedSale.id)
+  const disabled = requestActionLoading !== null
+
+  return <div className="stock-workspace sales-workspace">
+    {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
+    {success && <p className="stock-panel stock-highlight" role="status">{success}</p>}
+    {detailLoading && <p className="stock-panel" role="status">{text.loadingDetail}</p>}
+
+    <div className="sales-stack" hidden={!!selectedSale || detailLoading}>
+      <div className="workspace-page-title">
+        <h1 tabIndex={-1} ref={historyHeading}>{text.title}</h1>
+        {locations.length > 0 && <label className="page-title-site-filter">
+          <select className="workspace-page-site" aria-label={copy.dashboardFilters.location} value={locationId}
+            onChange={event => changeSite(event.target.value)}>
+            <option value="">{copy.dashboardFilters.allLocations}</option>
+            {locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}
+          </select>
+        </label>}
       </div>
 
-      {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
-      {success && <div className="card success">{success}</div>}
-
-      {isAdmin && cancellationApprovalEnabled && (
-        <div className="card">
-          <h3>{text.cancellationRequestsTitle}</h3>
-
-          {cancellationRequestsLoading ? (
-            <p>{text.loadingCancellationRequests}</p>
-          ) : cancellationRequests.length === 0 ? (
-            <p>{text.emptyCancellationRequests}</p>
-          ) : (
-            <div className="sale-cancellation-request-list">
-              {cancellationRequests.map((request) => (
-                <article key={request.id} className="sale-cancellation-request-item">
-                  <div className="sale-cancellation-request-copy">
-                    <strong>{request.saleNumber}</strong>
-                    <span>
-                      {request.customerName || "-"} | {formatCurrency(request.totalAmount)} | {formatDateTime(request.soldAt, language, user?.companyTimeZoneId || undefined)}
-                    </span>
-                    <span>
-                      {text.requestedBy}: {request.requestedByName || "-"} | {text.payment}: {request.paymentMethod || "-"}
-                    </span>
-                  </div>
-                  <div className="table-actions">
-                    <button
-                      type="button"
-                      onClick={() => handleViewDetails(request.saleId)}
-                    >
-                      {text.viewDetails}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleApproveCancellationRequest(request.id, request.saleId)}
-                      disabled={requestActionLoading === request.id}
-                    >
-                      {requestActionLoading === request.id ? text.processing : text.approveCancellation}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => handleRejectCancellationRequest(request.id)}
-                      disabled={requestActionLoading === request.id}
-                    >
-                      {requestActionLoading === request.id ? text.processing : text.rejectCancellation}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="card">
-        <h3 id="sales-history-list-heading">{text.sales}</h3>
-
-        <form className="product-filters" onSubmit={handleApplyFilter}>
-          <label>
-            {text.startDate}
-            <input
-              type="date"
-              disabled={isCashier}
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
-            />
-          </label>
-
-          <label>
-            {text.endDate}
-            <input
-              type="date"
-              disabled={isCashier}
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
-            />
-          </label>
-
-          <div className="product-filter-actions">
-            <button type="submit" disabled={loading}>
-              {text.applyFilter}
-            </button>
-            <button type="button" className="secondary-button" onClick={handleResetFilter} disabled={loading}>
-              {text.resetFilter}
-            </button>
+      <details className="stock-panel" open={showFiltersInitially}>
+        <summary>{labels.filters} · {dateRange.startDate} – {dateRange.endDate}</summary>
+        <form className="sales-filter-form" onSubmit={handleApplyFilter}>
+          <label>{text.startDate}<input type="date" disabled={isCashier} value={dateRange.startDate}
+            onChange={event => setDateRange(previous => ({ ...previous, startDate: event.target.value }))} /></label>
+          <label>{text.endDate}<input type="date" disabled={isCashier} value={dateRange.endDate}
+            onChange={event => setDateRange(previous => ({ ...previous, endDate: event.target.value }))} /></label>
+          <div className="stock-actions">
+            <button type="submit" className="workspace-primary" disabled={loading}>{text.applyFilter}</button>
+            <button type="button" className="workspace-outline" onClick={handleResetFilter} disabled={loading}>{text.resetFilter}</button>
           </div>
         </form>
+      </details>
 
-        {loading ? (
-          <p>{text.loadingSales}</p>
-        ) : (
-          <ScrollableTable headingId="sales-history-list-heading" showScrollButtons={false}>
-            <table>
-              <thead>
-                <tr>
-                  <th>{text.saleNumber}</th>
-                  <th>{text.date}</th>
-                  <th>{text.location}</th>
-                  <th>{text.customer}</th>
-                  <th>{text.payment}</th>
-                  <th>{text.total}</th>
-                  <th>{text.status}</th>
-                  <th className="mobile-sticky-actions" scope="col" aria-label={copy.common.actions} />
-                </tr>
-              </thead>
-              <tbody>
-                {sales.length === 0 ? (
-                  <tr>
-                    <td colSpan={8}>{text.emptySales}</td>
-                  </tr>
-                ) : (
-                  paginatedSales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td>{sale.saleNumber}</td>
-                      <td>{formatDateTime(sale.soldAt, language, user?.companyTimeZoneId || undefined)}</td>
-                      <td>{sale.locationName || "-"}</td>
-                      <td>{sale.customerName || "-"}</td>
-                      <td>{sale.paymentMethod || "-"}</td>
-                      <td>{formatCurrency(sale.totalAmount)}</td>
-                      <td className="sales-history-actions-cell">
-                        <StatusBadge value={sale.status} />
-                      </td>
-                      <td className="mobile-sticky-actions">
-                        <div className="table-actions sales-history-actions">
-                          <button className="compact-action-button" onClick={() => handleViewDetails(sale.id)}>
-                            {text.viewDetails}
-                          </button>
+      {isAdmin && cancellationApprovalEnabled && <section className="stock-panel">
+        <h2>{text.cancellationRequestsTitle}</h2>
+        {cancellationRequestsLoading ? <p role="status">{text.loadingCancellationRequests}</p>
+          : cancellationRequests.length === 0 ? <p className="stock-muted">{text.emptyCancellationRequests}</p>
+          : <div className="sale-cancellation-request-list">{cancellationRequests.map(request =>
+            <article key={request.id} className="sale-cancellation-request-item">
+              <div className="sale-cancellation-request-copy">
+                <strong>{request.saleNumber}</strong>
+                <span>{[request.locationName, request.customerName, money(request.totalAmount), date(request.soldAt)].filter(Boolean).join(" · ")}</span>
+                <span>{text.requestedBy}: {request.requestedByName || "-"}</span>
+              </div>
+              <button type="button" className="workspace-outline" onClick={() => void handleViewDetails(request.saleId)}>{labels.review}</button>
+            </article>
+          )}</div>}
+      </section>}
 
-                          {isAdmin && sale.status === "COMPLETED" && (
-                            <button
-                              className="danger-button compact-action-button"
-                              onClick={() => handleCancelSale(sale.id)}
-                            >
-                              {text.cancel}
-                            </button>
-                          )}
-
-                          {isCashier && cancellationApprovalEnabled && sale.status === "COMPLETED" && (
-                            <button
-                              className="secondary-button compact-action-button"
-                              onClick={() => handleRequestCancellationApproval(sale.id)}
-                              disabled={
-                                requestActionLoading === sale.id || sale.cancellationRequestStatus === "PENDING"
-                              }
-                            >
-                              {sale.cancellationRequestStatus === "PENDING"
-                                ? text.cancellationRequested
-                                : requestActionLoading === sale.id
-                                  ? text.processing
-                                  : text.requestCancellation}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
+      <section className="stock-panel">
+        <h2 id="sales-history-list-heading">{text.sales}</h2>
+        {loading ? <p role="status">{text.loadingSales}</p> :
+          sales.length === 0 ? <p className="stock-empty">{text.emptySales}</p> : <>
+            <table className="sales-history-table">
+              <thead><tr>
+                {[text.saleNumber, text.date, text.location, text.customer, text.payment, text.total, text.status].map(label =>
+                  <th key={label} scope="col">{label}</th>)}
+                <th scope="col" aria-label={copy.common.actions} />
+              </tr></thead>
+              <tbody>{paginatedSales.map(sale => <tr key={sale.id}>
+                <th scope="row">{sale.saleNumber}</th>
+                <td>{date(sale.soldAt)}</td>
+                <td>{sale.locationName || "-"}</td>
+                <td>{sale.customerName || "-"}</td>
+                <td>{payment(sale.paymentMethod)}</td>
+                <td>{money(sale.totalAmount)}</td>
+                <td><StatusBadge value={sale.status} />{sale.cancellationRequestStatus === "PENDING" && <small>{text.cancellationRequested}</small>}</td>
+                <td><button type="button" className="workspace-text-action" onClick={() => void handleViewDetails(sale.id)}>{text.viewDetails}</button></td>
+              </tr>)}</tbody>
             </table>
-          </ScrollableTable>
-        )}
-        {!loading && sales.length > SALES_PER_PAGE && (
-          <TablePagination
-            currentPage={currentPage}
-            pageCount={pageCount}
-            paginationLabel={text.paginationLabel}
-            firstPageLabel={text.firstPage}
-            previousPageLabel={text.previousPage}
-            nextPageLabel={text.nextPage}
-            lastPageLabel={text.lastPage}
-            onPageChange={setCurrentPage}
-          />
-        )}
-      </div>
-
-      <div className="card">
-        <h3>{text.detailTitle}</h3>
-
-        {detailLoading ? (
-          <p>{text.loadingDetail}</p>
-        ) : !selectedSale ? (
-          <p>{text.selectSale}</p>
-        ) : (
-          <>
-            <div className="detail-grid">
-              <p><strong>{text.saleNumber}:</strong> {selectedSale.saleNumber}</p>
-              <p><strong>{text.date}:</strong> {formatDateTime(selectedSale.soldAt, language, user?.companyTimeZoneId || undefined)}</p>
-              <p><strong>{text.location}:</strong> {selectedSale.locationName || "-"}</p>
-              <p><strong>{text.customer}:</strong> {selectedSale.customerName || "-"}</p>
-              <p><strong>{text.payment}:</strong> {selectedSale.paymentMethod || "-"}</p>
-              <p><strong>{text.paymentReference}:</strong> {selectedSale.paymentReference || "-"}</p>
-              <p><strong>{text.authorizationCode}:</strong> {selectedSale.paymentAuthorizationCode || "-"}</p>
-              <p><strong>{text.paymentConfirmedAt}:</strong> {selectedSale.paymentConfirmedAt ? formatDateTime(selectedSale.paymentConfirmedAt) : "-"}</p>
-              <p><strong>{text.status}:</strong> <StatusBadge value={selectedSale.status} /></p>
-              <p><strong>{text.cancellationRequestStatus}:</strong> {selectedSale.cancellationRequestStatus || "-"}</p>
-              <p><strong>{text.requestedBy}:</strong> {selectedSale.cancellationRequestedByName || "-"}</p>
-              <p><strong>{text.subtotal}:</strong> {formatCurrency(selectedSale.subtotalAmount)}</p>
-              <p><strong>{text.tax}:</strong> {formatCurrency(selectedSale.taxAmount)}</p>
-              <p><strong>{text.total}:</strong> {formatCurrency(selectedSale.totalAmount)}</p>
-              <p><strong>{text.totalCost}:</strong> {formatCurrency(selectedSale.totalCostAmount)}</p>
-              <p><strong>{text.totalProfit}:</strong> {formatCurrency(selectedSale.totalProfitAmount)}</p>
-            </div>
-
-            <table className="sale-line-table">
-              <thead>
-                <tr>
-                  <th>{text.product}</th>
-                  <th>{text.quantity}</th>
-                  <th>{text.unitPrice}</th>
-                  <th>{text.lineTotal}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedSale.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={4}>{text.emptyItems}</td>
-                  </tr>
-                ) : (
-                  (selectedSale.items as SaleItemWithOptionalUnit[]).map((item, index) => (
-                    <tr key={`${item.productId}-${index}`}>
-                      <td>{item.productName || "-"}</td>
-                      <td>
-                        {formatNumber(item.quantity)}
-                        {item.unitName ? ` ${item.unitName}` : ""}
-                      </td>
-                      <td>{formatCurrency(item.unitPrice)}</td>
-                      <td>{formatCurrency(item.lineTotal)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <SaleInvoicePreview sale={selectedSale} companyName={user?.companyName} />
-          </>
-        )}
-      </div>
+            <ul className="sales-history-cards" role="list">{paginatedSales.map(sale => <li key={sale.id}>
+              <div className="stock-panel-heading"><h3>{sale.saleNumber}</h3><StatusBadge value={sale.status} /></div>
+              <p className="stock-muted">{[date(sale.soldAt), sale.locationName].filter(Boolean).join(" · ")}</p>
+              {sale.cancellationRequestStatus === "PENDING" && <p className="stock-muted">{text.cancellationRequested}</p>}
+              <StockFacts entries={[[text.customer, sale.customerName || "-"], [text.payment, payment(sale.paymentMethod)], [text.total, money(sale.totalAmount)]]} />
+              <div className="stock-actions"><button type="button" className="workspace-outline" onClick={() => void handleViewDetails(sale.id)}>{text.viewDetails}</button></div>
+            </li>)}</ul>
+          </>}
+        {!loading && sales.length > SALES_PER_PAGE && <TablePagination currentPage={currentPage} pageCount={pageCount}
+          paginationLabel={text.paginationLabel} firstPageLabel={text.firstPage} previousPageLabel={text.previousPage}
+          nextPageLabel={text.nextPage} lastPageLabel={text.lastPage} onPageChange={setCurrentPage} />}
+      </section>
     </div>
-  )
+
+    {selectedSale && !detailLoading && <>
+      <button type="button" className="workspace-text-action sales-back" onClick={() => {
+        viewing.current++
+        setSelectedSale(null)
+        requestAnimationFrame(() => historyHeading.current?.focus())
+      }}>{labels.back}</button>
+      <SaleHistoryDetails key={selectedSale.id} sale={selectedSale}
+        actions={selectedSale.status === "COMPLETED" && (isAdmin || (isCashier && cancellationApprovalEnabled && selectedSale.cancellationRequestStatus !== "PENDING"))
+          ? <>
+            {isAdmin && <button type="button" className="danger-button" disabled={disabled}
+              onClick={() => openReview(selectedSale, { kind: "cancel", saleId: selectedSale.id })}>{text.cancel}</button>}
+            {isCashier && <button type="button" className="workspace-outline" disabled={disabled}
+              onClick={() => openReview(selectedSale, { kind: "request", saleId: selectedSale.id })}>{text.requestCancellation}</button>}
+            {isAdmin && pendingForSale && <>
+              <button type="button" className="workspace-outline" disabled={disabled} onClick={() => openReview(selectedSale,
+                { kind: "approve", saleId: selectedSale.id, requestId: pendingForSale.id })}>{text.approveCancellation}</button>
+              <button type="button" className="workspace-outline" disabled={disabled} onClick={() => openReview(selectedSale,
+                { kind: "reject", saleId: selectedSale.id, requestId: pendingForSale.id })}>{text.rejectCancellation}</button>
+            </>}
+          </> : undefined} />
+    </>}
+    {review && <SaleCancellationDialog review={review} onClose={closeReview} onConfirm={confirmReview} />}
+  </div>
 }

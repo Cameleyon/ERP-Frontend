@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales workspace test</title>
+</head>
+<body><div id="root"></div>
+<script type="module">
+  import React from "react"
+  import { createRoot } from "react-dom/client"
+  import AppLayout from "/src/components/layout/AppLayout.tsx"
+  import { AuthProvider } from "/src/auth/AuthContext.tsx"
+  import { LanguageProvider } from "/src/i18n/I18nContext.tsx"
+  import NewSalePage from "/src/pages/NewSalePage.tsx"
+  import SalesHistoryPage from "/src/pages/SalesHistoryPage.tsx"
+  import "/src/index.css"
+
+  const history = new URLSearchParams(location.search).has("history")
+  createRoot(document.getElementById("root")).render(React.createElement(AuthProvider, null,
+    React.createElement(LanguageProvider, null, React.createElement(AppLayout, {
+      page: history ? "sales-history" : "new-sale", menuSite: null, onNavigate() {}, onMenuSiteChange() {},
+    }, React.createElement(history ? SalesHistoryPage : NewSalePage)))))
+</script>
+</body></html>

@@ -46,7 +46,7 @@ try {
         await route.fulfill({ json: body, headers })
       })
       await page.goto(origin + "/tests/fixtures/sales-calendar.html")
-      await page.getByRole("cell", { name: "SALE-CALENDAR", exact: true }).waitFor()
+      await page.getByRole("rowheader", { name: "SALE-CALENDAR", exact: true }).waitFor()
       assert.equal(await page.locator("input[type=date]").last().inputValue(), day)
       assert.equal(await page.locator("input[type=date]").first().isDisabled(), role === "CASHIER")
       if (role === "CASHIER") {
@@ -55,8 +55,8 @@ try {
       }
       await page.setViewportSize({ width: 375, height: 850 })
       assert.equal(await page.locator(".table-scroll-actions").count(), 0)
-      const button = page.locator(".sales-history-actions button").first()
-      assert.ok((await button.boundingBox()).height <= 36)
+      const button = page.locator(".sales-history-cards button").first()
+      assert.ok((await button.boundingBox()).height >= 44)
       await page.setViewportSize({ width: 1200, height: 1000 })
       const rowText = await page.locator("tr").filter({ hasText: "SALE-CALENDAR" }).innerText()
       assert.ok(rowText.includes(day.slice(-2)))

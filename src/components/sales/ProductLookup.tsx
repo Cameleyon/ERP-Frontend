@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useState, type ReactNode } from "react"
 import { getProducts } from "../../api/productManagementApi"
 import { getSalesProductSuggestions, type ProductSuggestion } from "../../api/productApi"
 import { useI18n } from "../../i18n/I18nContext"
@@ -12,11 +12,12 @@ type Props = {
   onError: (message: string) => void
   lookupLoading: boolean
   embedded?: boolean
+  headingAction?: ReactNode
   disabled?: boolean
   salesLocationId?: string
 }
 
-export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading, embedded = false, disabled = false, salesLocationId }: Props) {
+export default function ProductLookup({ value: query, onChange, onSelect, onLookup, onError, lookupLoading, embedded = false, disabled = false, salesLocationId, headingAction }: Props) {
   const { copy } = useI18n()
   const text = copy.barcodeLookup
   const id = useId()
@@ -62,14 +63,14 @@ export default function ProductLookup({ value: query, onChange, onSelect, onLook
   }
 
   return <div className={embedded ? "product-lookup-card" : "card product-lookup-card"}>
-    <h3>{text.title}</h3>
+    {headingAction ? <div className="stock-panel-heading sales-panel-title"><h2>{text.title}</h2>{headingAction}</div> : <h3>{text.title}</h3>}
     <form onSubmit={submit} className="sale-form-row">
     <div className="sale-product-name-search"
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false) }}>
-    <label htmlFor={id} className="visually-hidden">{text.nameLabel}</label>
+    <label htmlFor={id} className={headingAction ? "stock-field" : "visually-hidden"}>{text.nameLabel}</label>
     <input id={id} type="text" role="combobox" autoComplete="off" value={query}
       disabled={disabled}
-      placeholder={text.placeholder} aria-autocomplete="list" aria-expanded={expanded}
+      placeholder={headingAction ? text.namePlaceholder : text.placeholder} aria-autocomplete="list" aria-expanded={expanded}
       aria-busy={lookupLoading}
       aria-controls={expanded ? id + "-results" : undefined}
       aria-activedescendant={expanded && index >= 0 && index < results.length ? id + "-" + index : undefined}
