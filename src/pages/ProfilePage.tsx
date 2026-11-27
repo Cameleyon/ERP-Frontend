@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../auth/AuthContext"
-import { useRef } from "react"
+import { useRef, type ReactNode } from "react"
 import { setupCopy } from "../i18n/setupCopy"
 import {
   getCompanyProfile,
@@ -29,6 +29,9 @@ import ErrorMessage from "../components/common/ErrorMessage"
 import { EmailConsentPreferences } from "../components/common/EmailConsent"
 import { profileValueLabel } from "../components/profile/profileValueCopy"
 import ProfileSection from "../components/profile/ProfileSection"
+import { adminWorkspaceCopy } from "../components/profile/adminWorkspaceCopy"
+import "../components/inventory/stockWorkspace.css"
+import "../components/profile/adminWorkspace.css"
 import { changePassword, updateUserProfile } from "../api/userAccountApi"
 import { createCompanyUser, getCompanyUsers, setCompanyUserActive, type CompanyUserResponse } from "../api/companyUsersApi"
 import {
@@ -182,12 +185,24 @@ function cleanSubscriptionNotes(notes: string | null | undefined) {
   return visibleNotes.length > 0 ? visibleNotes.join(" | ") : "-"
 }
 
+const profileViews = ["account", "company", "sites", "users", "billing"] as const
+type ProfileView = typeof profileViews[number]
+
+function RecordCell({ label, children }: { label: string; children: ReactNode }) {
+  return <td role="cell"><span aria-hidden="true" className="stock-cell-label">{label}</span><span>{children}</span></td>
+}
+
 export default function ProfilePage({ configureCurrency = false, manageSites = false, returnToProduct = false, onCurrencyReturn }: {
   configureCurrency?: boolean; manageSites?: boolean; returnToProduct?: boolean; onCurrencyReturn?: () => void
 }) {
   const { applySession, refreshUser, user } = useAuth()
   const { language } = useI18n()
   const isAdmin = user?.role === "ADMIN"
+  const admin = adminWorkspaceCopy[language]
+  const entry: ProfileView = configureCurrency ? "company" : manageSites ? "sites" : "account"
+  const [selection, setSelection] = useState<{ entry: ProfileView; view: ProfileView }>({ entry, view: entry })
+  const [accessEnded, setAccessEnded] = useState<"subscription" | "grace" | null>(null)
+  const view = !isAdmin || accessEnded ? "account" : selection.entry === entry ? selection.view : entry
   const [profile, setProfile] = useState<CompanyProfileResponse | null>(null)
   const [subscription, setSubscription] = useState<CompanySubscriptionResponse | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodSummaryResponse | null>(null)
@@ -209,7 +224,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
   const [isEditing, setIsEditing] = useState(false)
   const [timePreviewTick, setTimePreviewTick] = useState(() => Date.now())
   const currencyInputRef = useRef<HTMLInputElement>(null)
-  const sitesHeading = useRef<HTMLHeadingElement>(null)
+  const sitesHeading = useRef<HTMLDivElement>(null)
   const [currencySessionRetry, setCurrencySessionRetry] = useState(false)
   const [currencyReady, setCurrencyReady] = useState(false)
   const guide = setupCopy[language]
@@ -671,6 +686,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
     try {
       setLoading(true)
       setError("")
+      setAccessEnded(null)
 
       if (!isAdmin) {
         setProfile(null)
@@ -710,8 +726,10 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
         setPaymentMethod(null)
       }
     } catch (err) {
-      console.error(err)
-      setError(err instanceof Error ? err.message : text.loadError)
+      const message = err instanceof Error ? err.message : ""
+      if (message === "Company subscription access has expired") setAccessEnded("subscription")
+      else if (message === "Company subscription is past due and grace period has ended") setAccessEnded("grace")
+      else setError(text.loadError)
     } finally {
       setLoading(false)
     }
@@ -1181,6 +1199,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             <>
               <input
                 type={type}
+                aria-label={label}
                 value={userForm[field]}
                 onChange={(e) => updateUserForm(field, e.target.value)}
               />
@@ -1188,6 +1207,8 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
                 <input
                   type="password"
                   placeholder={text.currentPassword}
+                  aria-label={text.currentPassword}
+                  autoComplete="current-password"
                   value={userForm.currentPassword}
                   onChange={(e) => updateUserForm("currentPassword", e.target.value)}
                 />
@@ -1210,7 +1231,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </>
           ) : (
             <button type="button" className="secondary-button" onClick={() => handleStartUserEdit(field)}>
-              {text.edit}
+              {text.edit}<span className="admin-visually-hidden"> {label}</span>
             </button>
           )}
         </div>
@@ -1230,18 +1251,24 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               <input
                 type="password"
                 placeholder={text.currentPassword}
+                aria-label={text.currentPassword}
+                autoComplete="current-password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => updatePasswordForm("currentPassword", e.target.value)}
               />
               <input
                 type="password"
                 placeholder={text.newPassword}
+                aria-label={text.newPassword}
+                autoComplete="new-password"
                 value={passwordForm.newPassword}
                 onChange={(e) => updatePasswordForm("newPassword", e.target.value)}
               />
               <input
                 type="password"
                 placeholder={text.confirmPassword}
+                aria-label={text.confirmPassword}
+                autoComplete="new-password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => updatePasswordForm("confirmPassword", e.target.value)}
               />
@@ -1272,8 +1299,15 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
   }
 
   return (
-    <div>
-      <h1>{text.title}</h1>
+    <div className="stock-workspace admin-workspace">
+      <header className="stock-heading">
+        <div><h1>{text.title}</h1>{user?.companyName && <p>{user.companyName}</p>}</div>
+      </header>
+      {!accessEnded && <nav className="stock-view-switch" aria-label={text.title}>
+        {(isAdmin ? profileViews : profileViews.slice(0, 1)).map(key => <button
+          key={key} type="button" aria-pressed={view === key} aria-controls={!loading ? `profile-${key}` : undefined}
+          onClick={() => setSelection({ entry, view: key })}>{admin[key]}</button>)}
+      </nav>}
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success" role="status">{success}</div>}
@@ -1289,12 +1323,12 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
         </div>
       ) : (
         <>
-          <ProfileSection title={text.companyLabel}>
-            <div className="detail-grid">
-              <p><strong>{text.companyName}:</strong> {user?.companyName || "-"}</p>
-            </div>
-          </ProfileSection>
-
+          {accessEnded && <section className="stock-panel admin-restricted" role="status">
+            <h2>{accessEnded === "grace" ? admin.paidAccessEnded : admin.accessEnded}</h2>
+            <p>{admin.supportHelp}</p>
+            <a href="https://www.cameleyondynamics.com/contact" target="_blank" rel="noreferrer">{admin.support}</a>
+          </section>}
+          <div id="profile-account" hidden={view !== "account"} className="admin-split">
           <ProfileSection title={text.userProfile}>
             <div className="profile-edit-list">
               {renderEditableUserRow("firstName", text.firstName, user?.firstName || "")}
@@ -1306,41 +1340,42 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
                   <span>{profileValueLabel(user?.role, language)}</span>
                 </div>
               </div>
-              {renderPasswordRow()}
             </div>
           </ProfileSection>
-
-          {user?.companyOwner && <EmailConsentPreferences key={user.email} />}
-
-          {isAdmin && (
+          <div className="admin-stack">
+            <ProfileSection title={admin.security}>{renderPasswordRow()}</ProfileSection>
+            {user?.companyOwner && <EmailConsentPreferences key={user.email} />}
+          </div>
+          </div>
+          {isAdmin && !accessEnded && (
             <>
-          <ProfileSection title={text.locationsSectionTitle} reveal={manageSites}>
-            {manageSites && <h3 ref={sitesHeading} tabIndex={-1}>{text.locationsSectionTitle}</h3>}
+          <div id="profile-sites" hidden={view !== "sites"} className="admin-stack" ref={sitesHeading} tabIndex={-1}>
+          <ProfileSection title={text.locationsSectionTitle}>
             <div className="profile-table-scroll" role="region" aria-label={text.locationsSectionTitle} tabIndex={0}>
-            <table>
-              <thead>
-                <tr>
-                  <th>{text.locationName}</th>
-                  <th>{text.businessType}</th>
-                  <th>{text.address}</th>
-                  <th>{text.timeZone}</th>
-                  <th>{text.status}</th>
-                  <th>{text.consent}</th>
-                  <th>{text.consentDate}</th>
-                  <th>{text.fee}</th>
+            <table className="admin-records" role="table">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th role="columnheader" scope="col">{text.locationName}</th>
+                  <th role="columnheader" scope="col">{text.businessType}</th>
+                  <th role="columnheader" scope="col">{text.address}</th>
+                  <th role="columnheader" scope="col">{text.timeZone}</th>
+                  <th role="columnheader" scope="col">{text.status}</th>
+                  <th role="columnheader" scope="col">{text.consent}</th>
+                  <th role="columnheader" scope="col">{text.consentDate}</th>
+                  <th role="columnheader" scope="col">{text.fee}</th>
                 </tr>
               </thead>
-              <tbody>
-                {companyLocations.length === 0 ? <tr><td colSpan={8}>{text.noLocations}</td></tr> : companyLocations.map((location) => (
-                  <tr key={location.id}>
-                    <td>{location.name}</td>
-                    <td>{location.businessType || "-"}</td>
-                    <td>{location.address || location.addressLine1 || "-"}</td>
-                    <td>{location.timeZoneId ? formatTimeZoneLabel(location.timeZoneId) : "-"}</td>
-                    <td>{location.active ? text.active : text.inactive}</td>
-                    <td>{location.feeConsentAccepted ? text.yes : text.no}</td>
-                    <td>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</td>
-                    <td>{location.feeAmountUsd ? `${location.feeAmountUsd} USD` : text.notTracked}</td>
+              <tbody role="rowgroup">
+                {companyLocations.length === 0 ? <tr role="row"><td colSpan={8}>{text.noLocations}</td></tr> : companyLocations.map((location) => (
+                  <tr role="row" key={location.id}>
+                    <RecordCell label={text.locationName}><strong>{location.name}</strong><small>#{location.id}</small></RecordCell>
+                    <RecordCell label={text.businessType}>{location.businessType || "-"}</RecordCell>
+                    <RecordCell label={text.address}>{location.address || location.addressLine1 || "-"}</RecordCell>
+                    <RecordCell label={text.timeZone}>{location.timeZoneId ? formatTimeZoneLabel(location.timeZoneId) : "-"}</RecordCell>
+                    <RecordCell label={text.status}><span className={`stock-status${location.active ? " is-active" : ""}`}>{location.active ? text.active : text.inactive}</span></RecordCell>
+                    <RecordCell label={text.consent}>{location.feeConsentAccepted ? text.yes : text.no}</RecordCell>
+                    <RecordCell label={text.consentDate}>{formatCompanyUserConsentDate(location.feeConsentAcceptedAt)}</RecordCell>
+                    <RecordCell label={text.fee}>{location.feeAmountUsd ? `${location.feeAmountUsd} USD` : text.notTracked}</RecordCell>
                   </tr>
                 ))}
               </tbody>
@@ -1348,7 +1383,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </div>
           </ProfileSection>
 
-          <ProfileSection title={text.addLocationTitle}>
+          <ProfileSection title={text.addLocationTitle} collapsible>
             <p>{text.locationsSectionSubtitle}</p>
 
             <div className="company-user-warning">
@@ -1466,50 +1501,56 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </form>
           </ProfileSection>
 
+          </div>
+          <div id="profile-users" hidden={view !== "users"} className="admin-stack">
           <ProfileSection title={text.usersSectionTitle}>
             <div className="profile-table-scroll" role="region" aria-label={text.usersListTitle} tabIndex={0}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>{text.firstName}</th>
-                    <th>{text.lastName}</th>
-                    <th>{text.email}</th>
-                    <th>{text.role}</th>
-                    <th>{text.assignedLocations}</th>
-                    <th>{text.status}</th>
-                    <th>{text.consent}</th>
-                    <th>{text.consentDate}</th>
-                    <th>{text.fee}</th>
-                    <th>{text.edit}</th>
+              <table className="admin-records" role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th role="columnheader" scope="col">{text.firstName}</th>
+                    <th role="columnheader" scope="col">{text.lastName}</th>
+                    <th role="columnheader" scope="col">{text.email}</th>
+                    <th role="columnheader" scope="col">{text.role}</th>
+                    <th role="columnheader" scope="col">{text.assignedLocations}</th>
+                    <th role="columnheader" scope="col">{text.status}</th>
+                    <th role="columnheader" scope="col">{text.consent}</th>
+                    <th role="columnheader" scope="col">{text.consentDate}</th>
+                    <th role="columnheader" scope="col">{text.fee}</th>
+                    <th role="columnheader" scope="col">{text.edit}</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {companyUsers.length === 0 ? (
-                    <tr>
+                    <tr role="row">
                       <td colSpan={10}>{text.noUsers}</td>
                     </tr>
                   ) : (
                     companyUsers.map((companyUser) => (
-                      <tr key={companyUser.id}>
-                        <td>{companyUser.firstName}</td>
-                        <td>{companyUser.lastName}</td>
-                        <td>{companyUser.email}</td>
-                        <td>{getCompanyUserRoleLabel(companyUser.role)}</td>
-                        <td>
+                      <tr role="row" key={companyUser.id}>
+                        <RecordCell label={text.firstName}>{companyUser.firstName}</RecordCell>
+                        <RecordCell label={text.lastName}>{companyUser.lastName}</RecordCell>
+                        <RecordCell label={text.email}>{companyUser.email}</RecordCell>
+                        <RecordCell label={text.role}>{getCompanyUserRoleLabel(companyUser.role)}</RecordCell>
+                        <RecordCell label={text.assignedLocations}>
                           {companyUser.locationRestricted
                             ? companyUser.locations.map((location) => location.name).join(", ")
                             : text.allLocationsAccess}
-                        </td>
-                        <td>{companyUser.active ? text.active : text.inactive}</td>
-                        <td>{companyUser.feeConsentAccepted ? text.yes : text.no}</td>
-                        <td>{formatCompanyUserConsentDate(companyUser.feeConsentAcceptedAt)}</td>
-                        <td>{companyUser.feeAmountUsd ? `${companyUser.feeAmountUsd} USD` : text.notTracked}</td>
-                        <td>
+                        </RecordCell>
+                        <RecordCell label={text.status}><span className={`stock-status${companyUser.active ? " is-active" : ""}`}>{companyUser.active ? text.active : text.inactive}</span></RecordCell>
+                        <RecordCell label={text.consent}>{companyUser.feeConsentAccepted ? text.yes : text.no}</RecordCell>
+                        <RecordCell label={text.consentDate}>{formatCompanyUserConsentDate(companyUser.feeConsentAcceptedAt)}</RecordCell>
+                        <RecordCell label={text.fee}>{companyUser.feeAmountUsd ? `${companyUser.feeAmountUsd} USD` : text.notTracked}</RecordCell>
+                        <td role="cell">
                           <button
                             type="button"
-                            className="secondary-button"
+                            className={companyUser.active ? "admin-danger" : "secondary-button"}
                             disabled={companyUsersSaving || companyUser.id === user?.id}
-                            onClick={() => handleToggleCompanyUserActive(companyUser, !companyUser.active)}
+                            onClick={() => {
+                              if (!companyUser.active || window.confirm(`${admin.deactivate}\n${companyUser.email}`)) {
+                                void handleToggleCompanyUserActive(companyUser, !companyUser.active)
+                              }
+                            }}
                           >
                             {companyUser.active ? text.deactivate : text.reactivate}
                           </button>
@@ -1522,7 +1563,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </div>
           </ProfileSection>
 
-          {user?.companyOwner && <ProfileSection title={text.addUserTitle}>
+          {user?.companyOwner && <ProfileSection title={text.addUserTitle} collapsible>
             <p>{text.usersSectionSubtitle}</p>
 
             <div className="company-user-warning">
@@ -1581,7 +1622,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               {companyLocations.length > 0 && (
                 <div className="full-width">
                   <strong>{text.assignedLocations}</strong>
-                  <p style={{ marginTop: 6 }}>{text.allLocationsAccess}: {companyUserCreateForm.locationIds.length === 0 ? text.yes : text.no}</p>
+                  <p className="stock-muted">{admin.assignedSites}</p>
                   <div className="company-user-location-list">
                     {companyLocations.map((location) => (
                       <label key={location.id} className="checkbox-field">
@@ -1614,7 +1655,9 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </form>
           </ProfileSection>}
 
-          <ProfileSection title={text.companyInfo} reveal={configureCurrency}>
+          </div>
+          <div id="profile-company" hidden={view !== "company"}>
+          <ProfileSection title={text.companyInfo}>
             <div className="table-actions" style={{ marginBottom: 16, justifyContent: "space-between" }}>
               {!isEditing && (
                 <button type="button" className="secondary-button" onClick={handleStartEditing}>
@@ -1631,7 +1674,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
 
             <form onSubmit={handleSave} className="product-form-grid">
               <label className="full-width">
-                {text.companyName}
+                <span>{text.companyName} <small>({admin.required})</small></span>
                 <input
                   type="text"
                   value={form.name}
@@ -1641,7 +1684,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.businessType}
+                <span>{text.businessType} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   value={form.businessType}
@@ -1651,7 +1694,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.phone}
+                <span>{text.phone} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   value={form.phone}
@@ -1661,7 +1704,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.email}
+                <span>{text.email} <small>({admin.optional})</small></span>
                 <input
                   type="email"
                   value={form.email}
@@ -1670,7 +1713,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
                 />
               </label>
 
-              <label>
+              <label className="admin-currency">
                 {text.currency}
                 <input
                   ref={currencyInputRef}
@@ -1685,7 +1728,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label className="full-width">
-                {text.address}
+                <span>{text.address} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   value={form.addressLine1}
@@ -1695,7 +1738,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.city}
+                <span>{text.city} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   value={form.city}
@@ -1705,7 +1748,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.postalCode}
+                <span>{text.postalCode} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   value={form.postalCode}
@@ -1715,7 +1758,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </label>
 
               <label>
-                {text.country}
+                <span>{text.country} <small>({admin.optional})</small></span>
                 <input
                   type="text"
                   list="profile-country-options"
@@ -1768,25 +1811,31 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
             </form>
           </ProfileSection>
 
+          </div>
+          <div id="profile-billing" hidden={view !== "billing"} className="admin-split">
           <ProfileSection title={text.subscription}>
 
             {!subscription ? (
               <p>{text.noSubscription}</p>
             ) : (
-              <div className="detail-grid">
+              <>
+              <div className="admin-plan stock-context">
                 <p><strong>{text.plan}:</strong> {subscription.planName} ({subscription.planCode})</p>
                 <p><strong>{text.status}:</strong> {profileValueLabel(subscription.status, language)}</p>
+                <p><strong>{subscription.status === "TRIAL" ? admin.trialEnd : text.accessEnd}:</strong> {formatDateTime(subscription.accessEndAt, language)}</p>
+                <p><strong>{text.autoRenew}:</strong> {subscription.autoRenew ? text.yes : text.no}</p>
+                {subscription.status === "TRIAL" && subscription.planCode === "BASIC" && <p>{admin.trialInfo}</p>}
+                {subscription.status === "PAST_DUE" && subscription.gracePeriodEndAt &&
+                  <p><strong>{text.graceEnd}:</strong> {formatDateTime(subscription.gracePeriodEndAt, language)}</p>}
+              </div>
+              <details className="admin-billing-details">
+              <summary>{admin.details}</summary>
+              <div className="detail-grid">
                 <p><strong>{text.billingMode}:</strong> {profileValueLabel(subscription.billingMode, language)}</p>
                 <p><strong>{text.billingCycle}:</strong> {profileValueLabel(subscription.billingCycle, language)}</p>
                 <p><strong>{text.paymentCollection}:</strong> {profileValueLabel(subscription.paymentCollectionMethod, language)}</p>
                 <p><strong>{text.provider}:</strong> {profileValueLabel(subscription.paymentProvider, language)}</p>
                 <p><strong>{text.accessStart}:</strong> {formatDateTime(subscription.accessStartAt, language)}</p>
-                <p><strong>{text.accessEnd}:</strong> {formatDateTime(subscription.accessEndAt, language)}</p>
-                <p>
-                  <strong>{text.graceEnd}:</strong>{" "}
-                  {subscription.gracePeriodEndAt ? formatDateTime(subscription.gracePeriodEndAt, language) : "-"}
-                </p>
-                <p><strong>{text.autoRenew}:</strong> {subscription.autoRenew ? text.yes : text.no}</p>
                 <p>
                   <strong>{text.requiresPaymentMethod}:</strong>{" "}
                   {subscription.requiresPaymentMethod ? text.yes : text.no}
@@ -1819,6 +1868,8 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
                 </p>
                 <p className="full-width"><strong>{text.notes}:</strong> {cleanSubscriptionNotes(subscription.notes)}</p>
               </div>
+              </details>
+              </>
             )}
           </ProfileSection>
 
@@ -1909,6 +1960,7 @@ export default function ProfilePage({ configureCurrency = false, manageSites = f
               </>
             )}
           </ProfileSection>
+          </div>
             </>
           )}
         </>

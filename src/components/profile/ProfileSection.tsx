@@ -1,12 +1,14 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import type { ReactNode } from "react"
 
-export default function ProfileSection({ title, children, reveal = false }: {
-  title: string; children: ReactNode; reveal?: boolean
+export default function ProfileSection({ title, children, collapsible = false }: {
+  title: string; children: ReactNode; collapsible?: boolean
 }) {
-  const ref = useRef<HTMLDetailsElement>(null)
-  useEffect(() => { if (reveal && ref.current) ref.current.open = true }, [reveal])
-  return <details className="profile-section" ref={ref}>
-    <summary><h3>{title}</h3></summary>
+  if (collapsible) return <details className="profile-section stock-panel admin-disclosure">
+    <summary>{title}</summary>
     <div className="profile-section-body">{children}</div>
   </details>
+  return <section className="profile-section stock-panel">
+    <h2>{title}</h2>
+    <div className="profile-section-body">{children}</div>
+  </section>
 }

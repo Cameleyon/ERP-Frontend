@@ -3,8 +3,9 @@ import { createRequire } from "node:module"
 import { mkdir } from "node:fs/promises"
 const { chromium } = createRequire(import.meta.url)("playwright")
 const origin = process.env.PROFILE_PREVIEW_URL || "http://127.0.0.1:5203"
+const screenshots = process.env.PROFILE_SCREENSHOT_DIR
 const browser = await chromium.launch({ headless: true, channel: "msedge" })
-await mkdir("docs/screenshots/profile-translations", { recursive: true })
+if (screenshots) await mkdir(screenshots, { recursive: true })
 try {
   for (const [language, width, title, userTitle, companyTitle] of [
     ["es", 1280, "Perfil", "Perfil de usuario", "Información de la empresa"],
@@ -37,22 +38,32 @@ try {
     })
     await page.goto(origin + "/tests/fixtures/profile.html")
     await page.getByRole("heading", { name: title, exact: true }).waitFor()
-    await page.getByRole("heading", { name: companyTitle, exact: true }).waitFor()
     await page.getByRole("heading", { name: userTitle, exact: true }).waitFor()
-    for (const summary of await page.locator(".profile-section > summary").all()) await summary.click()
+    const accountContent = await page.locator("#profile-account").innerText()
+    const open = key => page.locator(`button[aria-controls="profile-${key}"]`).click()
+    await open("company")
+    await page.getByRole("heading", { name: companyTitle, exact: true }).waitFor()
     if (language === "es") {
-      for (const heading of ["Usuarios", "Sedes", "Suscripción", "Método de pago"]) await page.getByRole("heading", { name: heading, exact: true }).waitFor()
+      await open("users")
+      await page.getByRole("heading", { name: "Usuarios", exact: true }).waitFor()
+      const usersContent = await page.locator("#profile-users").innerText()
+      await open("sites")
+      await page.getByRole("heading", { name: "Sedes", exact: true }).waitFor()
+      await open("billing")
+      for (const heading of ["Suscripción", "Método de pago"]) await page.getByRole("heading", { name: heading, exact: true }).waitFor()
       assert.equal(await page.getByRole("button", { name: "Configuración", exact: true }).count(), 0)
       await page.getByRole("button", { name: "Registrar tarjeta de crédito", exact: true }).waitFor()
-      const content = await page.locator("main").innerText()
+      await page.getByText("Detalles de facturación", { exact: true }).click()
+      const content = [accountContent, usersContent, await page.locator("main").innerText()].join(" ")
       for (const translated of ["Administrador", "Cajero", "Período de prueba", "Mensual", "Pago automático con tarjeta", "Renovación automática", "Preferencias de correo electrónico"]) assert.ok(content.includes(translated), translated)
       for (const untranslated of ["Company information", "User profile", "Fee impact", "Payment method required", "Register credit card", "Subscription"]) assert.ok(!content.includes(untranslated), untranslated)
-      await page.screenshot({ path: `docs/screenshots/profile-translations/es-${width}.png` })
+      await open("account")
       const passwordRow = page.locator(".profile-edit-row").filter({ has: page.locator("strong", { hasText: /^Contraseña:/ }) })
       await passwordRow.getByRole("button", { name: "Editar", exact: true }).click()
       await page.getByPlaceholder("Contraseña actual", { exact: true }).fill("current-password")
       await page.getByPlaceholder("Nueva contraseña", { exact: true }).fill("new-password-one")
       await page.getByPlaceholder("Confirmar contraseña", { exact: true }).fill("new-password-two")
+      if (screenshots) await page.screenshot({ path: `${screenshots}/profile-password-es-${width}.png` })
       await page.getByRole("button", { name: "Cambiar contraseña", exact: true }).click()
       await page.getByText("Las nuevas contraseñas no coinciden", { exact: true }).waitFor()
     }

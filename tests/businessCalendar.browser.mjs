@@ -9,7 +9,7 @@ try {
   for (const [language, width, title, tab, monday, opens, closes, overnight, saveHours, event, type, saveDate, saved] of [
     ["en", 1100, "Settings", "Opening days and hours", "Monday", "Opens", "Closes", "Closing time is on the following day", "Save opening hours", "Special event", "Day status", "Save date", "Saved."],
     ["fr", 390, "Paramètres", "Jours et heures d’ouverture", "lundi", "Ouverture", "Fermeture", "L’heure de fermeture est le lendemain", "Enregistrer les horaires", "Événement particulier", "Statut du jour", "Enregistrer la date", "Enregistré."],
-    ["es", 390, "Configuración", "Días y horas de apertura", "lunes", "Apertura", "Cierre", "La hora de cierre corresponde al día siguiente", "Guardar horario", "Evento especial", "Estado del día", "Guardar fecha", "Guardado."],
+    ["es", 320, "Configuración", "Días y horas de apertura", "lunes", "Apertura", "Cierre", "La hora de cierre corresponde al día siguiente", "Guardar horario", "Evento especial", "Estado del día", "Guardar fecha", "Guardado."],
   ]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 } })
     await page.addInitScript(lang => localStorage.setItem("cameleyon-ui-language", lang), language)
@@ -24,7 +24,7 @@ try {
       if (!path.startsWith("/api/")) return route.continue()
       let result = null
       let status = 200
-      if (path.endsWith("/company/locations")) result = [{ id: 9, name: "Test site" }]
+      if (path.endsWith("/company/locations")) result = [{ id: 9, name: "Test site" }, { id: 10, name: "North site" }]
       if (path.endsWith("/company/profile")) result = { currencyCode: "HTG", timeZoneId: "Etc/GMT+5" }
       if (request.method() === "PUT") {
         status = 204
@@ -51,6 +51,10 @@ try {
     await page.goto(origin + "/tests/fixtures/calendar-settings.html")
     await page.getByRole("heading", { name: title, exact: true }).waitFor()
     assert.equal(await page.locator(".settings-tabs button").count(), 2)
+    const site = page.locator(".workspace-page-site")
+    await site.selectOption("10")
+    await page.locator(".stock-context").getByText("North site", { exact: true }).waitFor()
+    await site.selectOption("9")
     const month = page.locator("input[type=month]")
     await month.waitFor()
     await month.fill("2026-11")
@@ -60,7 +64,7 @@ try {
     await page.getByRole("button", { name: saveDate, exact: true }).click()
     await page.getByRole("status").filter({ hasText: saved }).waitFor()
     assert.deepEqual(datePayload, { dayType: "CLOSED", eventDescription: "Local festival" })
-    await page.getByRole("button", { name: "2026-11-20: Local festival", exact: true }).waitFor()
+    await page.getByRole("button", { name: /^2026-11-20: .+: Local festival$/ }).waitFor()
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true)
     if (process.env.HISTORY_SCREENSHOT_DIR) {
       await mkdir(process.env.HISTORY_SCREENSHOT_DIR, { recursive: true })
@@ -71,6 +75,10 @@ try {
     await page.getByRole("checkbox", { name: monday, exact: true }).check()
     await page.getByLabel(monday + " " + opens, { exact: true }).fill("22:00")
     await page.getByLabel(monday + " " + closes, { exact: true }).fill("02:00")
+    await page.getByRole("button", { name: saveHours, exact: true }).click()
+    await page.locator(".opening-hours-row").first().locator(".admin-field-error").waitFor()
+    assert.equal(hoursWrites, 0)
+    await page.waitForFunction(() => document.activeElement?.getAttribute("aria-invalid") === "true")
     await page.locator(".opening-hours-row").first().getByRole("checkbox", { name: overnight, exact: true }).check()
     await page.getByRole("button", { name: saveHours, exact: true }).click()
     await page.getByRole("status").filter({ hasText: saved }).waitFor()
@@ -96,6 +104,9 @@ try {
     assert.equal(await opensInput.isDisabled(), true)
     assert.equal(await page.locator("input[type=date]").isDisabled(), true)
     assert.equal(await saveButton.isDisabled(), true)
+    if (process.env.HISTORY_SCREENSHOT_DIR) await page.screenshot({
+      path: process.env.HISTORY_SCREENSHOT_DIR + "/opening-hours-" + language + ".png", fullPage: true,
+    })
     await page.getByRole("button", { name: edit, exact: true }).click()
     assert.equal(await mondayCheckbox.isDisabled(), false)
     assert.equal(await saveButton.isDisabled(), true)

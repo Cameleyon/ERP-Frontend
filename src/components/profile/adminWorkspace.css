@@ -1,0 +1,81 @@
+.admin-workspace { overflow-wrap: anywhere; }
+.admin-workspace .admin-split,
+.admin-workspace .admin-calendar-layout,
+.admin-workspace .admin-stack { display: grid; gap: 14px; min-width: 0; align-items: start; }
+.admin-workspace .admin-split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.admin-workspace .admin-calendar-layout { grid-template-columns: minmax(0, 430px) minmax(0, 1fr); }
+.admin-workspace .workspace-page-title { margin: 0; }
+.admin-workspace .settings-tabs { margin: 0; }
+.admin-workspace .profile-section-body { padding: 0; }
+.admin-workspace .profile-section > h2 { margin-bottom: 12px; }
+.admin-workspace .profile-section > summary,
+.admin-workspace .admin-billing-details > summary { cursor: pointer; font-weight: 700; color: var(--workspace-blue, #044975); }
+.admin-workspace .profile-section > summary { min-height: 44px; padding: 10px 0; }
+.admin-workspace .admin-disclosure[open] > summary { margin-bottom: 12px; }
+.admin-workspace .admin-billing-details > summary { padding: 12px 0; min-height: 44px; }
+.admin-workspace .profile-edit-list { gap: 0; }
+.admin-workspace .profile-edit-content { min-width: 0; }
+.admin-workspace .profile-edit-content strong { color: var(--workspace-navy, #062e49); }
+.admin-workspace .profile-edit-content input { max-width: none; }
+.admin-workspace .profile-edit-row:has(input) { flex-wrap: wrap; }
+.admin-workspace .profile-edit-row:has(input) .profile-edit-content { flex-basis: 100%; }
+.admin-workspace .stock-panel :is(.form-actions, .table-actions, .profile-edit-actions, .calendar-fields) button:not(.secondary-button) {
+  background: var(--workspace-action, #044975); color: var(--workspace-action-text, #fff);
+}
+.admin-workspace .admin-visually-hidden {
+  position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+.admin-workspace .stock-panel .secondary-button { background: #fff; border: 1px solid #9bb3c6; color: #044975; }
+.admin-workspace .stock-panel .admin-danger { background: #fff; border: 1px solid #d7a4a4; color: #a52323; }
+.admin-workspace .admin-currency { padding: 10px; background: #e5f7ef; border-radius: 6px; }
+.admin-workspace .admin-plan { display: grid; gap: 6px; }
+.admin-workspace :is(.admin-plan, .admin-restricted) p { margin: 0; }
+.admin-workspace .admin-restricted { display: grid; gap: 8px; background: #fff7e6; }
+.admin-workspace .detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+.admin-workspace .admin-records :is(td, th) { vertical-align: middle; }
+.admin-workspace .admin-records td:last-child button { white-space: normal; width: 100%; padding-inline: 5px; }
+.admin-workspace .calendar-month-select { margin-bottom: 0; }
+.admin-workspace .calendar-fields { margin-top: 12px; }
+.admin-workspace .opening-hours-row {
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 1.1fr)) minmax(0, 1.3fr);
+  gap: 8px 12px;
+}
+.admin-workspace .calendar-fields .terms-acceptance { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.admin-workspace .calendar-fields .terms-acceptance input { flex: none; }
+.admin-workspace .admin-schedule-summary {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px;
+  background: #f4f8fb; border: 1px solid #d4e1eb; border-radius: 6px; padding: 10px; margin-top: 12px;
+}
+.admin-workspace .admin-hours-form { display: grid; column-gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(140px, 210px); }
+.admin-workspace .admin-hours-form > .opening-hours-header { grid-area: 1 / 1 / 2 / -1; }
+.admin-workspace .admin-hours-form .admin-schedule-summary { grid-area: 2 / 2; align-self: start; }
+.admin-workspace .admin-hours-form > fieldset { grid-area: 2 / 1; }
+.admin-workspace .admin-saved { margin: 0; color: #164e3b; }
+.admin-workspace .admin-field-error { color: #a52323; grid-column: 1 / -1; margin: 0; font-size: 13px; }
+.admin-workspace .stock-panel .business-calendar button { padding: 0; min-height: 0; border-radius: 5px; }
+.admin-workspace .stock-panel .business-calendar [aria-pressed="true"] { background: #044975; color: #fff; }
+.admin-workspace .admin-calendar-legend { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.admin-workspace .admin-calendar-legend span { padding: 4px 8px; border: 1px solid #c9d9e1; border-radius: 5px; }
+.admin-workspace .admin-calendar-legend .calendar-closed-day { background: #e8ecef; }
+.admin-workspace .admin-calendar-legend .calendar-event-day { border-color: #168477; }
+.admin-workspace .calendar-recorded-dates { margin-bottom: 0; }
+@media (max-width: 1050px) {
+  .admin-workspace .admin-records { display: block; }
+  .admin-workspace .admin-records thead { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+  .admin-workspace .admin-records tbody { display: grid; }
+  .admin-workspace .admin-records tr { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid #d4e1eb; }
+  .admin-workspace .admin-records :is(th, td) { border: 0; padding: 0; }
+  .admin-workspace .admin-records td { display: flex; gap: 8px; justify-content: space-between; }
+  .admin-workspace .admin-records td > span:last-child { text-align: end; }
+  .admin-workspace .admin-records .stock-cell-label { display: inline; color: var(--workspace-muted, #435e74); }
+  .admin-workspace .admin-records td:last-child button { width: auto; padding-inline: 12px; }
+}
+@media (max-width: 900px) {
+  .admin-workspace :is(.admin-split, .admin-calendar-layout) { grid-template-columns: minmax(0, 1fr); }
+  .admin-workspace .admin-hours-form { display: block; }
+}
+@media (max-width: 700px) {
+  .admin-workspace .opening-hours-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-workspace .opening-hours-row .terms-acceptance { grid-column: 1 / -1; }
+  .admin-workspace .calendar-recorded-dates li { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+}

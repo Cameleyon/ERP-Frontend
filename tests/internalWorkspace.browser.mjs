@@ -67,6 +67,8 @@ try {
         companyCurrencyCode: firstUse ? null : "USD", companyTimeZoneId: "Etc/GMT+5",
         locations: sites, companyName: "Cameleyon Demo Store", firstName: "Demo", lastName: "Owner" }
       else if (path === "/api/company/locations") json = sites
+      else if (path === "/api/company/locations/all") json = sites
+      else if (path === "/api/auth/email-consent") json = { productUpdates: false }
       else if (path === "/api/company/profile") json = { companyId: 7, name: "Cameleyon Demo Store", timeZoneId: "Etc/GMT+5", currencyCode: "USD" }
       else if (path === "/api/company/subscription") json = firstUse
         ? { status: "TRIAL", accessEndAt: "2027-02-24T17:00:00Z" } : { status: "ACTIVE" }
@@ -229,7 +231,10 @@ try {
         assert.equal(await page.locator(".internal-dashboard").count(), 0, target)
         assert.equal(await page.locator(".workspace-dashboard-content").count(), 0, target)
         await page.locator("main h1").waitFor()
-        if (target === "settings") await page.locator(".business-calendar").waitFor()
+        if (target === "settings") {
+          await page.locator(".business-calendar").waitFor()
+          await capture(page, `settings-${language}-${device}`)
+        }
         if (target !== "products") {
           const pageSite = page.locator("main .workspace-page-site")
           await pageSite.waitFor()
@@ -237,6 +242,9 @@ try {
         }
         assert.equal(await page.locator("main").evaluate(node => node.scrollWidth <= node.clientWidth), true, target)
       }
+      await openPage(copy.common.profile)
+      await page.locator("#profile-account").waitFor()
+      await capture(page, `profile-${language}-${device}`)
     }
     assert.deepEqual(errors, [])
     console.log("PASS workspace", language, width, firstUse ? "first use" : "populated, empty period, filters and navigation")
