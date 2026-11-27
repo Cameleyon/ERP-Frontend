@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { createRequire } from "node:module"
 import { mkdir } from "node:fs/promises"
 import { messages } from "../src/i18n/messages.ts"
+import { customerWorkspaceCopy } from "../src/components/customers/customerWorkspaceCopy.ts"
 const { chromium } = createRequire(import.meta.url)("playwright")
 const browser = await chromium.launch({ channel: "msedge", headless: true })
 const origin = process.env.PRODUCT_SEARCH_PREVIEW_URL || "http://127.0.0.1:5203"
@@ -38,7 +39,10 @@ try {
       let json
       if (path === "/api/auth/me") json = { id: 8, companyId: 7, role: "ADMIN", companyName: "Test store" }
       else if (path === "/api/company/locations") json = [{ id: 9, name: "Site", active: true, primaryLocation: true }]
-      else if (path === "/api/customers") json = [{ id: 21, name: "Test customer", email: "test@example.invalid", active: true }]
+      else if (path === "/api/customers") json = [
+        { id: 20, name: "Test customer", phone: "111", email: "first@example.invalid" },
+        { id: 21, name: "Test customer", phone: "222", email: "test@example.invalid" },
+      ]
       else if (path === "/api/sales/product-lookup") json = [product]
       else if (path.startsWith("/api/sales/product-lookup/sku/")) json = product
       else if (path === "/api/sales/product-lookup/barcode/885555") json = product
@@ -81,19 +85,29 @@ try {
       await control(add).click()
       assert.equal(await page.locator(".cart-item-row").count(), 1)
       assert.match(await page.locator(".sales-summary").innerText(), /12\.00/)
-      await control(copy.cartTable.remove).click()
-      await page.locator(".cart-line-table").getByText(copy.cartTable.empty, { exact: true }).waitFor()
       const customer = page.getByPlaceholder(text.searchCustomerPlaceholder)
       await customer.fill("Test customer")
-      await control("Test customer").waitFor()
+      await page.locator(".sale-customer-suggestion").filter({ hasText: "111" }).click()
+      await page.locator(".sale-selected-customer").getByText(/111/).waitFor()
+      await control(text.debitCard).click()
+      await page.getByPlaceholder(text.paymentReferencePlaceholder).fill("DRAFT-REF")
+      await control(customerWorkspaceCopy[language].keepWalkIn).click()
+      await page.locator(".sale-selected-customer").getByText(text.walkInCustomer, { exact: true }).waitFor()
+      assert.match(await page.locator(".sales-summary").innerText(), /12\.00/)
+      assert.equal(await control(text.debitCard).getAttribute("aria-pressed"), "true")
+      assert.equal(await page.getByPlaceholder(text.paymentReferencePlaceholder).inputValue(), "DRAFT-REF")
+      await customer.fill("222")
+      const match = page.locator(".sale-customer-suggestion").filter({ hasText: "222" })
+      await match.waitFor()
       if (width === 1440) {
         await customer.press("Tab")
-        assert.equal(await control("Test customer").evaluate(el => el === document.activeElement), true)
+        assert.equal(await match.evaluate(el => el === document.activeElement), true)
         await page.keyboard.press("Enter")
       } else {
-        await control("Test customer").click()
+        await match.click()
       }
-      await control(text.debitCard).click()
+      await control(copy.cartTable.remove).click()
+      await page.locator(".cart-line-table").getByText(copy.cartTable.empty, { exact: true }).waitFor()
       await control(text.creditCard).click()
     }
     await reviewDraft()

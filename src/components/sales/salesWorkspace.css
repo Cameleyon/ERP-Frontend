@@ -13,6 +13,9 @@
 .sales-workspace .sales-total strong:last-child, .sales-workspace .sales-subtotal { color: var(--workspace-navy); font-size: 25px; font-weight: 800; overflow-wrap: anywhere; }
 .sales-workspace .sales-subtotal { display: block; margin: 0; }
 .sales-workspace .sale-customer-payment-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+.sales-workspace .sale-selected-customer { display: grid; gap: 3px; margin: 8px 0; overflow-wrap: anywhere; }
+.sales-workspace .sale-customer-suggestion { display: grid; gap: 3px; white-space: normal; overflow-wrap: anywhere; }
+.sales-workspace .sale-customer-search-block .stock-actions { margin-top: 8px; }
 .sales-workspace .sale-payment-choice-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 .sales-workspace .sale-payment-choice-buttons button.active-choice { color: var(--workspace-navy); background: var(--workspace-mint-wash); border-color: var(--workspace-mint-line); }
 .sales-workspace .sale-form-row button { align-self: end; }

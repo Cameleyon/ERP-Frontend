@@ -1,0 +1,32 @@
+export const customerWorkspaceCopy = {
+  en: {
+    intro: "Find a customer and review their contact information or past purchases.",
+    search: "Search by customer name", view: "View customer", back: "Back to Customers",
+    contact: "Contact information", record: "Customer record", missing: "Not provided",
+    optional: "Optional", nameOnly: "Only the customer's name is required.", delete: "Delete customer",
+    deleteNote: "Check the contact information before deleting this record.",
+    consent: "Promotional email consent", accepted: "Accepted", declined: "Not accepted",
+    past: "Past purchases", noPurchases: "No purchases recorded.", retry: "Retry",
+    keepWalkIn: "Keep walk-in customer",
+  },
+  fr: {
+    intro: "Retrouvez un client, ses coordonnées et ses achats précédents.",
+    search: "Rechercher par nom du client", view: "Voir le client", back: "Retour aux clients",
+    contact: "Coordonnées", record: "Dossier client", missing: "Non renseigné",
+    optional: "Facultatif", nameOnly: "Seul le nom du client est obligatoire.", delete: "Supprimer le client",
+    deleteNote: "Vérifiez les coordonnées avant de supprimer ce dossier.",
+    consent: "Consentement aux courriels promotionnels", accepted: "Accepté", declined: "Non accepté",
+    past: "Achats précédents", noPurchases: "Aucun achat enregistré.", retry: "Réessayer",
+    keepWalkIn: "Garder le client de passage",
+  },
+  es: {
+    intro: "Encuentre un cliente y consulte sus datos de contacto o compras anteriores.",
+    search: "Buscar por nombre del cliente", view: "Ver cliente", back: "Volver a Clientes",
+    contact: "Datos de contacto", record: "Ficha del cliente", missing: "No indicado",
+    optional: "Opcional", nameOnly: "Solo se requiere el nombre del cliente.", delete: "Eliminar cliente",
+    deleteNote: "Verifique los datos de contacto antes de eliminar esta ficha.",
+    consent: "Consentimiento para correos promocionales", accepted: "Aceptado", declined: "No aceptado",
+    past: "Compras anteriores", noPurchases: "No hay compras registradas.", retry: "Reintentar",
+    keepWalkIn: "Mantener cliente de paso",
+  },
+} as const

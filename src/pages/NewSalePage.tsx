@@ -20,6 +20,7 @@ import { parseExactDecimal, parseStockQuantity } from "../utils/decimalInput"
 import { receiptErrorMessage } from "../i18n/inventoryReceiptMessages"
 import { StockFacts } from "../components/inventory/StockWorkspace"
 import { salesWorkspaceCopy } from "../components/sales/salesWorkspaceCopy"
+import { customerWorkspaceCopy } from "../components/customers/customerWorkspaceCopy"
 import "../components/sales/salesWorkspace.css"
 
 type CartItem = {
@@ -503,11 +504,19 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
                     }}
                     onClick={() => handleSelectCustomer(customer)}
                   >
-                    {customer.name}
+                    <strong>{customer.name}</strong>
+                    <small>{[customer.phone, customer.email, `#${customer.id}`].filter(Boolean).join(" · ")}</small>
                   </button>
                 ))}
               </div>
             )}
+            <div className="stock-actions">
+              <button type="button" className="workspace-outline" onClick={() => {
+                setSelectedCustomerId("WALK_IN")
+                setCustomerSearch("")
+                setCustomerSuggestionsOpen(false)
+              }}>{customerWorkspaceCopy[language].keepWalkIn}</button>
+            </div>
           </div>
 
           <div className="sale-payment-choice-group">
@@ -542,12 +551,11 @@ export default function NewSalePage({ preferredSiteId, menuSelection, onSiteChan
         </div>
 
         <div className="sale-customer-results">
-          {selectedCustomer && (
-            <p className="sale-customer-selected">
-              <strong>{text.selectedCustomer}:</strong> {selectedCustomer.name}
-              {selectedCustomer.phone ? ` - ${selectedCustomer.phone}` : ""}
-            </p>
-          )}
+          <div className="stock-context sale-selected-customer">
+            <strong>{text.selectedCustomer}</strong>
+            <span>{selectedCustomer?.name ?? text.walkInCustomer}</span>
+            {selectedCustomer && <small>{[selectedCustomer.phone, selectedCustomer.email, `#${selectedCustomer.id}`].filter(Boolean).join(" · ")}</small>}
+          </div>
 
           {!customersLoading && customerSearch.trim() && filteredCustomers.length === 0 && (
             <p className="sale-customer-empty">{text.noCustomerMatch}</p>

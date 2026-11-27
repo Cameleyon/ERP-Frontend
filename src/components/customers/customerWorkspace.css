@@ -1,0 +1,54 @@
+.customer-workspace .customer-directory-search { max-width: 610px; margin-bottom: 18px; }
+.customer-workspace .customer-directory-search .sale-product-name-suggestions { z-index: 2; }
+.customer-workspace .customer-identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.customer-workspace .customer-identity > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.customer-workspace .customer-initials {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--workspace-mint-wash, #e5f7ef);
+  color: #164e3b;
+}
+.customer-workspace .customer-directory-table :is(th,td) { vertical-align: middle; }
+.customer-workspace .customer-directory-table th:first-child { width: 30%; }
+.customer-workspace .customer-directory-table th:nth-child(3) { width: 31%; }
+.customer-workspace .customer-contact-value { min-width: 0; overflow-wrap: anywhere; }
+.customer-workspace .customer-editor { display: grid; gap: 12px; max-width: 740px; }
+.customer-workspace .customer-editor .stock-field { margin: 0; }
+.customer-workspace .customer-editor .customer-consent {
+  padding-top: 10px;
+  border-top: 1px solid var(--workspace-line, #d4e1eb);
+}
+.customer-workspace .customer-details-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; gap: 14px; }
+.customer-workspace .customer-record { display: grid; gap: 14px; min-width: 0; }
+.customer-workspace .customer-purchase-table .sales-history-actions { justify-content: end; }
+.customer-workspace .customer-purchase-table .sales-history-actions button { min-height: 44px; }
+.customer-workspace .customer-details-layout .stock-facts dd { min-width: 0; overflow-wrap: anywhere; }
+.customer-workspace .customer-actions { margin-top: 8px; }
+.customer-workspace .workspace-outline.customer-danger-outline { color: #9e2530; border-color: #bd6770; }
+.customer-workspace .stock-panel.customer-delete-dialog button.customer-delete-confirm { background: #9e2530; color: #fff; }
+.customer-workspace .customer-back { justify-self: start; }
+.customer-workspace .customer-purchase-table th:first-child { width: 17%; }
+.customer-workspace .customer-purchase-table th:last-child { width: 32%; }
+.customer-workspace .customer-purchase-pagination { display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.customer-workspace .stock-panel.customer-delete-dialog { width: min(500px, calc(100% - 24px)); max-height: calc(100dvh - 24px); margin: auto; }
+.customer-workspace .customer-delete-dialog .stock-facts > div { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.customer-workspace .customer-delete-dialog::backdrop { background: rgb(6 46 73 / 58%); }
+.customer-workspace .customer-error { padding: 12px; border: 1px solid #e8adb1; border-radius: 8px; background: #fff0f0; color: #8a1c23; }
+.customer-workspace .customer-error p { margin: 0 0 8px; }
+.customer-workspace .customer-purchase-details .invoice-table { min-width: 0; }
+@media (max-width: 1150px) {
+  .customer-workspace :is(.customer-directory-table, .customer-purchase-table) tbody th:first-child { width: auto; }
+  .customer-workspace .customer-directory-table .stock-cell-label { flex-shrink: 0; max-width: 48%; }
+  .customer-workspace .customer-purchase-table .sales-history-actions { justify-content: start; }
+}
+@media (max-width: 950px) {
+  .customer-workspace .customer-details-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+  .customer-workspace .stock-heading > .stock-actions, .customer-workspace .stock-heading > .stock-actions > button { width: 100%; }
+  .customer-workspace .customer-purchase-pagination { justify-content: space-between; }
+}

@@ -29,10 +29,10 @@ export default function CustomerPurchaseActions({ sale, disabled, onUpdated }: {
 
   return <>
     <div className="table-actions sales-history-actions">
-      <button type="button" className="compact-action-button" disabled={disabled || cancelling}
+      <button type="button" className="workspace-outline" disabled={disabled || cancelling}
         onClick={() => setViewing(true)}>{text.viewDetails}</button>
       {user?.role === "ADMIN" && sale.status === "COMPLETED" && <button type="button"
-        className="danger-button compact-action-button" disabled={disabled || cancelling} onClick={cancel}>
+        className="workspace-outline customer-danger-outline" disabled={disabled || cancelling} onClick={cancel}>
         {cancelling ? text.processing : text.cancel}</button>}
     </div>
     {viewing && <PurchaseDetails saleId={sale.id} onClose={() => setViewing(false)} />}
