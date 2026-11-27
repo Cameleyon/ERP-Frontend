@@ -59,8 +59,33 @@
   overflow-wrap: anywhere;
 }
 .internal-shell .workspace-sidebar :focus-visible { outline-color: currentColor; }
-.internal-shell .workspace-menu-site { display: grid; gap: 4px; min-width: 0; margin-top: 8px; font-size: 13px; }
-.internal-shell .workspace-menu-site select { width: 100%; min-width: 0; min-height: 44px; padding: 6px; }
+.internal-shell .workspace-menu-site {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 32px;
+  border-radius: 4px;
+}
+.internal-shell .workspace-menu-site:has(select:focus-visible) { outline: 2px solid currentColor; outline-offset: 3px; }
+.internal-shell .workspace-menu-site select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.internal-shell .workspace-menu-site-chevron {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+.internal-shell .workspace-sidebar-mobile .workspace-menu-site { min-height: 44px; }
 .internal-shell .workspace-company {
   padding: 12px;
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);

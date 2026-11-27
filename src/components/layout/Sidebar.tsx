@@ -18,6 +18,8 @@ export default function Sidebar({ page, onNavigate, mobile = false, menuSites, m
   const text = internalCopy[language]
   const isAdmin = user?.role === "ADMIN"
   const defaultSiteLabel = { en: "Default site", fr: "Site par défaut", es: "Sede predeterminada" }[language]
+  const selectedSite = menuSites.find(site => site.id === menuSite)
+  const companyName = user?.companyName || "CAMELEYON-ERP"
   const labels = { dashboard: copy.sidebar.dashboard, customers: copy.sidebar.customers,
     products: copy.sidebar.products, "cost-rubrics": copy.sidebar.costRubrics, "new-sale": copy.sidebar.newSale,
     "sales-history": copy.sidebar.salesHistory, inventory: copy.sidebar.inventory, profile: copy.common.profile,
@@ -42,22 +44,22 @@ export default function Sidebar({ page, onNavigate, mobile = false, menuSites, m
     {user && <div className="workspace-company">
       <div className="sidebar-company-header">
         {user.companyLogoUrl && <img src={user.companyLogoUrl} alt="" className="sidebar-company-logo" />}
-        <strong>{user.companyName || "CAMELEYON-ERP"}</strong>
+        {menuSites.length > 0 ? <label className="workspace-menu-site">
+          <strong aria-hidden="true">{selectedSite?.name ?? companyName}</strong>
+          <span className="workspace-menu-site-chevron" aria-hidden="true" />
+          <select aria-label={defaultSiteLabel} value={selectedSite ? String(selectedSite.id) : ""}
+            onChange={event => {
+              if (event.target.value) onMenuSiteChange(Number(event.target.value))
+            }}>
+            <option value="" disabled hidden>{setupCopy[language].selectSite}</option>
+            {menuSites.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+          </select>
+        </label> : <strong>{companyName}</strong>}
       </div>
       <span>{profileValueLabel(user.role, language)}</span>
       {([user.firstName, user.lastName].some(Boolean) || user.email) &&
         <span className="workspace-user">{[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}</span>}
       <LanguageSwitcher className="sidebar-language-switcher" />
-      {menuSites.length > 0 && <label className="workspace-menu-site">
-        {defaultSiteLabel}
-        <select value={menuSites.some(site => site.id === menuSite) ? String(menuSite) : ""}
-          onChange={event => {
-            if (event.target.value) onMenuSiteChange(Number(event.target.value))
-          }}>
-          <option value="" disabled hidden>{setupCopy[language].selectSite}</option>
-          {menuSites.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
-        </select>
-      </label>}
     </div>}
     <nav className="sidebar-nav" aria-label={text.navigation}>
       {isAdmin && group(text.overview, ["dashboard"])}

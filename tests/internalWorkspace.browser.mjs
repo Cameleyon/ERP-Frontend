@@ -112,6 +112,8 @@ try {
       await menuSite.waitFor()
       assert.deepEqual(await menuSite.locator("option:enabled").allTextContents(), sites.map(site => site.name))
       await menuSite.selectOption(id)
+      const title = page.locator(".workspace-sidebar:visible .sidebar-company-header strong")
+      assert.equal(await title.textContent(), sites.find(site => String(site.id) === id).name)
       if (mobile) {
         await page.keyboard.press("Escape")
         await page.locator(".workspace-menu-dialog").waitFor({ state: "hidden" })
