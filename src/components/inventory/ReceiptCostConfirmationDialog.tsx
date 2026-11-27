@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 
 export default function ReceiptCostConfirmationDialog({
-  title, message, prompt, reviewLabel, confirmLabel, onReview, onConfirm,
+  title, message, prompt, reviewLabel, confirmLabel, onReview, onConfirm, children,
 }: {
   title: string
   message: string
@@ -10,6 +10,7 @@ export default function ReceiptCostConfirmationDialog({
   confirmLabel: string
   onReview: () => void
   onConfirm: () => void
+  children?: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const reviewRef = useRef<HTMLButtonElement>(null)
@@ -29,6 +30,7 @@ export default function ReceiptCostConfirmationDialog({
         <p>{message}</p>
         {prompt && <p>{prompt}</p>}
       </div>
+      {children}
       <div className="form-actions">
         <button ref={reviewRef} type="button" className="secondary-button" onClick={onReview}>{reviewLabel}</button>
         <button type="button" onClick={onConfirm}>{confirmLabel}</button>

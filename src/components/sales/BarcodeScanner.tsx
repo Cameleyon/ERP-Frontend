@@ -27,6 +27,13 @@ export default function BarcodeScanner({ onDetected }: Props) {
         stop: "Arrêter le scanner",
         lastDetected: "Dernier détecté",
       }
+    : language === "es" ? {
+        noCamera: "No se encontró ninguna cámara",
+        scannerStartError: "No se pudo iniciar el escáner",
+        start: "Iniciar escáner",
+        stop: "Detener escáner",
+        lastDetected: "Último código detectado",
+      }
     : {
         noCamera: "No camera found",
         scannerStartError: "Unable to start the scanner",
@@ -72,7 +79,10 @@ export default function BarcodeScanner({ onDetected }: Props) {
         cameraId,
         {
           fps: 8,
-          qrbox: { width: 320, height: 140 },
+          qrbox: (width, height) => ({
+            width: Math.min(320, Math.floor(width * 0.85)),
+            height: Math.min(140, Math.floor(height * 0.85)),
+          }),
           aspectRatio: 1.7778,
           disableFlip: false,
         },

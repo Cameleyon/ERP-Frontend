@@ -2,7 +2,8 @@ import assert from "node:assert/strict"
 import { createRequire } from "node:module"
 import { readFile, mkdir } from "node:fs/promises"
 const { chromium } = createRequire(import.meta.url)("playwright")
-const catalog = JSON.parse(await readFile(new URL("../../CAMELEYON-ERP/src/main/resources/inventory/cost-catalog.json", import.meta.url), "utf8"))
+const catalog = JSON.parse(await readFile(process.env.COST_CATALOG_FIXTURE
+  || new URL("../../CAMELEYON-ERP/src/main/resources/inventory/cost-catalog.json", import.meta.url), "utf8"))
 const origin = process.env.COST_CATALOG_PREVIEW_URL || "http://127.0.0.1:5203"
 const shots = process.env.COST_CATALOG_SCREENSHOTS || "docs/screenshots/cost-catalog"
 await mkdir(shots, { recursive: true })
@@ -64,7 +65,7 @@ try {
       await route.fulfill({ headers, json: body })
     })
     await page.goto(origin + "/tests/fixtures/cost-catalog.html")
-    await page.getByRole("cell", { name: purchase.catalog.names[language], exact: true }).waitFor()
+    await page.getByRole("rowheader", { name: purchase.catalog.names[language], exact: true }).waitFor()
     assert.equal(await page.locator("details").count(), 0, "custom rubric creation section is removed")
     assert.equal(await page.locator(".cost-rubric-form").count(), 0)
     assert.equal(await page.locator("tbody tr").count(), 11)

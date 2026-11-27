@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { getProductByCode, getProductBySku, type ProductLookupResponse } from "../api/productApi"
 import ProductLookup from "../components/sales/ProductLookup"
 import { getAccessibleCompanyLocations, type CompanyLocationResponse } from "../api/companyLocationsApi"
@@ -30,6 +30,8 @@ import { parseStockQuantity } from "../utils/decimalInput"
 import { getProduct } from "../api/productManagementApi"
 import { preferredSetupSite } from "../utils/setupGuide"
 import { setupCopy } from "../i18n/setupCopy"
+import { stockWorkspaceCopy } from "../i18n/stockWorkspaceCopy"
+import { StockFacts, StockHeading, StockStatus } from "../components/inventory/StockWorkspace"
 
 type CostAmountMap = Record<number, string>
 type InventoryPageCopy = (typeof messages)[keyof typeof messages]["inventoryPage"]
@@ -50,11 +52,12 @@ type PendingReceipt = {
   payload: CreateInventoryReceiptRequest
   productName: string
   sku: string
+  opening?: boolean
 }
 type ReceiptDraft = Omit<PendingReceipt, "key">
 type CostReview = { draft: ReceiptDraft; type: ReceiptConfirmationType; firstZeroId?: number }
 
-type OpeningProps = { productId?: number; preferredSiteId?: number; onReviewProducts?: () => void }
+type OpeningProps = { productId?: number; preferredSiteId?: number; inspectStock?: boolean; onReviewProducts?: () => void }
 
 export default function InventoryPage(props: OpeningProps = {}) {
   const { user } = useAuth()
@@ -63,10 +66,14 @@ export default function InventoryPage(props: OpeningProps = {}) {
   return <InventoryContent key={scope} storageKey={scope} {...props} />
 }
 
-function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProducts }: OpeningProps & { storageKey: string }) {
+function InventoryContent({ storageKey, productId, preferredSiteId, inspectStock, onReviewProducts }: OpeningProps & { storageKey: string }) {
   const { copy, language } = useI18n()
+  const { user } = useAuth()
   const text = copy.inventoryPage
   const guide = setupCopy[language]
+  const labels = stockWorkspaceCopy[language]
+  const currency = user?.companyCurrencyCode || "USD"
+  const money = (value: number) => formatCurrency(value, currency, language)
 
   const [productCode, setProductCode] = useState("")
   const [lookupLoading, setLookupLoading] = useState(false)
@@ -95,6 +102,9 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
   const [costReview, setCostReview] = useState<CostReview | null>(null)
   const receiveButton = useRef<HTMLButtonElement>(null)
   const [activeReceipts, setActiveReceipts] = useState<InventoryReceiptResponse[]>([])
+  const [view, setView] = useState<"receive" | "active">("receive")
+  const [focusedReceiptProduct, setFocusedReceiptProduct] = useState<{ id: number; name: string } | null>(null)
+  const [received, setReceived] = useState<{ receipt: InventoryReceiptResponse; productName: string; unit: string } | null>(null)
   const [withdrawalReceiptId, setWithdrawalReceiptId] = useState<number | null>(null)
   const [withdrawalQuantity, setWithdrawalQuantity] = useState("1")
   const [withdrawalReason, setWithdrawalReason] = useState("")
@@ -209,6 +219,7 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
     }
     clearProductSelection()
     setLocationId(nextLocationId)
+    setFocusedReceiptProduct(null)
     setProductCode("")
     setWithdrawalReceiptId(null)
     setEditingReceiptId(null)
@@ -299,6 +310,7 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
     const draft: ReceiptDraft = {
       productName: selectedProduct.name,
       sku: selectedProduct.sku,
+      opening: handoffId === selectedProduct.id && !inspectStock,
       payload: {
         locationId: Number(locationId),
         productId: selectedProduct.id,
@@ -367,14 +379,22 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
     setError("")
     setFieldError(null)
     setSuccess("")
+    setReceived(null)
     setRefreshWarning("")
     try {
       const response = await createInventoryReceipt(operation.payload, operation.key)
+      const opening = operation.opening ?? (handoffId === operation.payload.productId && !inspectStock)
+      setReceived({ receipt: response, productName: operation.productName, unit: selectedProduct?.unitName || "" })
       finishPending()
       setHandoffId(undefined)
       clearProductSelection()
       setProductCode("")
       setSuccess(text.receiptSuccess(response.id))
+      if (opening) {
+        setFocusedReceiptProduct({ id: operation.payload.productId, name: operation.productName })
+        setView("active")
+        requestAnimationFrame(() => inventoryHeading.current?.focus())
+      }
       // A committed receipt stays confirmed even if this independent read fails.
       try {
         await loadOpenReceipts(Number(response.locationId))
@@ -527,34 +547,45 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
   const primaryRubrics = rubrics.filter(rubric => ["COST_OF_GOODS", "TRANSPORT"].includes(rubric.catalog?.code ?? rubric.code))
   const additionalRubrics = rubrics.filter(rubric => !primaryRubrics.includes(rubric))
   const visibleRubrics = [...primaryRubrics, ...additionalRubrics.filter(rubric =>
-    showMoreCosts || (costAmounts[rubric.id] ?? "").trim() !== "")]
+    showMoreCosts || fieldError?.id === `receipt-cost-${rubric.id}` || (costAmounts[rubric.id] ?? "").trim() !== "")]
   const validQuantity = parseStockQuantity(quantity, selectedProduct?.quantityType === "INTEGER")
   const unitCost = costAssessment && validQuantity.cents
     ? Number((costAssessment.totalUnits * 100n + validQuantity.cents / 2n) / validQuantity.cents) / 10000
     : null
   const unitLabel = selectedProduct?.unitName ? ` ${selectedProduct.unitName}` : ""
+  const selectedSiteName = locations.find(site => String(site.id) === locationId)?.name
+  const opening = !!handoffId && !inspectStock
+  const showReceiptEditor = view === "receive"
+  const siteField = (label: string) => locations.length > 0 && <label className="stock-field">
+    {label}
+    <select ref={siteControl} aria-label={guide.site} value={locationId} disabled={saveLoading || !!pending}
+      onChange={event => void handleLocationChange(event.target.value)}>
+      {!locationId && <option value="">{guide.selectSite}</option>}
+      {locations.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+    </select>
+  </label>
 
   return (
-    <div>
-      <div className="page-title-row">
-        <h1 ref={inventoryHeading} tabIndex={-1}>{text.title}</h1>
-
-        {locations.length > 0 && (
-          <label className="page-title-site-filter">
-            <select ref={siteControl} aria-label={guide.site} value={locationId} disabled={saveLoading || !!pending} onChange={(event) => void handleLocationChange(event.target.value)}>
-              {!locationId && <option value="">{guide.selectSite}</option>}
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+    <div className="stock-workspace">
+      <StockHeading headingRef={inventoryHeading} title={text.title} description={showReceiptEditor ? labels.receiveHelp : labels.activeHelp}>
+        {!showReceiptEditor && <button type="button" className="workspace-primary" onClick={() => setView("receive")}>{text.receiveStock}</button>}
+      </StockHeading>
+      <div className="stock-view-switch" role="group" aria-label={text.title}>
+        <button type="button" aria-pressed={showReceiptEditor} aria-controls="stock-receiving-view" onClick={() => setView("receive")}>{labels.receiving}</button>
+        <button type="button" aria-pressed={!showReceiptEditor} aria-controls="stock-active-view" disabled={saveLoading || !!pending}
+          onClick={() => { setShowScanner(false); setView("active") }}>{text.activeReceipts}</button>
       </div>
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
-      {success && <div className="card success">{success}</div>}
+      {success && <div className="stock-panel stock-highlight" role="status">
+        <strong>{success}</strong>
+        {received && success === text.receiptSuccess(received.receipt.id) && <p>
+          {[received.productName, received.receipt.locationName || selectedSiteName,
+          Number.isFinite(received.receipt.receivedQuantity) ? `${formatNumber(received.receipt.receivedQuantity)} ${received.unit}`.trim() : null,
+          Number.isFinite(received.receipt.totalCostAmount) ? `${text.totalCost}: ${money(received.receipt.totalCostAmount)}` : null,
+          Number.isFinite(received.receipt.unitCost) ? `${text.unitAcquisitionCost}: ${money(received.receipt.unitCost)}` : null].filter(Boolean).join(" · ")}
+        </p>}
+      </div>}
       {refreshWarning && <p role="status">{refreshWarning}</p>}
       {handoffId && !pending && (handoffError || !rubricsLoading && !locations.length) && <div className="card">
         <p role="status">{handoffError || guide.siteBlocked}</p>
@@ -567,37 +598,36 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
         onReview={() => { setSiteReview(null); requestAnimationFrame(() => siteControl.current?.focus()) }}
         onConfirm={() => { const next = siteReview; setSiteReview(null); void handleLocationChange(next, true) }} />}
 
-      <div className="card inventory-receipt-editor">
-        <h3>{text.inventoryForm}</h3>
-        <div className="card nested-card scanner-toggle-card">
-          <div className="scanner-header">
-            <h3>{text.scannerTitle}</h3>
-            <button type="button" className="secondary-button" disabled={saveLoading || !!pending || rubricsLoading || !locationId} onClick={() => setShowScanner((prev) => !prev)}>
-              {showScanner ? text.closeScanner : text.openScanner}
-            </button>
-          </div>
-          {showScanner && (
-            <div className="scanner-container">
-              <BarcodeScanner onDetected={handleDetectedBarcode} />
-            </div>
-          )}
+      <div id="stock-receiving-view" className="stock-receive-layout inventory-receipt-editor" hidden={!showReceiptEditor}>
+        <section className="stock-panel stock-receive-context">
+          <div className="stock-panel-heading"><h2>{opening ? guide.opening : text.createReceipt}</h2>
+            <button type="button" className="workspace-outline" aria-expanded={showScanner}
+              disabled={saveLoading || !!pending || rubricsLoading || !locationId} onClick={() => setShowScanner(prev => !prev)}>
+              {showScanner ? text.closeScanner : text.scannerTitle}
+            </button></div>
+          {showScanner && <div className="scanner-container"><BarcodeScanner onDetected={handleDetectedBarcode} /></div>}
+          <div className="stock-field-pair">
+          {showReceiptEditor && siteField(labels.site)}
+          <ProductLookup key={locationId} embedded disabled={saveLoading || !!pending || rubricsLoading || !locationId}
+            value={productCode} lookupLoading={lookupLoading} onError={setError}
+            onChange={value => { setHandoffId(undefined); setHandoffError(""); clearProductSelection(); setProductCode(value) }}
+            onLookup={() => { void handleLookup() }}
+            onSelect={product => { setProductCode(product.name); void handleLookup(product.sku, product) }} />
         </div>
-        <ProductLookup key={locationId} embedded disabled={saveLoading || !!pending || rubricsLoading || !locationId}
-          value={productCode} lookupLoading={lookupLoading} onError={setError}
-          onChange={value => { setHandoffId(undefined); setHandoffError(""); clearProductSelection(); setProductCode(value) }}
-          onLookup={() => { void handleLookup() }}
-          onSelect={product => { setProductCode(product.name); void handleLookup(product.sku, product) }} />
 
         {selectedProduct && (
-          <fieldset disabled={saveLoading || !!pending} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-          <h3>{text.createReceipt}</h3>
-          <p><strong>{text.name}:</strong> {selectedProduct.name}</p>
-          <p><strong>SKU:</strong> {selectedProduct.sku}</p>
-          <p><strong>{text.unit}:</strong> {selectedProduct.unitName || "-"}</p>
-          <p><strong>{text.currentStock}:</strong> {formatNumber(selectedProduct.currentStock)}{unitLabel}</p>
-          <p><strong>{text.minimumStock}:</strong> {formatNumber(selectedProduct.minimumStock)}{unitLabel}</p>
+          <fieldset disabled={saveLoading || !!pending} className="stock-fieldset">
+          <div className="stock-context">
+            <div><strong>{selectedProduct.name}</strong>
+              <p className="stock-muted">{[selectedProduct.sku, selectedProduct.unitName,
+                selectedProduct.quantityType === "INTEGER" ? copy.productsPage.quantityInteger : copy.productsPage.quantityDecimal].filter(Boolean).join(" · ")}</p>
+            </div>
+            <div><strong>{text.currentStock}: {formatNumber(selectedProduct.currentStock)}{unitLabel}</strong>
+              <p className="stock-muted">{text.minimumStock}: {formatNumber(selectedProduct.minimumStock)}{unitLabel}</p>
+            </div>
+          </div>
 
-          <div className="inventory-form-grid">
+          <div className="stock-field-pair stock-receive-quantity">
             <label>
               {text.receivedQuantity}{unitLabel ? ` (${selectedProduct.unitName})` : ""}
               <QuantityInput
@@ -611,8 +641,8 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
               <FieldError id="receipt-quantity" error={fieldError} />
             </label>
 
-            <label className="full-width">
-              {text.notes}
+            <label>
+              {labels.notes}
               <input
                 type="text"
                 value={notes}
@@ -621,15 +651,19 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
               />
             </label>
           </div>
-
-          <div className="card nested-card">
-            <h3>{text.costRubrics}</h3>
+          </fieldset>
+        )}
+        </section>
+        {selectedProduct && <>
+          <fieldset className="stock-panel stock-receive-costs" disabled={saveLoading || !!pending} aria-labelledby="stock-cost-heading">
+            <h2 id="stock-cost-heading">{labels.acquisition} <small>({currency})</small></h2>
+            <p className="stock-muted">{labels.costHint}</p>
             {rubricsLoading ? (
               <p>{text.rubricsLoading}</p>
             ) : rubrics.length === 0 ? (
               <p>{text.rubricsEmpty}</p>
             ) : (
-              <div id="receipt-cost-fields" className="inventory-form-grid">
+              <div id="receipt-cost-fields" className="stock-field-pair">
                 {visibleRubrics.map((rubric) => {
                   const code = rubric.catalog?.code ?? rubric.code
                   const name = code === "COST_OF_GOODS" ? text.totalPurchasePrice : code === "TRANSPORT"
@@ -657,43 +691,54 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
                 })}
               </div>
             )}
-            {additionalRubrics.length > 0 && <button type="button" className="secondary-button"
+            {additionalRubrics.length > 0 && <button type="button" className="stock-disclosure-button"
               aria-expanded={showMoreCosts} aria-controls="receipt-cost-fields" onClick={() => setShowMoreCosts(show => !show)}>
-              {showMoreCosts ? text.hideMoreCosts : text.showMoreCosts}
+              <span aria-hidden="true">{showMoreCosts ? "− " : "+ "}</span>{showMoreCosts ? text.hideMoreCosts : text.showMoreCosts}
             </button>}
-            <div className="receipt-summary">
-              <p><strong>{text.totalAcquisitionCost}:</strong> {costAssessment ? formatCurrency(totalCost) : "-"}</p>
-              <p><strong>{text.unitAcquisitionCost}:</strong> {unitCost !== null ? formatCurrency(unitCost) : "-"}</p>
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <button ref={receiveButton} type="button" onClick={handleReceipt} disabled={saveLoading}>
+          </fieldset>
+          <section className="stock-panel stock-highlight stock-receive-summary">
+            <h2>{labels.bill}</h2>
+            <StockFacts entries={[[labels.site, selectedSiteName || guide.selectSite],
+              [text.receivedQuantity, validQuantity.quantity === undefined ? "-" : `${formatNumber(validQuantity.quantity)}${unitLabel}`],
+              [text.totalAcquisitionCost, costAssessment ? money(totalCost) : "-"],
+              [text.unitAcquisitionCost, unitCost !== null ? money(unitCost) : "-"]]} />
+            <button ref={receiveButton} className="workspace-primary stock-full-action" type="button" onClick={handleReceipt} disabled={saveLoading || !!pending}>
               {saveLoading ? text.submitting : text.receiveStock}
             </button>
-            <button type="button" className="secondary-button" onClick={cancelReceiptCreation}>
+            <button type="button" className="workspace-text-action stock-full-action" disabled={saveLoading || !!pending} onClick={cancelReceiptCreation}>
               {text.cancel}
             </button>
-          </div>
-          </fieldset>
-        )}
+          </section>
+        </>}
+      </div>
         {costReview && <ReceiptCostConfirmationDialog
           title={costReview.type === "ZERO_TOTAL" ? text.zeroCostsTitle : text.partialCostsTitle}
           message={costReview.type === "ZERO_TOTAL" ? text.zeroCostsMessage : text.partialCostsMessage}
           prompt={costReview.type === "ZERO_TOTAL" ? text.zeroCostsPrompt : text.partialCostsPrompt}
           reviewLabel={text.reviewCosts} confirmLabel={text.confirmCosts}
-          onReview={reviewCosts} onConfirm={() => void confirmCosts()} />}
-        {pending && <div>
+          onReview={reviewCosts} onConfirm={() => void confirmCosts()}>
+          <StockFacts entries={[[text.product, `${costReview.draft.productName} · ${costReview.draft.sku}`],
+            [labels.site, selectedSiteName || "-"],
+            [text.receivedQuantity, `${formatNumber(costReview.draft.payload.receivedQuantity)}${unitLabel}`],
+            [text.totalAcquisitionCost, money(totalCost)], [text.unitAcquisitionCost, unitCost !== null ? money(unitCost) : "-"]]} />
+        </ReceiptCostConfirmationDialog>}
+        {pending && <div className="stock-panel">
           <p role="status">{saveLoading ? text.submitting : receiptConflict ? text.receiptOperationConflict : text.receiptOutcomeUnknown}</p>
           <p>{pending.productName} ({pending.sku}) · {formatNumber(pending.payload.receivedQuantity)}</p>
           <button type="button" disabled={saveLoading || receiptConflict} onClick={() => void handleReceipt()}>{text.retryReceipt}</button>
         </div>}
 
+        <div id="stock-active-view" hidden={showReceiptEditor}>
         <ActiveReceiptTable
           fieldError={fieldError}
           rows={activeReceipts}
           text={text}
           locale={dateLocales[language]}
+          money={money}
+          siteField={!showReceiptEditor && siteField(guide.site)}
+          siteName={selectedSiteName}
+          focusedProduct={focusedReceiptProduct}
+          onClearFocusedProduct={() => setFocusedReceiptProduct(null)}
           withdrawalReceiptId={withdrawalReceiptId}
           withdrawalQuantity={withdrawalQuantity}
           withdrawalReason={withdrawalReason}
@@ -710,8 +755,8 @@ function InventoryContent({ storageKey, productId, preferredSiteId, onReviewProd
           onEditedQuantityChange={value => { clearFieldError(`correction-quantity-${editingReceiptId}`); setEditedReceiptQuantity(value) }}
           onSubmitEdit={handleReceiptQuantityUpdate}
         />
-      </div>
-
+        {onReviewProducts && <button type="button" className="workspace-outline stock-back-action" onClick={onReviewProducts}>{labels.backProducts}</button>}
+        </div>
     </div>
   )
 }
@@ -729,6 +774,11 @@ function ActiveReceiptTable({
   rows,
   text,
   locale,
+  money,
+  siteField,
+  siteName,
+  focusedProduct,
+  onClearFocusedProduct,
   withdrawalReceiptId,
   withdrawalQuantity,
   withdrawalReason,
@@ -749,6 +799,11 @@ function ActiveReceiptTable({
   rows: InventoryReceiptResponse[]
   text: InventoryPageCopy
   locale: string
+  money: (value: number) => string
+  siteField: ReactNode
+  siteName?: string
+  focusedProduct: { id: number; name: string } | null
+  onClearFocusedProduct: () => void
   withdrawalReceiptId: number | null
   withdrawalQuantity: string
   withdrawalReason: string
@@ -765,14 +820,16 @@ function ActiveReceiptTable({
   onEditedQuantityChange: (quantity: string) => void
   onSubmitEdit: (receipt: InventoryReceiptResponse) => Promise<void>
 }) {
+  const { language } = useI18n()
+  const labels = stockWorkspaceCopy[language]
   const [filterValue, setFilterValue] = useState("")
   const [sortKey, setSortKey] = useState<ReceiptSortKey>("createdAt")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState<{ page: number; rows: InventoryReceiptResponse[]; product: typeof focusedProduct }>()
 
   const visibleRows = useMemo(() => {
     const normalizedFilter = filterValue.trim().toLocaleLowerCase()
-    const filteredRows = normalizedFilter
+    const filteredRows = focusedProduct ? rows.filter(row => row.productId === focusedProduct.id) : normalizedFilter
       ? rows.filter((row) => row.productName.toLocaleLowerCase().includes(normalizedFilter))
       : rows
 
@@ -780,23 +837,14 @@ function ActiveReceiptTable({
       const comparison = compareReceiptRows(left, right, sortKey)
       return sortDirection === "asc" ? comparison : -comparison
     })
-  }, [filterValue, rows, sortDirection, sortKey])
+  }, [filterValue, focusedProduct, rows, sortDirection, sortKey])
 
   const pageCount = Math.max(1, Math.ceil(visibleRows.length / RECEIPTS_PER_PAGE))
+  const currentPage = pagination?.rows === rows && pagination.product === focusedProduct ? Math.min(pagination.page, pageCount) : 1
   const paginatedRows = visibleRows.slice(
     (currentPage - 1) * RECEIPTS_PER_PAGE,
     currentPage * RECEIPTS_PER_PAGE,
   )
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [filterValue, rows])
-
-  useEffect(() => {
-    if (currentPage > pageCount) {
-      setCurrentPage(pageCount)
-    }
-  }, [currentPage, pageCount])
 
   function handleSort(nextKey: ReceiptSortKey) {
     if (sortKey === nextKey) {
@@ -807,64 +855,61 @@ function ActiveReceiptTable({
     setSortKey(nextKey)
     setSortDirection("asc")
   }
+  const columns = [[text.product, "productName"], [text.receivedQuantity, "receivedQuantity"],
+    [text.remainingQuantity, "remainingQuantity"], [text.totalCost, "totalCostAmount"], [text.createdAt, "createdAt"],
+    [text.updatedAt, "updatedAt"], [text.lastAction, "lastAction"]] as const
 
   return (
-    <div className="nested-card inventory-open-receipts">
-      <h3 id="active-receipts-heading">{text.activeReceipts}</h3>
+    <section className="stock-panel inventory-open-receipts">
+      <div className="stock-panel-heading"><h2 id="active-receipts-heading">{text.activeReceipts}</h2>
+        {siteName && <StockStatus active={false}>{siteName}</StockStatus>}</div>
+      <div className="stock-field-pair">
+      {siteField}
       <label className="inventory-receipt-filter">
         {text.filter}
         <input
           type="text"
-          value={filterValue}
-          onChange={(event) => setFilterValue(event.target.value)}
+          value={focusedProduct?.name ?? filterValue}
+          onChange={(event) => { onClearFocusedProduct(); setFilterValue(event.target.value); setPagination(undefined) }}
           placeholder={text.productFilterPlaceholder}
         />
       </label>
-      <div className="inventory-receipt-scroll" role="region" aria-labelledby="active-receipts-heading" tabIndex={0}>
-        <table>
-          <thead>
-            <tr>
-              <SortableHeader label={text.product} sortKey="productName" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortableHeader
-                label={text.receivedQuantity}
-                sortKey="receivedQuantity"
-                activeKey={sortKey}
-                direction={sortDirection}
-                onSort={handleSort}
-                className="inventory-quantity-header"
-              />
-              <SortableHeader
-                label={text.remainingQuantity}
-                sortKey="remainingQuantity"
-                activeKey={sortKey}
-                direction={sortDirection}
-                onSort={handleSort}
-                className="inventory-quantity-header"
-              />
-              <SortableHeader label={text.totalCost} sortKey="totalCostAmount" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortableHeader label={text.createdAt} sortKey="createdAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortableHeader label={text.updatedAt} sortKey="updatedAt" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <SortableHeader label={text.lastAction} sortKey="lastAction" activeKey={sortKey} direction={sortDirection} onSort={handleSort} />
-              <th className="mobile-sticky-actions" scope="col" aria-label={text.actions} />
+      </div>
+      {visibleRows.length > 0 && <label className="stock-mobile-sort stock-field">{labels.sortBy}
+        <select aria-label={labels.sortBy} value={`${sortKey}:${sortDirection}`} onChange={event => {
+          const [key, direction] = event.target.value.split(":") as [ReceiptSortKey, SortDirection]
+          setSortKey(key); setSortDirection(direction)
+        }}>
+          {columns.map(([label, key]) => <optgroup key={key} label={label}>
+            <option value={`${key}:asc`}>{label} · {labels.ascending}</option>
+            <option value={`${key}:desc`}>{label} · {labels.descending}</option>
+          </optgroup>)}
+        </select>
+      </label>}
+      <div className="stock-receipt-list">
+        {visibleRows.length === 0 ? <p className="stock-empty">{text.noActiveReceipts}</p> :
+        <table className="stock-responsive-rows" role="table" aria-labelledby="active-receipts-heading">
+          <thead role="rowgroup">
+            <tr role="row">
+              {columns.map(([label, key]) => <SortableHeader key={key} label={label} sortKey={key} activeKey={sortKey}
+                direction={sortDirection} onSort={handleSort} />)}
+              <th scope="col" aria-label={text.actions} />
             </tr>
           </thead>
-          <tbody>
-            {visibleRows.length === 0 ? (
-              <tr><td colSpan={8}>{text.noActiveReceipts}</td></tr>
-            ) : (
-              paginatedRows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.productName}</td>
-                  <td>{formatNumber(row.receivedQuantity)}</td>
-                  <td>{formatNumber(row.remainingQuantity)}</td>
-                  <td>{formatCurrency(row.totalCostAmount)}</td>
-                  <td>{row.receivedAtInstant && row.receivedAtZoneId
+          <tbody role="rowgroup">
+            {paginatedRows.map((row) => (
+                <tr key={row.id} role="row">
+                  <th scope="row" role="rowheader">{row.productName}</th>
+                  <ReceiptCell label={text.receivedQuantity}>{formatNumber(row.receivedQuantity)}</ReceiptCell>
+                  <ReceiptCell label={text.remainingQuantity}><StockStatus active>{formatNumber(row.remainingQuantity)}</StockStatus></ReceiptCell>
+                  <ReceiptCell label={text.totalCost}>{money(row.totalCostAmount)}</ReceiptCell>
+                  <ReceiptCell label={text.createdAt}>{row.receivedAtInstant && row.receivedAtZoneId
                     ? formatReceiptDateTime(row.receivedAtInstant, locale, row.receivedAtZoneId)
-                    : <>{formatReceiptDateTime(row.createdAt, locale)} <small>({text.receiptZoneUnverified})</small></>}</td>
-                  <td>{row.updatedAt && row.updatedAt !== row.createdAt
-                    ? <>{formatReceiptDateTime(row.updatedAt, locale)} <small>({text.receiptZoneUnverified})</small></> : "-"}</td>
-                  <td>{formatReceiptAction(row.lastAction, text)}</td>
-                  <td className="mobile-sticky-actions">
+                    : <>{formatReceiptDateTime(row.createdAt, locale)} <small>({text.receiptZoneUnverified})</small></>}</ReceiptCell>
+                  <ReceiptCell label={text.updatedAt}>{row.updatedAt && row.updatedAt !== row.createdAt
+                    ? <>{formatReceiptDateTime(row.updatedAt, locale)} <small>({text.receiptZoneUnverified})</small></> : "-"}</ReceiptCell>
+                  <ReceiptCell label={text.lastAction}>{formatReceiptAction(row.lastAction, text)}</ReceiptCell>
+                  <td role="cell" className="stock-table-actions">
                     {withdrawalReceiptId === row.id ? (
                       <div className="inventory-inline-actions">
                         <QuantityInput
@@ -909,12 +954,12 @@ function ActiveReceiptTable({
                       </div>
                     ) : (
                       <div className="inventory-receipt-actions">
-                        <button type="button" className="compact-action-button" onClick={() => onStartWithdrawal(row)}>
+                        <button type="button" className="workspace-text-action" onClick={() => onStartWithdrawal(row)}>
                           {text.withdraw}
                         </button>
                         <button
                           type="button"
-                          className="secondary-button compact-action-button"
+                          className="workspace-outline"
                           onClick={() => onStartEdit(row)}
                         >
                           {text.edit}
@@ -923,10 +968,9 @@ function ActiveReceiptTable({
                     )}
                   </td>
                 </tr>
-              ))
-            )}
+              ))}
           </tbody>
-        </table>
+        </table>}
       </div>
       {visibleRows.length > RECEIPTS_PER_PAGE && (
         <TablePagination
@@ -937,11 +981,16 @@ function ActiveReceiptTable({
           previousPageLabel={text.previousPage}
           nextPageLabel={text.nextPage}
           lastPageLabel={text.lastPage}
-          onPageChange={setCurrentPage}
+          onPageChange={page => setPagination({ page, rows, product: focusedProduct })}
         />
       )}
-    </div>
+      <p className="stock-muted">{labels.activeHelp}</p>
+    </section>
   )
+}
+
+function ReceiptCell({ label, children }: { label: string; children: ReactNode }) {
+  return <td role="cell"><span className="stock-cell-label" aria-hidden="true">{label}</span><span>{children}</span></td>
 }
 
 function SortableHeader({

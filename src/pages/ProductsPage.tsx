@@ -13,13 +13,14 @@ import ErrorMessage from "../components/common/ErrorMessage"
 import { CompanyCurrencyRequiredError } from "../utils/companyCurrency"
 import { formatCurrency, formatNumber } from "../utils/format"
 import BarcodeScanner from "../components/sales/BarcodeScanner"
-import ScrollableTable from "../components/common/ScrollableTable"
 import TablePagination from "../components/common/TablePagination"
 import { findPresetCategoryKey, getLocalizedPresetCategories } from "../utils/productCategories"
 import { parseCsvText } from "../utils/csv"
 import { useAuth } from "../auth/AuthContext"
 import { getAccessibleCompanyLocations } from "../api/companyLocationsApi"
 import { setupCopy } from "../i18n/setupCopy"
+import { stockWorkspaceCopy } from "../i18n/stockWorkspaceCopy"
+import { StockFacts, StockHeading, StockStatus } from "../components/inventory/StockWorkspace"
 
 type ProductFormState = {
   barcode: string
@@ -91,13 +92,21 @@ function parseBooleanLike(value: string) {
   return null
 }
 
-export default function ProductsPage({ guided = false, visible = true, onOpeningStock }: {
-  guided?: boolean; visible?: boolean; onOpeningStock?: (productId: number) => void
+type ProductView = "list" | "editor" | "details" | "tools"
+
+export default function ProductsPage({ guided = false, visible = true, onOpeningStock, onInspectStock }: {
+  guided?: boolean; visible?: boolean; onOpeningStock?: (productId: number) => void; onInspectStock?: (productId: number) => void
 } = {}) {
   const { language, copy } = useI18n()
   const { user } = useAuth()
   const guide = setupCopy[language]
   const text = copy.productsPage
+  const labels = stockWorkspaceCopy[language]
+  const money = (value: number) => formatCurrency(value, user?.companyCurrencyCode || "USD", language)
+  const [view, setView] = useState<ProductView>(() => guided ? "editor" : "list")
+  const [detailSnapshot, setDetailSnapshot] = useState<ProductResponse | null>(null)
+  const [toolCode, setToolCode] = useState("")
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const [products, setProducts] = useState<ProductResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -144,6 +153,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
 
   const isEditMode = editingProductId !== null
   const guidedForm = guided && !isEditMode
+  const detail = products.find(product => product.id === detailSnapshot?.id) ?? detailSnapshot
 
   const localizedPresetCategories = useMemo(
     () => getLocalizedPresetCategories(language),
@@ -260,6 +270,10 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
   const pageCount = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE))
   const currentPage = Math.min(page, pageCount)
   const visibleProducts = filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE)
+  const listColumns = [
+    { key: "name", label: text.name }, { key: "unitName", label: text.unit }, { key: "unitPrice", label: text.unitPrice },
+    { key: "currentStock", label: labels.stock }, { key: "active", label: text.status },
+  ] as const
 
   const unitSuggestions = useMemo(() => {
     const values = products
@@ -518,6 +532,10 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
     const presetCategoryKey = findPresetCategoryKey(product.category ?? "")
 
     setEditingProductId(product.id)
+    setDetailSnapshot(product)
+    setOptionalOpen(false)
+    setShowScanner(false)
+    showView("editor")
     setError("")
     setSuccess("")
     setCategorySelection(presetCategoryKey || (product.category?.trim() ? "OTHER" : ""))
@@ -537,7 +555,6 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
         unitPrice: String(tier.unitPrice),
       })),
     })
-    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   function handleCancelEdit() {
@@ -547,6 +564,39 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
     setShowScanner(false)
     setError("")
     setSuccess("")
+    showView(isEditMode && detailSnapshot ? "details" : "list")
+  }
+
+  function showView(next: ProductView) {
+    setView(next)
+    setShowScanner(false)
+    if (next !== "details") setSuccess("")
+    requestAnimationFrame(() => (next === "editor" ? nameRef.current : headingRef.current)?.focus())
+  }
+
+  function startNewProduct(barcode = "") {
+    if (uncertainCreate) return
+    setEditingProductId(null)
+    setCategorySelection("")
+    setForm({ ...emptyForm, barcode })
+    setOptionalOpen(Boolean(barcode))
+    setError("")
+    setSuccess("")
+    showView("editor")
+  }
+
+  function viewProduct(product: ProductResponse) {
+    setDetailSnapshot(product)
+    setSuccess("")
+    showView("details")
+  }
+
+  function findBarcode() {
+    if (!toolCode.trim()) return
+    setSearchTerm(toolCode.trim())
+    setSelectedCategory("ALL")
+    setPage(1)
+    showView("list")
   }
 
   function handleClearFilters() {
@@ -709,13 +759,15 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
       }
 
       if (isEditMode && editingProductId !== null) {
-        await updateProduct(editingProductId, payload)
+        const product = await updateProduct(editingProductId, payload)
+        setDetailSnapshot(product)
         setSuccess(text.updateSuccess)
       } else {
         creationStarted = true
         const product = await createProduct({ ...payload, quantityType: form.quantityType })
         setSiteAvailability("checking")
         setCreatedProduct(product)
+        setDetailSnapshot(product)
         if (product.active && onOpeningStock) void checkReceiptSite()
       }
 
@@ -724,7 +776,8 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
       setCategorySelection("")
       setShowScanner(false)
       if (!await loadProducts(!isEditMode) && !isEditMode) setListWarning(guide.listFailed)
-      if (isEditMode) window.scrollTo({ top: 0, behavior: "smooth" })
+      if (isEditMode) showView("details")
+      else setView("details")
     } catch (err) {
       console.error(err)
       if (!(err instanceof CompanyCurrencyRequiredError)) {
@@ -754,8 +807,21 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
   }
 
   return (
-    <div>
-      <h1>{text.title}</h1>
+    <div className="stock-workspace">
+      <StockHeading headingRef={headingRef}
+        title={view === "editor" ? isEditMode ? text.editTitle : labels.newProduct : view === "tools" ? labels.toolTitle :
+          view === "details" && detail ? detail.name : text.title}
+        description={view === "list" ? labels.catalog : (view === "details" || isEditMode) && detail ?
+          `${detail.sku} · ${view === "details" ? labels.details : text.editTitle}` : undefined}>
+        {view === "list" ? <>
+          <button type="button" className="workspace-primary" disabled={uncertainCreate || csvImporting} onClick={() => startNewProduct()}><span aria-hidden="true">+</span>{labels.newProduct}</button>
+          <button type="button" className="workspace-outline" onClick={() => showView("tools")}>{text.csvImportButton}</button>
+        </> : <>
+          {view === "details" && detail && <button className="workspace-outline" type="button" onClick={() => handleEdit(detail)}>{labels.edit}</button>}
+          <button type="button" className="workspace-text-action" disabled={saving || csvImporting}
+            onClick={() => view === "editor" ? handleCancelEdit() : showView("list")}>{labels.backProducts}</button>
+        </>}
+      </StockHeading>
 
       {error && <ErrorMessage message={error} onDismiss={() => {
         setError("")
@@ -767,7 +833,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
       {listWarning && <p role="status">{listWarning}</p>}
       {uncertainCreate && <div className="card">
         <p>{guide.uncertain}</p>
-        <button type="button" onClick={async () => { await loadProducts(); productListHeading.current?.focus() }}>{guide.checkProducts}</button>
+        <button type="button" onClick={async () => { await loadProducts(); showView("list") }}>{guide.checkProducts}</button>
         <button type="button" className="secondary-button" onClick={() => {
           setUncertainCreate(false); setForm(emptyForm); setCategorySelection("")
         }}>{copy.common.cancel}</button>
@@ -779,10 +845,12 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
           className="card product-confirmation-dialog"
           aria-labelledby="product-confirmation-title"
           aria-describedby="product-confirmation-name"
-          onClose={() => { setCreatedProduct(null); nameRef.current?.focus() }}
+          onClose={() => { setCreatedProduct(null); if (view === "details") headingRef.current?.focus() }}
         >
           <h2 id="product-confirmation-title">{guide.created}</h2>
-          <div id="product-confirmation-name"><p>{createdProduct.name}</p><p role="status">
+          <div id="product-confirmation-name"><p><strong>{createdProduct.name}</strong> · {createdProduct.sku}</p>
+            <StockFacts entries={[[text.unit, createdProduct.unitName || labels.notSet], [text.unitPrice, money(createdProduct.unitPrice)]]} />
+            <p role="status">
             {!createdProduct.active ? guide.inactive : !onOpeningStock ? guide.createdReason
               : siteAvailability === "checking" ? guide.loading : siteAvailability === "blocked" ? guide.siteBlocked
               : siteAvailability === "error" ? guide.unavailable : guide.createdReason}
@@ -798,12 +866,53 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                 dialog?.close()
                 handleEdit(createdProduct)
               }}>{guide.edit}</button>}
-            <button type="submit" className="secondary-button" autoFocus>{guide.later}</button>
+            <button type="submit" className="secondary-button" autoFocus onClick={() => showView("list")}>{guide.later}</button>
           </form>
         </dialog>
       )}
 
-      <div className="card">
+      {view === "details" && detail && <div className="stock-split">
+        <section className="stock-panel">
+          <div className="stock-panel-heading"><h2>{labels.productInfo}</h2><StockStatus active={detail.active}>{detail.active ? text.active : text.inactive}</StockStatus></div>
+          <StockFacts entries={[
+            [text.unit, detail.unitName || labels.notSet],
+            [text.quantityType, detail.quantityType === "INTEGER" ? text.quantityInteger : text.quantityDecimal],
+            [text.unitPrice, money(detail.unitPrice)], [text.minimumStock, formatNumber(detail.minimumStock)],
+            [text.barcode, detail.barcode || labels.notSet], [text.category, detail.category || labels.notSet],
+            ...(detail.description ? [[text.description, detail.description] as const] : []),
+          ]} />
+          {!!detail.priceTiers?.length && <details className="stock-disclosure"><summary>{text.wholesalePrices}</summary>
+            <ul>{detail.priceTiers.map((tier, index) => <li key={tier.id ?? index}>
+              {tier.label && `${tier.label} · `}{text.wholesaleMinimum}: {formatNumber(tier.minQuantity)} · {money(tier.unitPrice)}
+            </li>)}</ul>
+          </details>}
+        </section>
+        <section className="stock-panel stock-highlight">
+          <h2>{labels.stockSummary}</h2>
+          <StockFacts entries={[
+            [labels.stock, [formatNumber(detail.currentStock), detail.unitName].filter(Boolean).join(" ")],
+            [text.referenceCost, detail.costPrice == null ? labels.notSet : money(detail.costPrice)],
+          ]} />
+          {detail.active && onInspectStock && <button type="button" className="workspace-primary stock-full-action" onClick={() => onInspectStock(detail.id)}>{labels.inspect}</button>}
+        </section>
+      </div>}
+
+      {view === "tools" && <div className="stock-split stock-tools">
+        <section className="stock-panel">
+          <h2>{text.scannerTitle}</h2><p className="stock-muted">{labels.barcodeHelp}</p>
+          <button type="button" className="workspace-outline" aria-expanded={showScanner} onClick={() => setShowScanner(value => !value)}>
+            {showScanner ? text.closeScanner : text.openScanner}
+          </button>
+          {showScanner && <div className="scanner-container"><BarcodeScanner onDetected={value => { setToolCode(value); setShowScanner(false) }} /></div>}
+          <label className="stock-field">{text.barcode}<input value={toolCode} onChange={event => setToolCode(event.target.value)}
+            placeholder={text.barcodePlaceholder} onKeyDown={event => { if (event.key === "Enter") findBarcode() }} /></label>
+          <div className="stock-actions">
+            <button className="workspace-primary" type="button" disabled={!toolCode.trim()} onClick={findBarcode}>{labels.findBarcode}</button>
+            <button className="workspace-text-action" type="button" disabled={!toolCode.trim() || uncertainCreate || csvImporting}
+              onClick={() => startNewProduct(toolCode.trim())}>{labels.assignBarcode}</button>
+          </div>
+        </section>
+      <div className="stock-panel">
         <div className="scanner-header">
           <div>
             <h3>{text.csvImportTitle}</h3>
@@ -849,11 +958,12 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
           </button>
         </div>
 
+        {csvPreviewRows.some(row => row.errors.length > 0) && <p className="stock-muted" role="status">{labels.csvFix}</p>}
         {csvPreviewRows.length > 0 && (
           <div className="csv-preview-table">
             <h4>{text.csvPreviewTitle}</h4>
 
-            <table>
+            <table className="stock-responsive-rows stock-csv-rows" role="table">
               <thead>
                 <tr>
                   <th>{text.csvRowNumber}</th>
@@ -868,15 +978,16 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
               </thead>
               <tbody>
                 {csvPreviewRows.map((row) => (
-                  <tr key={row.rowNumber}>
-                    <td>{row.rowNumber}</td>
-                    <td>{row.rawValues.name || "-"}</td>
-                    <td>{row.rawValues.category || "-"}</td>
-                    <td>{row.rawValues.unit || "-"}</td>
-                    <td>{row.rawValues.unitPrice || "-"}</td>
-                    <td>{row.rawValues.minimumStock || "0"}</td>
-                    <td>{row.errors.length === 0 ? text.csvRowReady : text.csvRowInvalid}</td>
-                    <td>
+                  <tr key={row.rowNumber} role="row">
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.csvRowNumber}</span>{row.rowNumber}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.name}</span>{row.rawValues.name || "-"}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.category}</span>{row.rawValues.category || "-"}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.unit}</span>{row.rawValues.unit || "-"}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.unitPrice}</span>{row.rawValues.unitPrice || "-"}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.minimumStock}</span>{row.rawValues.minimumStock || "0"}</td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.status}</span><StockStatus active={!row.errors.length}>
+                      {row.errors.length === 0 ? text.csvRowReady : text.csvRowInvalid}</StockStatus></td>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{text.csvErrors}</span>
                       {row.errors.length === 0 ? (
                         "-"
                       ) : (
@@ -920,20 +1031,21 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             </ul>
           </div>
         )}
-      </div>
+      </div></div>}
 
-      <div className="card">
-        <h3>{isEditMode ? text.editTitle : text.newTitle}</h3>
+      {view === "editor" && <div className="stock-split">
+      <div className="stock-panel">
+        <h2>{labels.productInfo}</h2>
 
         <form onSubmit={handleSubmit} className="product-form-grid" onInvalidCapture={event => {
           const field = event.target
-          if (guidedForm && !optionalOpen && field instanceof HTMLElement && field.closest("#product-extra-fields")) {
+          if (!optionalOpen && field instanceof HTMLElement && field.closest("#product-extra-fields")) {
             event.preventDefault()
             setOptionalOpen(true)
             requestAnimationFrame(() => { field.focus(); if (field instanceof HTMLInputElement) field.reportValidity() })
           }
         }}>
-          <label className="full-width">
+          <label>
             {guidedForm ? guide.name : text.name}
             <input
               ref={nameRef}
@@ -962,7 +1074,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
           <label>
             {text.quantityType}
             <select
-              aria-describedby={!isEditMode ? "product-quantity-help" : undefined}
+              aria-describedby="product-quantity-help"
               value={form.quantityType}
               disabled={isEditMode}
               onChange={(e) => updateForm("quantityType", e.target.value === "INTEGER" ? "INTEGER" : "DECIMAL")}
@@ -970,11 +1082,11 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
               <option value="INTEGER">{text.quantityInteger}</option>
               <option value="DECIMAL">{text.quantityDecimal}</option>
             </select>
-            {!isEditMode && <small id="product-quantity-help">{guide.quantityHelp}</small>}
+            <small id="product-quantity-help">{isEditMode ? labels.editQuantity : guide.quantityHelp}</small>
           </label>
 
           <label>
-            {guidedForm ? guide.price : text.unitPrice}{guidedForm && user?.companyCurrencyCode ? ` (${user.companyCurrencyCode})` : ""}
+            {guidedForm ? guide.price : text.unitPrice}{user?.companyCurrencyCode ? ` (${user.companyCurrencyCode})` : ""}
             <input
               type="number"
               min={0}
@@ -984,10 +1096,13 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             />
           </label>
 
-          <div className="setup-product-options">
-            {guidedForm && <button type="button" className="secondary-button" aria-expanded={optionalOpen}
-              aria-controls="product-extra-fields" onClick={() => setOptionalOpen(value => !value)}>{guide.options}</button>}
-            <div id="product-extra-fields" hidden={guidedForm && !optionalOpen}>
+          <div className="setup-product-options stock-disclosure">
+            <button type="button" className="stock-disclosure-button" aria-expanded={optionalOpen}
+              aria-controls="product-extra-fields" onClick={() => {
+                if (optionalOpen) setShowScanner(false)
+                setOptionalOpen(value => !value)
+              }}><span aria-hidden="true">{optionalOpen ? "− " : "+ "}</span>{guide.options}</button>
+            <div id="product-extra-fields" hidden={!optionalOpen}>
               <div className="product-form-grid">
                 <div className="full-width card nested-card scanner-toggle-card">
                   <div className="scanner-header">
@@ -1140,14 +1255,14 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                   />
                 </label>
 
-                <label className="checkbox-field">
+                {!isEditMode && <label className="checkbox-field">
                   <input
                     type="checkbox"
                     checked={form.active}
                     onChange={(e) => updateForm("active", e.target.checked)}
                   />
                   {text.active}
-                </label>
+                </label>}
               </div>
             </div>
           </div>
@@ -1163,20 +1278,25 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                   : text.create}
             </button>
 
-            {isEditMode && (
-              <button type="button" className="secondary-button" onClick={handleCancelEdit}>
+              <button type="button" className="secondary-button" disabled={saving} onClick={handleCancelEdit}>
                 {text.cancel}
               </button>
-            )}
           </div>
         </form>
       </div>
+      <aside className="stock-panel">
+        <h2>{isEditMode ? text.status : guide.opening}</h2>
+        {isEditMode ? <label className="stock-field checkbox-field">
+          <input type="checkbox" checked={form.active} onChange={event => updateForm("active", event.target.checked)} />{text.active}
+        </label> : <p className="stock-muted">{labels.openingHelp}</p>}
+      </aside>
+      </div>}
 
-      <div className="card product-list-card">
+      {view === "list" && <div className="stock-panel product-list-card">
         <h3 ref={productListHeading} tabIndex={-1} id="product-list-heading">{text.listTitle}</h3>
 
         <div className="product-filters">
-          <label>
+          <label className="stock-search">
             {text.search}
             <input
               type="text"
@@ -1188,6 +1308,10 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
               }}
             />
           </label>
+
+          <div className="product-filter-actions">
+            <button type="button" className="workspace-outline" onClick={() => showView("tools")}>{text.scannerTitle}</button>
+          </div>
 
           <label>
             {text.category}
@@ -1207,6 +1331,21 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             </select>
           </label>
 
+          <label>
+            {labels.sortBy}
+            <select aria-label={labels.sortBy} value={sort ? `${sort.key}:${sort.direction}` : ""} onChange={event => {
+              const [key, direction] = event.target.value.split(":") as [ProductSortKey, "asc" | "desc"]
+              setSort(key ? { key, direction } : null)
+              setPage(1)
+            }}>
+              <option value="">{labels.defaultSort}</option>
+              {productColumns.map(column => <optgroup label={column.label} key={column.key}>
+                <option value={`${column.key}:asc`}>{column.label} · {labels.ascending}</option>
+                <option value={`${column.key}:desc`}>{column.label} · {labels.descending}</option>
+              </optgroup>)}
+            </select>
+          </label>
+
           <div className="product-filter-actions">
             <button type="button" className="secondary-button" onClick={handleClearFilters}>
               {text.clearFilters}
@@ -1214,14 +1353,12 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
           </div>
         </div>
 
-        {loading ? (
-          <p>{text.loading}</p>
-        ) : (
-          <ScrollableTable headingId="product-list-heading">
-            <table>
+        {loading ? <p role="status">{text.loading}</p> :
+          filteredProducts.length === 0 ? <p className="stock-empty">{products.length === 0 ? text.empty : text.emptyFiltered}</p> : <>
+            <table className="stock-product-table">
               <thead>
                 <tr>
-                  {productColumns.map(({ key, label }) => {
+                  {listColumns.map(({ key, label }) => {
                     const direction = sort?.key === key ? sort.direction : undefined
                     return (
                       <th key={key} scope="col" aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : undefined}>
@@ -1235,47 +1372,45 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
                       </th>
                     )
                   })}
-                  <th className="mobile-sticky-actions" scope="col" aria-label={text.edit} />
+                  <th scope="col" aria-label={labels.view} />
                 </tr>
               </thead>
               <tbody>
-                {filteredProducts.length === 0 ? (
-                  <tr>
-                    <td colSpan={11}>
-                      {products.length === 0 ? text.empty : text.emptyFiltered}
-                    </td>
-                  </tr>
-                ) : (
-                  visibleProducts.map((product) => (
+                {visibleProducts.map((product) => (
                     <tr key={product.id}>
-                      <td>{product.name}</td>
-                      <td>{product.sku}</td>
-                      <td>{product.barcode || "-"}</td>
-                      <td>{product.category || "-"}</td>
+                      <th scope="row">{product.name}<small>{product.sku}</small></th>
                       <td>{product.unitName || "-"}</td>
-                      <td>{formatCurrency(product.unitPrice)}</td>
-                      <td>
-                        {product.costPrice === null ? "-" : formatCurrency(product.costPrice)}
-                      </td>
+                      <td>{money(product.unitPrice)}</td>
                       <td>
                         {formatNumber(product.currentStock)}
                         {product.unitName ? ` ${product.unitName}` : ""}
                       </td>
-                      <td>
-                        {formatNumber(product.minimumStock)}
-                        {product.unitName ? ` ${product.unitName}` : ""}
-                      </td>
-                      <td>{product.active ? text.active : text.inactive}</td>
-                      <td className="mobile-sticky-actions">
-                        <button type="button" onClick={() => handleEdit(product)}>{text.edit}</button>
+                      <td><StockStatus active={product.active}>{product.active ? text.active : text.inactive}</StockStatus></td>
+                      <td className="stock-table-actions">
+                        <div className="stock-actions">
+                          <button type="button" className="workspace-text-action" onClick={() => viewProduct(product)}>{labels.view}</button>
+                          <button type="button" className="workspace-text-action" onClick={() => handleEdit(product)}>{text.edit}</button>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
-          </ScrollableTable>
-        )}
+            <ul className="stock-product-cards" role="list">{visibleProducts.map(product => (
+              <li key={product.id}>
+                <div className="stock-panel-heading"><h4>{product.name}</h4>
+                  <StockStatus active={product.active}>{product.active ? text.active : text.inactive}</StockStatus>
+                </div>
+                <p className="stock-muted">{[product.sku, product.unitName].filter(Boolean).join(" · ")}</p>
+                <StockFacts entries={[[text.unitPrice, money(product.unitPrice)],
+                  [labels.stock, [formatNumber(product.currentStock), product.unitName].filter(Boolean).join(" ")]]} />
+                <div className="stock-actions">
+                  <button type="button" className="workspace-outline" onClick={() => viewProduct(product)}>{labels.view}</button>
+                  <button type="button" className="workspace-text-action" onClick={() => handleEdit(product)}>{text.edit}</button>
+                </div>
+              </li>
+            ))}</ul>
+        </>}
         {!loading && (
           <TablePagination
             currentPage={currentPage}
@@ -1288,7 +1423,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
             onPageChange={setPage}
           />
         )}
-      </div>
+      </div>}
     </div>
   )
 }

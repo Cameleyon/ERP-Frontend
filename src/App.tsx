@@ -36,7 +36,7 @@ function AppContent() {
   const { isAuthenticated, isLoading, logoutUser, refreshUser, user } = useAuth()
   const { copy, language } = useI18n()
   const scope = user ? `${user.companyId}:${user.id}` : ""
-  type Navigation = { page: Page; productId?: number; siteId?: number; guidedProduct?: boolean; resumeProduct?: boolean; manageSites?: boolean }
+  type Navigation = { page: Page; productId?: number; siteId?: number; inspectStock?: boolean; guidedProduct?: boolean; resumeProduct?: boolean; manageSites?: boolean }
   const [route, setRoute] = useState<{ scope: string; nav: Navigation }>()
   const nav: Navigation = route?.scope === scope ? route.nav : { page: "dashboard" }
   const [dashboardSite, setDashboardSite] = useState<{ scope: string; id?: number }>()
@@ -231,11 +231,12 @@ function AppContent() {
         {safePage === "customers" && <CustomersPage />}
         {(safePage === "products" || retainProducts) && isAdmin &&
           <div hidden={retainProducts}><ProductsPage guided={nav.guidedProduct} visible={!retainProducts}
-            onOpeningStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite })} /></div>}
-        {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage />}
+            onOpeningStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite })}
+            onInspectStock={productId => navigate({ page: "inventory", productId, siteId: preferredSite, inspectStock: true })} /></div>}
+        {safePage === "cost-rubrics" && isAdmin && <CostRubricsPage onBack={() => navigate({ page: "inventory" })} />}
         {safePage === "new-sale" && <NewSalePage preferredSiteId={nav.siteId} onSetupReturn={() => navigate({ page: "dashboard" })} />}
         {safePage === "sales-history" && <SalesHistoryPage />}
-        {safePage === "inventory" && isAdmin && <InventoryPage productId={nav.productId} preferredSiteId={nav.siteId}
+        {safePage === "inventory" && isAdmin && <InventoryPage productId={nav.productId} preferredSiteId={nav.siteId} inspectStock={nav.inspectStock}
           onReviewProducts={() => navigate({ page: "products" })} />}
         {safePage === "profile" && <ProfilePage configureCurrency={route?.scope === scope && configureCurrency}
           manageSites={nav.manageSites} returnToProduct={retainProducts}

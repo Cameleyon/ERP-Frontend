@@ -11,12 +11,15 @@ import { getLocalizedCostRubricName } from "../utils/costRubrics"
 import { getCostCatalog, type CostCatalogEntry } from "../api/costCatalogApi"
 import CostCatalogDialog from "../components/costs/CostCatalogDialog"
 import { costCatalogCopy } from "../components/costs/costCatalogCopy"
+import { stockWorkspaceCopy } from "../i18n/stockWorkspaceCopy"
+import { StockHeading, StockStatus } from "../components/inventory/StockWorkspace"
 
 type SortKey = "name" | "description" | "type" | "status" | "category"
 type Sort = { key: SortKey; direction: "asc" | "desc" }
 
-export default function CostRubricsPage() {
+export default function CostRubricsPage({ onBack }: { onBack?: () => void } = {}) {
   const { language } = useI18n()
+  const labels = stockWorkspaceCopy[language]
   const [rubrics, setRubrics] = useState<CompanyCostRubricResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -196,15 +199,17 @@ export default function CostRubricsPage() {
   }
 
   return (
-    <div>
-      <h1>{text.title}</h1>
+    <div className="stock-workspace">
+      <StockHeading title={text.title} description={labels.rubricHelp}>
+        {onBack && <button type="button" className="workspace-text-action" onClick={onBack}>{labels.backInventory}</button>}
+      </StockHeading>
 
       {error && <ErrorMessage message={error} onDismiss={() => setError("")} />}
       {success && <div className="card success">{success}</div>}
 
-      <div className="card">
+      <div className="stock-panel">
         <div className="cost-catalog-heading">
-          <h3>{text.listTitle}</h3>
+          <h2>{text.listTitle}</h2>
           <div className="form-actions">
             <button type="button" disabled={loading || saving} onClick={() => setAdding(true)}>{catalogText.add}</button>
             <button type="button" className="secondary-button" disabled={loading || saving}
@@ -214,10 +219,22 @@ export default function CostRubricsPage() {
           </div>
         </div>
 
+        <label className="stock-mobile-sort stock-field">{labels.sortBy}
+          <select aria-label={labels.sortBy} value={sort ? `${sort.key}:${sort.direction}` : ""} onChange={event => {
+            const [key, direction] = event.target.value.split(":") as [SortKey, "asc" | "desc"]
+            setSort(key ? { key, direction } : null)
+          }}>
+            <option value="">{labels.defaultSort}</option>
+            {columns.map(({ key, label }) => <optgroup key={key} label={label}>
+              <option value={`${key}:asc`}>{label} · {labels.ascending}</option>
+              <option value={`${key}:desc`}>{label} · {labels.descending}</option>
+            </optgroup>)}
+          </select>
+        </label>
         {loading ? (
           <p>{text.loading}</p>
         ) : (
-          <table className="cost-catalog-table">
+          <table className="cost-catalog-table stock-responsive-rows" role="table">
             <thead>
               <tr>
                 {columns.map(({ key, label }) => {
@@ -234,22 +251,23 @@ export default function CostRubricsPage() {
                     </th>
                   )
                 })}
-                <th></th>
+                <th scope="col">{text.status}</th>
+                {removing && <th scope="col" aria-label={catalogText.remove} />}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={4}>{text.empty}</td>
+                  <td colSpan={removing ? 5 : 4}>{text.empty}</td>
                 </tr>
               ) : (
                 rows.map(({ rubric, name, description, category }) => (
-                  <tr key={rubric.id}>
-                    <td>{name}</td>
-                    <td>{category}</td>
-                    <td className="cost-rubric-description">{description || "\u2014"}</td>
-                    <td>
-                      {removing && <div className="cost-rubric-actions">
+                  <tr key={rubric.id} role="row">
+                    <th scope="row" role="rowheader">{name}</th>
+                    <td role="cell"><span className="stock-cell-label" aria-hidden="true">{catalogText.category}</span>{category}</td>
+                    <td role="cell" className="cost-rubric-description"><span className="stock-cell-label" aria-hidden="true">{text.descriptionHeading}</span>{description || labels.notSet}</td>
+                    <td role="cell"><StockStatus active>{text.active}</StockStatus></td>
+                    {removing && <td role="cell" className="stock-table-actions"><div className="cost-rubric-actions">
                         <button
                           type="button"
                           className="cost-catalog-remove"
@@ -260,14 +278,14 @@ export default function CostRubricsPage() {
                         >
                           ×
                         </button>
-                      </div>}
-                    </td>
+                      </div></td>}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         )}
+        <p className="stock-muted">{labels.rubricHistory}</p>
       </div>
       {adding && <CostCatalogDialog catalog={catalog} rubrics={rubrics} onError={setError}
         onClose={() => setAdding(false)} onSaved={data => { setRubrics(data); setAdding(false); setSuccess("") }} />}

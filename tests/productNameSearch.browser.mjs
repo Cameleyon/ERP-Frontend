@@ -113,7 +113,7 @@ try {
     assert.ok(requests.includes(lookupPath + "/sku/CAFE-B?locationId=9"))
     assert.equal(await input.inputValue(), "Café moulu")
     assert.equal(await options.count(), 0)
-    const site = page.locator(".page-title-site-filter select")
+    const site = page.locator(inventory ? "#stock-receiving-view select" : ".page-title-site-filter select")
     await site.selectOption("10")
     await input.fill("moulu")
     await options.first().click()
@@ -121,7 +121,7 @@ try {
     assert.ok(requests.includes(lookupPath + "/sku/CAFE-A?locationId=10"))
     if (inventory) await page.locator("#receipt-cost-1").fill("25")
     await input.fill("CAFE-B")
-    assert.equal(await page.locator("p").filter({ hasText: /^SKU:/ }).count(), 0, "editing must clear the old selection")
+    assert.equal(await page.locator(inventory ? ".stock-context" : "p").filter({ hasText: inventory ? /CAFE-A/ : /^SKU:/ }).count(), 0, "editing must clear the old selection")
     await options.first().click()
     await page.waitForTimeout(150)
     assert.ok(requests.includes(lookupPath + "/sku/CAFE-B?locationId=10"))
@@ -143,10 +143,11 @@ try {
       ? ({ en: "Lookup failed", fr: "Échec de la recherche", es: "La búsqueda falló" })[language]
       : ({ en: "Lookup failed", fr: "La recherche a échoué", es: "La búsqueda falló" })[language]
     await page.getByText(lookupError, { exact: true }).waitFor()
-    assert.equal(await page.locator("p").filter({ hasText: /^SKU:/ }).count(), 0, "a mismatched product must never be selected")
+    assert.equal(await page.locator(inventory ? ".stock-context" : "p").filter({ hasText: inventory ? /CAFE-B/ : /^SKU:/ }).count(), 0, "a mismatched product must never be selected")
     if (inventory) {
       const copy = messages[language].inventoryPage
       await page.keyboard.press("Escape")
+      await page.locator(".stock-view-switch").getByRole("button", { name: copy.activeReceipts, exact: true }).click()
       const table = page.locator(".inventory-open-receipts")
       const verified = table.getByRole("row").filter({ hasText: "Test receipt" })
       const legacy = table.getByRole("row").filter({ hasText: "Legacy receipt" })
@@ -177,6 +178,7 @@ try {
         await page.keyboard.press("Escape")
       }
       mismatch = false
+      await page.locator(".stock-view-switch button").first().click()
       await input.fill("CAFE-A")
       await options.first().click()
       const cost = page.locator("#receipt-cost-1")
