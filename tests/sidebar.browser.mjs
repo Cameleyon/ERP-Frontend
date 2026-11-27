@@ -11,7 +11,7 @@ const browser = await chromium.launch({ headless: true, channel: "msedge" })
 try {
   for (const language of ["en", "fr", "es"]) for (const width of [1280, 390]) for (const role of ["ADMIN", "CASHIER"]) {
     const copy = messages[language]
-    const context = await browser.newContext({ viewport: { width, height: 900 } })
+    const context = await browser.newContext({ viewport: { width, height: 520 } })
     const page = await context.newPage()
     const errors = []
     page.on("pageerror", error => errors.push(error.message))
@@ -26,6 +26,10 @@ try {
           companySidebarColor: "#e1eef8", companyPrimaryColor: "#683fb0", companyLogoUrl: origin + "/src/assets/homepage-logo.png",
         } })
         if (url.pathname === "/api/company/subscription") return route.fulfill({ headers, json: { status: "ACTIVE" } })
+        if (url.pathname === "/api/company/locations") return route.fulfill({ headers, json: [
+          { id: 9, name: "Main site", active: true },
+          { id: 10, name: "Second site", active: true },
+        ] })
         throw new Error("Unmocked endpoint " + url.pathname)
       }
       return url.origin === origin ? route.continue() : route.abort()
@@ -52,6 +56,24 @@ try {
     assert.equal(await page.locator(".internal-shell").evaluate(node => getComputedStyle(node).getPropertyValue("--workspace-action")), "#683fb0")
     assert.equal(await sidebar.locator(".sidebar-nav button").count(), role === "ADMIN" ? 9 : 2)
     assert.equal(await sidebar.evaluate(node => node.scrollWidth <= node.clientWidth), true)
+    if (role === "ADMIN") {
+      const header = sidebar.locator(".workspace-sidebar-header")
+      const site = header.locator(".workspace-menu-site select")
+      await site.waitFor()
+      const scroller = sidebar.locator(".workspace-sidebar-scroll")
+      const before = await header.boundingBox()
+      const logout = sidebar.getByRole("button", { name: copy.common.logout, exact: true })
+      assert.equal(await scroller.evaluate(el => el.scrollHeight > el.clientHeight), true)
+      await scroller.evaluate(el => { el.scrollTop = el.scrollHeight })
+      assert.ok(await scroller.evaluate(el => el.scrollTop > 0))
+      const after = await header.boundingBox()
+      assert.ok(Math.abs(after.y - before.y) < 1, "Logo and site panel stay fixed during menu scrolling")
+      const last = await logout.boundingBox()
+      const visible = await scroller.boundingBox()
+      assert.ok(last.y + last.height <= visible.y + visible.height + 1, "The footer remains reachable")
+      await site.selectOption("10")
+      assert.equal(await header.locator(".workspace-menu-site strong").textContent(), "Second site")
+    }
     const target = role === "ADMIN" ? calendarCopy[language].settings : copy.sidebar.salesHistory
     await sidebar.getByRole("button", { name: target, exact: true }).click()
     assert.equal(await page.locator("#selected-page").textContent(), role === "ADMIN" ? "settings" : "sales-history")

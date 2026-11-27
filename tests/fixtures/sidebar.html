@@ -12,8 +12,10 @@
   function NavigationFixture() {
     const { user } = useAuth()
     const [page, setPage] = React.useState("dashboard")
+    const [menuSite, setMenuSite] = React.useState(null)
     if (!user) return React.createElement("p", { id: "signed-out" }, "Signed out")
-    return React.createElement(AppLayout, { page, onNavigate: setPage }, React.createElement("h1", { id: "selected-page" }, page))
+    return React.createElement(AppLayout, { page, onNavigate: setPage, menuSite, onMenuSiteChange: setMenuSite },
+      React.createElement("h1", { id: "selected-page" }, page))
   }
   createRoot(document.getElementById("root")).render(React.createElement(AuthProvider, null,
     React.createElement(LanguageProvider, null, React.createElement(NavigationFixture))))

@@ -50,6 +50,8 @@
   width: 248px;
   position: relative;
   height: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 20px 16px;
   justify-content: flex-start;
   gap: 16px;
@@ -57,6 +59,16 @@
   background: var(--workspace-sidebar, var(--workspace-navy));
   font: 15px/1.4 var(--workspace-font);
   overflow-wrap: anywhere;
+}
+.internal-shell .workspace-sidebar-header,
+.internal-shell .workspace-sidebar-scroll { display: flex; flex-direction: column; gap: 16px; }
+.internal-shell .workspace-sidebar-header { flex: none; }
+.internal-shell .workspace-sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-inline: -4px;
+  padding: 4px;
 }
 .internal-shell .workspace-sidebar :focus-visible { outline-color: currentColor; }
 .internal-shell .workspace-menu-site {
@@ -156,11 +168,14 @@
   background: var(--workspace-surface);
 }
 .internal-shell .workspace-menu-dialog::backdrop { background: #062e4999; }
-.internal-shell .workspace-dialog-content { padding: 12px; }
+.internal-shell .workspace-dialog-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 38px);
+  padding: 12px;
+}
 .internal-shell .workspace-dialog-actions {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  flex: none;
   display: flex;
   justify-content: end;
   padding-bottom: 10px;
@@ -174,7 +189,7 @@
   left: auto;
   box-shadow: none;
   transition: none;
-  overflow: visible;
+  flex: 0 1 auto;
 }
 
 @media (max-width: 768px) {
@@ -183,4 +198,9 @@
   .internal-shell .workspace-topbar-actions { grid-column: 1 / -1; justify-content: start; margin: 0; }
   .internal-shell .workspace-mobile-brand { display: block; min-width: 0; }
   .internal-shell .workspace-topbar .mobile-menu-button { display: inline-flex; margin: 0; }
+}
+
+@media (max-height: 340px) {
+  .internal-shell .workspace-sidebar { overflow-y: auto; }
+  .internal-shell .workspace-sidebar-scroll { flex: none; overflow: visible; }
 }
