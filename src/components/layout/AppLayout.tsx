@@ -27,9 +27,11 @@ export default function AppLayout({ children, page, onNavigate, menuSite, onMenu
     const { user } = useAuth()
     const text = internalCopy[language]
     const companyId = user?.companyId
+    const sidebarText = contrastingText(user?.companySidebarColor)
     const appearance = {
         "--workspace-sidebar": user?.companySidebarColor || undefined,
-        "--workspace-sidebar-text": contrastingText(user?.companySidebarColor),
+        "--workspace-sidebar-text": sidebarText,
+        "--workspace-sidebar-icon": user?.companySidebarColor ? sidebarText : undefined,
         "--workspace-action": user?.companyPrimaryColor || undefined,
         "--workspace-action-text": contrastingText(user?.companyPrimaryColor),
     } as CSSProperties

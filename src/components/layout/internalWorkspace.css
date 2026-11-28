@@ -177,7 +177,15 @@
 .internal-shell .workspace-sidebar .sidebar-button:hover:not(.active) { background: color-mix(in srgb, currentColor 10%, transparent); }
 .internal-shell .workspace-sidebar .sidebar-button.active:focus-visible,
 .internal-shell .workspace-sidebar button.active:focus-visible { outline-color: var(--workspace-sidebar-text); }
-.internal-shell .workspace-nav-mark { display: inline-grid; width: 18px; place-items: center; flex: none; }
+.internal-shell .workspace-nav-icon { display: block; flex: none; }
+.internal-shell .sidebar-button:not(.active) .workspace-nav-icon {
+  color: var(--workspace-sidebar-icon, var(--workspace-mint-wash));
+}
+.internal-shell .workspace-nav-label { min-width: 0; overflow-wrap: anywhere; }
+.internal-shell .workspace-sidebar .sidebar-nav .sidebar-button:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: -3px;
+}
 .internal-shell .workspace-sidebar .sidebar-footer {
   gap: 2px;
   margin: 0;
