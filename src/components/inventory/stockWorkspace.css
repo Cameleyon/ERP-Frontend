@@ -230,6 +230,11 @@
 
 @media (max-width: 768px) {
   .internal-shell .app-content:has(> .stock-workspace, > div:not([hidden]) > .stock-workspace) { padding: 16px 16px 32px; }
+  .stock-workspace.stock-stack-heading .stock-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
   .stock-workspace h1 { font-size: 26px; }
   .stock-workspace :is(h2, h3) { font-size: 18px; }
   .stock-workspace .stock-panel { padding: 12px; }

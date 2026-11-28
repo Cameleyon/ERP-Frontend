@@ -812,7 +812,7 @@ export default function ProductsPage({ guided = false, visible = true, onOpening
   }
 
   return (
-    <div className="stock-workspace">
+    <div className="stock-workspace stock-stack-heading">
       <StockHeading headingRef={headingRef}
         title={view === "editor" ? isEditMode ? text.editTitle : labels.newProduct : view === "tools" ? labels.toolTitle :
           view === "details" && detail ? detail.name : text.title}

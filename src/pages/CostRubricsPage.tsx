@@ -199,7 +199,7 @@ export default function CostRubricsPage({ onBack }: { onBack?: () => void } = {}
   }
 
   return (
-    <div className="stock-workspace">
+    <div className="stock-workspace stock-stack-heading">
       <StockHeading title={text.title} description={labels.rubricHelp}>
         {onBack && <button type="button" className="workspace-text-action" onClick={onBack}>{labels.backInventory}</button>}
       </StockHeading>

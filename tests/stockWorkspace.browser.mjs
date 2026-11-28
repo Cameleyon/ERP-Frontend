@@ -112,11 +112,27 @@ try {
       assert.ok(await page.locator("main").evaluate(node => node.scrollWidth <= node.clientWidth), prefix + " main overflow")
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), prefix + " page overflow")
     }
+    async function mobileDescriptionFits(text) {
+      if (width > 768) return
+      const description = page.locator(".stock-heading").getByText(text, { exact: true })
+      await description.waitFor()
+      assert.ok(await description.evaluate(node => {
+        const heading = node.closest(".stock-heading")
+        const bounds = node.getBoundingClientRect()
+        const actions = heading.querySelector(".stock-actions").getBoundingClientRect()
+        const range = document.createRange()
+        range.selectNodeContents(node)
+        return bounds.width >= heading.clientWidth - 1 && actions.top >= bounds.bottom &&
+          Array.from(range.getClientRects()).every(line =>
+            line.left >= bounds.left - 1 && line.right <= bounds.right + 1 && line.bottom <= bounds.bottom + 1)
+      }), prefix + " description should fit above the actions: " + text)
+    }
     const button = (name, within = page) => within.getByRole("button", { name, exact: true })
     await page.goto(origin + "/" + language)
     await page.locator(".internal-dashboard h1").waitFor()
     assert.equal(await page.locator("html").getAttribute("lang"), language)
     await nav(copy.sidebar.products)
+    await mobileDescriptionFits(labels.catalog)
     const list = page.locator(".product-list-card")
     const search = list.locator(".stock-search input")
     await button(labels.view, list).first().waitFor()
@@ -267,6 +283,7 @@ try {
     await button(inventory.confirm, row).click()
     await button(inventory.edit, row).waitFor()
     await nav(copy.sidebar.costRubrics)
+    await mobileDescriptionFits(labels.rubricHelp)
     await page.locator(".cost-catalog-table tbody tr").first().waitFor()
     assert.equal(await page.locator(".cost-catalog-table tbody tr").count(), 3)
     await fits()
